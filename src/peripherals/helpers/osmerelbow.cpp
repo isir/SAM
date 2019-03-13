@@ -141,7 +141,7 @@ void OsmerElbow::set_velocity(double value) {
     if(!_calibrated)
         return;
 
-    move_to_angle(value > 0 ? _max_angle : _min_angle, value*_incs_per_deg);
+    move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
 }
 
 void OsmerElbow::on_exit() {
