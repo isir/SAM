@@ -1,5 +1,6 @@
 #include "client.h"
 #include "casthelper.h"
+#include "factory.h"
 
 #include <QEventLoop>
 #include <QTimer>
@@ -12,6 +13,16 @@ RoboClaw::Client::Client(quint8 address, Channel channel) : _address(address), _
 
 RoboClaw::Client::~Client() {
 
+}
+
+void RoboClaw::Client::connect_to_server(QString port_name, int baudrate) {
+    RoboClaw::Server *s = RoboClaw::Factory::get(port_name,baudrate);
+    if(s != nullptr) {
+        s->register_client(this);
+    }
+    else {
+        std::cerr << "Failed to obtain server object." << std::endl;
+    }
 }
 
 void RoboClaw::Client::set_address(quint8 address, Channel channel) {

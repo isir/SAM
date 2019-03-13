@@ -12,13 +12,7 @@ PronoSupination::PronoSupination() : RoboClaw::Client()
     int baudrate = _settings.value("baudrate",230400).toInt();
 
     set_address(address,channel);
-    RoboClaw::Server *s = RoboClaw::Factory::get(port_name,baudrate);
-    if(s != nullptr) {
-        s->register_client(this);
-    }
-    else {
-        std::cerr << "Failed to obtain server object." << std::endl;
-    }
+    connect_to_server(port_name, baudrate);
 
     QObject::connect(&_menu,&ConsoleMenu::finished,this,&PronoSupination::on_exit);
 

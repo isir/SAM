@@ -18,6 +18,8 @@ public:
     Client(quint8 address = 0x80, Channel channel = M1);
     virtual ~Client();
 
+    void connect_to_server(QString port_name, int baudrate);
+
     inline quint8 address() { return _address; }
     inline Channel chan() { return _channel; }
 
