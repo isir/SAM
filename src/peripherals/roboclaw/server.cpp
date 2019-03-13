@@ -19,7 +19,7 @@ int RoboClaw::Server::baudrate() {
 }
 
 void RoboClaw::Server::register_client(Client *client) const {
-    QObject::connect(client,&Client::send_msg,this,&Server::write_msg);
+    QObject::connect(client,&Client::send_msg,this,&Server::write_msg,Qt::QueuedConnection);
 }
 
 void RoboClaw::Server::write_msg(Client* client, Message msg) {
