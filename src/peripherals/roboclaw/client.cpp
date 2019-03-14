@@ -8,17 +8,19 @@
 
 RoboClaw::Client::Client(quint8 address, Channel channel) : _address(address), _channel(channel)
 {
-
+    _callers.append(QThread::currentThread());
 }
 
 RoboClaw::Client::~Client() {
 
 }
 
-void RoboClaw::Client::connect_to_server(QString port_name, int baudrate) {
-    RoboClaw::Server *s = RoboClaw::Factory::get(port_name,baudrate);
+void RoboClaw::Client::connect_to_server(QString port_name, int baudrate, Qt::ConnectionType connection) {
+    _server_port_name = port_name;
+    _server_baudrate = baudrate;
+    RoboClaw::Server *s = RoboClaw::Factory::get(_server_port_name,_server_baudrate);
     if(s != nullptr) {
-        s->register_client(this);
+        s->register_client(this, connection);
     }
     else {
         std::cerr << "Failed to obtain server object." << std::endl;
@@ -119,6 +121,13 @@ void RoboClaw::Client::move_to(quint32 accel, quint32 speed, quint32 decel, qint
 
 QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer) {
     QByteArray ret;
+
+    if(!_callers.contains(QThread::currentThread())) {
+        _callers.append(QThread::currentThread());
+        if(_callers.size() == 2) {
+            connect_to_server(_server_port_name,_server_baudrate,Qt::QueuedConnection);
+        }
+    }
 
     if(wait_for_answer) {
         QEventLoop el;

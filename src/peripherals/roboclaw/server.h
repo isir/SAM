@@ -17,7 +17,7 @@ public:
 
     QString port_name();
     int baudrate();
-    void register_client(Client* client) const;
+    void register_client(Client* client, Qt::ConnectionType connection = Qt::AutoConnection) const;
 
 public slots:
     void write_msg(Client* client, Message msg);

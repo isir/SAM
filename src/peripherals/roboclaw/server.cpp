@@ -18,8 +18,9 @@ int RoboClaw::Server::baudrate() {
     return _sp.baudRate();
 }
 
-void RoboClaw::Server::register_client(Client *client) const {
-    QObject::connect(client,&Client::send_msg,this,&Server::write_msg,Qt::QueuedConnection);
+void RoboClaw::Server::register_client(Client *client, Qt::ConnectionType connection) const {
+    QObject::disconnect(client,&Client::send_msg,this,&Server::write_msg);
+    QObject::connect(client,&Client::send_msg,this,&Server::write_msg,static_cast<Qt::ConnectionType>(connection | Qt::UniqueConnection));
 }
 
 void RoboClaw::Server::write_msg(Client* client, Message msg) {

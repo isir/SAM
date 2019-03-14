@@ -2,6 +2,8 @@
 #define ROBOCLAWCLIENT_H
 
 #include <QObject>
+#include <QList>
+#include <QThread>
 #include "message.h"
 #include "types.h"
 
@@ -18,7 +20,7 @@ public:
     Client(quint8 address = 0x80, Channel channel = M1);
     virtual ~Client();
 
-    void connect_to_server(QString port_name, int baudrate);
+    void connect_to_server(QString port_name, int baudrate, Qt::ConnectionType connection = Qt::AutoConnection);
 
     inline quint8 address() { return _address; }
     inline Channel chan() { return _channel; }
@@ -43,6 +45,9 @@ public:
 private:
     QByteArray send(const Message& msg, bool wait_for_answer = false);
 
+    QList<QThread*> _callers;
+    QString _server_port_name;
+    int _server_baudrate;
     quint8 _address;
     Channel _channel;
 
