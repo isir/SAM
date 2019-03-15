@@ -1,7 +1,7 @@
 #include "basiccontroller.h"
 #include <QTime>
 #include <QMutexLocker>
-#include <iostream>
+#include <QDebug>
 
 BasicController::BasicController(int period_s) : _period_s(period_s)
 {
@@ -62,5 +62,5 @@ void BasicController::run() {
     }
 
     cleanup();
-    std::cout << "Thread finished - Avg loop time = " << avg << "s, min = " << min*1000. << "ms, max = " << max*1000. << "ms" << std::endl;
+    qInfo() << "Thread finished - Avg loop time = " << avg << "s, min = " << min*1000. << "ms, max = " << max*1000. << "ms";
 }

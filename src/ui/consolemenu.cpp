@@ -1,6 +1,7 @@
 #include "consolemenu.h"
 #include "consoleinput.h"
 #include <iostream>
+#include <QDebug>
 
 QList<ConsoleMenu*> ConsoleMenu::_parents;
 QList<QMetaObject::Connection> ConsoleMenu::_stream_connections;
@@ -20,7 +21,7 @@ ConsoleMenu::~ConsoleMenu()
 
 void ConsoleMenu::addItem(ConsoleMenuItem item) {
     if(_menu.contains(item.code())) {
-        std::cerr << "Cannot add \"" << item.description().toStdString() << "\" because its key \"" << item.code().toStdString() << "\" already exists." << std::endl;
+        qCritical() << "Cannot add \"" << item.description() << "\" because its key \"" << item.code() << "\" already exists.";
         return;
     }
 

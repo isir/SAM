@@ -68,14 +68,14 @@ MCP4728::MCP4728(const char *deviceName, uint8_t i2cAddress)
     _i2cPort = open(deviceName, O_RDWR);
     if (_i2cPort == -1)
     {
-        printf("MCP4728 ERROR : Failed to open I2C device %s. Error %d : %s.", deviceName, errno, strerror(errno));
+        qCritical("MCP4728 ERROR : Failed to open I2C device %s. Error %d : %s.", deviceName, errno, strerror(errno));
     }
     else {
         qDebug("### MCP4728 : Open device %s", deviceName);
     }
     if (ioctl(_i2cPort, I2C_SLAVE, i2cAddress) == -1)
     {
-        printf("MCP4728 ERROR : Failed to set address %d. Error %d : %s.", i2cAddress, errno, strerror(errno));
+        qCritical("MCP4728 ERROR : Failed to set address %d. Error %d : %s.", i2cAddress, errno, strerror(errno));
     }
 
     _vdd = defaultVDD;
@@ -112,7 +112,7 @@ Values : 0-4095
 */
 void MCP4728::analogWrite(uint16_t value1, uint16_t value2, uint16_t value3, uint16_t value4) {
     if(value1 > 4095 || value2 > 4095 || value3 > 4095 || value4 > 4095)
-        printf("MCP4728 ERROR : Analog values must be in range 0 - 4095 !\n");
+        qWarning("MCP4728 ERROR : Analog values must be in range 0 - 4095 !\n");
     else {
         _values[0] = value1;
         _values[1] = value2;
@@ -129,7 +129,7 @@ Channel : 0-3, Values : 0-4095
 */
 void MCP4728::analogWrite(uint8_t channel, uint16_t value) {
     if(value > 4095) {
-        printf("MCP4728 ERROR : Analog values must be in range 0 - 4095 !\n");
+        qWarning("MCP4728 ERROR : Analog values must be in range 0 - 4095 !\n");
         value = 4095;
     }
     _values[channel] = value;
@@ -397,7 +397,7 @@ void MCP4728::getStatus()
             }
         }
     } else {
-        printf("MCP4728 ERROR reading registers : %d byte(s) read | error %d - %s\n", readBytes, errno, strerror(errno));
+        qCritical("MCP4728 ERROR reading registers : %d byte(s) read | error %d - %s\n", readBytes, errno, strerror(errno));
     }
 }
 /*

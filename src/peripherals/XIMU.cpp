@@ -30,7 +30,7 @@
 #define QT_NO_DEBUG_OUTPUT
 #endif
 #include <QCoreApplication>
-
+#include <QDebug>
 #include "XIMU.h"
 
 #define RXBUFSIZE 256
@@ -95,17 +95,17 @@ int XIMU::detect_device(){
     unsigned int fw_major, fw_minor, device_id;
 
     if (!get_register(REGISTER_ADDRESS_FirmwareVersionMajorNum, &fw_major)){
-        printf("XIMU ERROR: no reply for firmware major register\n");
+        qCritical("XIMU ERROR: no reply for firmware major register");
         return 0;
     }
 
     if (!get_register(REGISTER_ADDRESS_FirmwareVersionMinorNum, &fw_minor)){
-        printf("XIMU ERROR: no reply for firmware minor register\n");
+        qCritical("XIMU ERROR: no reply for firmware minor register");
         return 0;
     }
 
     if (!get_register(REGISTER_ADDRESS_DeviceID, &device_id)){
-        printf("XIMU ERROR: no reply for device_id register\n");
+        qCritical("XIMU ERROR: no reply for device_id register");
         return 0;
     }
 
@@ -139,7 +139,7 @@ void XIMU::comm_thread(){
 
         for(int i=0; i<rxcount; i++){
             if (rx_packet_buffer_pos >= RX_PACKET_BUFFER_SIZE){
-                printf("XIMU ERROR: buffer overflow\n");
+                qCritical("XIMU ERROR: buffer overflow");
             }else{
                 //copy to packetbuffer
                 rx_packet_buffer[rx_packet_buffer_pos++] = rxbuf[i];
@@ -216,7 +216,7 @@ bool XIMU::get_time(struct tm *time){
 bool XIMU::open_port(const char *fn, int baudrate){
     fd=open(fn, O_RDWR | O_NOCTTY);
     if (fd == -1 ){
-        printf("XIMU ERROR : failed to open port '%s'\n",fn);
+        qCritical("XIMU ERROR : failed to open port '%s'",fn);
         return false;
     }else{
         //set serial speed

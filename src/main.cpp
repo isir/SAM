@@ -9,8 +9,47 @@
 #include "control/voluntarycontrol.h"
 #include "control/compensationoptitrack.h"
 
+static QFile info_file("/var/log/sam_info");
+static QFile err_file("/var/log/sam_err");
+
+void message_handler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+    QByteArray localMsg = msg.toLocal8Bit();
+    const char *file = context.file ? context.file : "";
+
+    switch (type) {
+    case QtDebugMsg:
+        info_file.write(QByteArray("Debug: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
+        info_file.flush();
+        break;
+    case QtInfoMsg:
+        info_file.write(QByteArray("Info: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
+        info_file.flush();
+        break;
+    case QtWarningMsg:
+        info_file.write(QByteArray("Warning: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
+        info_file.flush();
+        break;
+    case QtCriticalMsg:
+        err_file.write(QByteArray("Critical: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
+        err_file.flush();
+        break;
+    case QtFatalMsg:
+        err_file.write(QByteArray("Fatal: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
+        err_file.flush();
+        break;
+    default:
+        info_file.write(localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
+        break;
+    }
+}
+
 int main(int argc, char *argv[])
 {
+    info_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+    err_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+
+    qInstallMessageHandler(message_handler);
     QCoreApplication a(argc, argv);
 
     QCoreApplication::setOrganizationName("ISIR");
@@ -19,7 +58,7 @@ int main(int argc, char *argv[])
 
     {
         QSettings dummy;
-        std::cout << "Using settings from " << dummy.fileName().toStdString() << std::endl;
+        qInfo() << "Using settings from " << dummy.fileName();
     }
 
     wiringPiSetup();

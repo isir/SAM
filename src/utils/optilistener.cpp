@@ -132,15 +132,15 @@ optitrack_data_t OptiListener::unpack(char *pData) {
     }
     else if(tmpData.messageID == 5) // Data Descriptions
     {
-        printf("WARNING ID message : 5 -- Not yet integrated\n");
+        qWarning() << "WARNING ID message : 5 -- Not yet integrated";
     }
     else if(tmpData.messageID ==2)   // skeleton
     {
-        printf("WARNING ID message : 2 -- Not yet integrated\n");
+        qWarning() << "WARNING ID message : 2 -- Not yet integrated";
     }
     else
     {
-        printf("Unrecognized Packet Type: %d.\n",  tmpData.messageID);
+        qWarning("Unrecognized Packet Type: %d.",  tmpData.messageID);
     }
 
     //    printf("From listener : nRB : %d\n", tmpData.nRigidBodies);

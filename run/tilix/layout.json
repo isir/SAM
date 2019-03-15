@@ -1,0 +1,57 @@
+{
+    "child": {
+        "child1": {
+            "directory": "",
+            "height": 1394,
+            "overrideCommand": "ssh root@192.168.1.130 \/opt\/SAM\/bin\/SAM",
+            "profile": "2b7c4080-0ddd-46c5-8f23-563fd3ba789d",
+            "readOnly": false,
+            "synchronizedInput": true,
+            "title": "SAM",
+            "type": "Terminal",
+            "uuid": "8c6e85c6-922a-4377-93e5-8bff5c16d548",
+            "width": 872
+        },
+        "child2": {
+            "child1": {
+                "directory": "",
+                "height": 697,
+                "overrideCommand": "ssh root@192.168.1.130 '\/bin\/sleep 2s; tail -f \/var\/log\/sam_info'",
+                "profile": "2b7c4080-0ddd-46c5-8f23-563fd3ba789d",
+                "readOnly": false,
+                "synchronizedInput": true,
+                "title": "SAM Info Output",
+                "type": "Terminal",
+                "uuid": "20adced1-83d2-498d-89bd-b17ba79f72e5",
+                "width": 1637
+            },
+            "child2": {
+                "directory": "",
+                "height": 696,
+                "overrideCommand": "ssh root@192.168.1.130 '\/bin\/sleep 2s; tail -f \/var\/log\/sam_err'",
+                "profile": "2b7c4080-0ddd-46c5-8f23-563fd3ba789d",
+                "readOnly": false,
+                "synchronizedInput": true,
+                "title": "SAM Error Output",
+                "type": "Terminal",
+                "uuid": "21942115-d598-4975-a1d8-332a6979c211",
+                "width": 1637
+            },
+            "orientation": 1,
+            "position": 50,
+            "ratio": 0.5,
+            "type": "Paned"
+        },
+        "orientation": 0,
+        "position": 34,
+        "ratio": 0.347410358565737043,
+        "type": "Paned"
+    },
+    "height": 1394,
+    "name": "Default",
+    "synchronizedInput": false,
+    "type": "Session",
+    "uuid": "d43f3d7b-a68a-41fd-8a3d-99ecbb26027d",
+    "version": "1.0",
+    "width": 2510
+}

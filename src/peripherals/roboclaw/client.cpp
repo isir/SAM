@@ -4,7 +4,7 @@
 
 #include <QEventLoop>
 #include <QTimer>
-#include <iostream>
+#include <QDebug>
 
 RoboClaw::Client::Client(quint8 address, Channel channel) : _address(address), _channel(channel)
 {
@@ -23,7 +23,7 @@ void RoboClaw::Client::connect_to_server(QString port_name, int baudrate, Qt::Co
         s->register_client(this, connection);
     }
     else {
-        std::cerr << "Failed to obtain server object." << std::endl;
+        qCritical() << "Failed to obtain server object.";
     }
 }
 
@@ -71,7 +71,6 @@ double RoboClaw::Client::read_main_battery_voltage() {
 
 double RoboClaw::Client::read_current() {
     QByteArray buf = send(Message(_address,49,QByteArray(),"(.{4}).{2}"), true);
-    std::cout << "read_current " << buf.toHex().toStdString() << " " << buf.length() << std::endl;
     if(_channel == M1)
         return CastHelper::to<qint16>(buf)/100.;
     else {
@@ -138,7 +137,7 @@ QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer) {
 
         QList<QMetaObject::Connection> conns;
         conns.push_back(QObject::connect(this,&Client::answer_received_internal,[&ret,&el](QByteArray data) { ret = data; el.quit(); }));
-        conns.push_back(QObject::connect(&timer,&QTimer::timeout,[&msg]() { std::cerr << "Request timed out: " << msg.toString().toStdString() << std::endl; }));
+        conns.push_back(QObject::connect(&timer,&QTimer::timeout,[&msg]() { qCritical() << "Request timed out: " << msg.toString(); }));
         conns.push_back(QObject::connect(&timer,&QTimer::timeout,&el,&QEventLoop::quit));
 
         timer.start();

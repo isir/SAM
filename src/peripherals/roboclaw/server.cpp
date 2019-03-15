@@ -1,5 +1,4 @@
 #include "server.h"
-#include <iostream>
 
 RoboClaw::Server::Server(QString port_name, int baudrate) : QObject()
 {
@@ -38,8 +37,6 @@ void RoboClaw::Server::on_receive() {
     Client *c = _pending_messages.first().first;
     Message &msg = _pending_messages.first().second;;
     QRegExp rx(msg._regexp);
-
-    //std::cout << "on_receive " << _rcv_buffer.toHex().toStdString() << std::endl;
 
     int pos = rx.indexIn(QString::fromLatin1(_rcv_buffer.data(),_rcv_buffer.length()));
     if(pos > -1) {

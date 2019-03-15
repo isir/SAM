@@ -20,20 +20,20 @@ Adafruit_ADS1015::Adafruit_ADS1015(const char * deviceName, uint8_t i2cAddress) 
     fd = open(deviceName, O_RDWR);
     if (fd == -1)
     {
-        printf("ADS1115 ERROR : Failed to open I2C device %s. Error %d : %s.", deviceName, errno, strerror(errno));
+        qCritical("ADS1115 ERROR : Failed to open I2C device %s. Error %d : %s.", deviceName, errno, strerror(errno));
     }
     else {
-        qDebug("### ADS1115 : Open device %s", deviceName);
+        qInfo("### ADS1115 : Open device %s", deviceName);
     }
     if (ioctl(fd, I2C_SLAVE, i2cAddress) == -1)
     {
-        printf("ADS1115 ERROR : Failed to set address %d. Error %d : %s.", i2cAddress, errno, strerror(errno));
+        qCritical("ADS1115 ERROR : Failed to set address %d. Error %d : %s.", i2cAddress, errno, strerror(errno));
     }
     m_i2cAddress = i2cAddress;
     m_conversionDelay = ADS1015_CONVERSIONDELAY;
     m_bitShift = 4;
     m_gain = GAIN_TWOTHIRDS; /* +/- 6.144V range (limited to VDD +0.3V max!) */
-    qDebug("### ADS1115 : ADS1115 %s created at address %d.", deviceName, (int) i2cAddress);
+    qInfo("### ADS1115 : ADS1115 %s created at address %d.", deviceName, (int) i2cAddress);
 }
 
 
