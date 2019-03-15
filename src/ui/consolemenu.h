@@ -36,6 +36,7 @@ private:
     static QList<QMetaObject::Connection> _stream_connections;
 
 signals:
+    void activated();
     void ready_to_read();
     void finished();
 };

@@ -40,12 +40,12 @@ void ConsoleMenu::activate() {
 
     _stream_connections.append(QObject::connect(&ConsoleInput::instance(),&ConsoleInput::new_line,this,&ConsoleMenu::on_user_input));
     display();
+    emit activated();
     prepare_to_read();
 }
 
 void ConsoleMenu::prepare_to_read() {
-    std::cout << "> ";
-    std::cout.flush();
+    std::cout << "> " << std::flush;
     emit ready_to_read();
 }
 
