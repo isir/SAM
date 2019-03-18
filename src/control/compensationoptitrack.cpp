@@ -46,8 +46,9 @@ void CompensationOptitrack::start(QString filename = QString()) {
     if(filename.isEmpty())
         filename = "compensation_optitrack";
 
+    int cnt = 0;
     do {
-        int cnt = 0;
+        ++cnt;
         QString suffix = QString("_") + QString::number(cnt);
         _file.setFileName(filename + suffix);
     } while(_file.exists());
