@@ -53,7 +53,11 @@ void CompensationOptitrack::start(QString filename = QString()) {
         QString suffix = QString("_") + QString::number(cnt);
         _file.setFileName(filename + suffix);
     } while(_file.exists());
-    _file.open(QIODevice::ReadWrite);
+
+    if(!_file.open(QIODevice::ReadWrite)) {
+        qCritical() << "Failed to open" << _file.fileName() << "-" << _file.errorString();
+        return;
+    }
     _need_to_write_header = true;
 
     _time.start();
