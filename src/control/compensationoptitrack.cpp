@@ -33,6 +33,7 @@ CompensationOptitrack::CompensationOptitrack(QObject *parent) : QObject(parent),
     _menu.addItem(_pronosup.menu());
 
     QObject::connect(&_menu,&ConsoleMenu::finished,this,&CompensationOptitrack::stop);
+    QObject::connect(&_menu,&ConsoleMenu::activated,this,&CompensationOptitrack::on_activated);
 
     _optitrack.begin(_settings.value("port", 1511).toInt());
 }
@@ -164,6 +165,10 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
     ts << endl;
 
     ++_cnt;
+}
+
+void CompensationOptitrack::on_activated() {
+    _osmer.calibration();
 }
 
 void CompensationOptitrack::on_def() {

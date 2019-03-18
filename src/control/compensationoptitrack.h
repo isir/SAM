@@ -55,6 +55,7 @@ private:
     double _threshold;
 
 private slots:
+    void on_activated();
     void on_new_data(optitrack_data_t data);
     void on_def();
 };
