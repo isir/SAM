@@ -162,6 +162,8 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
         ts << data.rigidBodies[i].x << data.rigidBodies[i].y << data.rigidBodies[i].z;
     }
     ts << endl;
+
+    ++_cnt;
 }
 
 void CompensationOptitrack::on_def() {
