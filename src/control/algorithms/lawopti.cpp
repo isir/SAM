@@ -1,5 +1,5 @@
 #include "lawopti.h"
-#include <stdio.h>
+#include <QDebug>
 #include <math.h>
 
 LawOpti::LawOpti()
@@ -110,10 +110,10 @@ void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta)
 }
 
 void LawOpti::displayData(Eigen::Vector3d posEE, double beta){
-    printf("posA0: %lf; %lf, %lf\n", posA0[0], posA0[1], posA0[2]);
-    printf("posA in hip frame: %lf; %lf, %lf\n", posAinHip[0], posAinHip[1], posAinHip[2]);
-    printf("posEE: %lf; %lf, %lf\n", posEE[0], posEE[1], posEE[2]);
-    printf("posEE in hip frame: %lf; %lf, %lf\n", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
-    printf("beta: %lf \n beta_new: %lf \n", beta, beta_new);
-    printf("delta : %lf\n", delta);
+    qDebug("posA0: %lf; %lf, %lf\n", posA0[0], posA0[1], posA0[2]);
+    qDebug("posA in hip frame: %lf; %lf, %lf\n", posAinHip[0], posAinHip[1], posAinHip[2]);
+    qDebug("posEE: %lf; %lf, %lf\n", posEE[0], posEE[1], posEE[2]);
+    qDebug("posEE in hip frame: %lf; %lf, %lf\n", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
+    qDebug("beta: %lf \n beta_new: %lf \n", beta, beta_new);
+    qDebug("delta : %lf\n", delta);
 }
