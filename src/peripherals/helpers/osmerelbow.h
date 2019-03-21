@@ -19,7 +19,7 @@ public:
 
     void calibration();
     double angle();
-    void move_to_angle(double angle, int speed = 30, bool block = false);
+    void move_to_angle(double angle, double speed = 30, bool block = false);
     void set_velocity(double value);
 
 private:

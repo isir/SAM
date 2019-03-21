@@ -12,6 +12,8 @@ class Message {
 public:
     explicit Message();
     explicit Message(uint8_t address, uint8_t command, QByteArray payload = QByteArray(), QString regexp = QString(), bool append_crc = true);
+    Message(const Message &other) { _data = other._data; _answer = other._answer; _regexp = other._regexp; }
+    ~Message() {}
 
     QString toString() const;
 

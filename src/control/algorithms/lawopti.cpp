@@ -12,7 +12,7 @@ LawOpti::~LawOpti()
 
 
 void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, unsigned int freq){
-    posA0 = posA;
+    posA0 = Eigen::Vector3d::Zero();;
     posAinHip = posA;
 
     posEEinHip = posEE;
@@ -102,7 +102,8 @@ void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta)
     debug[3] = posEE[0];
     debug[4] = posEE[1];
     debug[5] = posEE[2];
-    debug[9] = delta;
+    debug[6] = delta;
+    debug[9] = beta_new;
     debug[10] = beta;
     debug[11] = dBeta;
     debug[12] = betaDot;
@@ -115,5 +116,4 @@ void LawOpti::displayData(Eigen::Vector3d posEE, double beta){
     qDebug("posEE: %lf; %lf, %lf", posEE[0], posEE[1], posEE[2]);
     qDebug("posEE in hip frame: %lf; %lf, %lf", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
     qDebug("beta: %lf \n beta_new: %lf", beta, beta_new);
-    qDebug("delta : %lf", delta);
 }

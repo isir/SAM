@@ -2,6 +2,7 @@
 #define VOLUNTARYCONTROL_H
 
 #include <QSettings>
+#include <QFile>
 #include "basiccontroller.h"
 #include "peripherals/helpers/osmerelbow.h"
 
@@ -17,6 +18,8 @@ private:
     void loop(double dt, double time);
     void cleanup();
 
+    QFile _file;
+    bool _need_to_write_header;
     QSettings _settings;
     OsmerElbow& _osmer;
 

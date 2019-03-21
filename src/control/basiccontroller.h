@@ -14,6 +14,7 @@ public:
     virtual ~BasicController();
 
     void set_period(double seconds);
+    double return_period(){return _period_s;}
     ConsoleMenu& menu() { return _menu; }
 
 public slots:

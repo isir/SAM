@@ -24,6 +24,8 @@ public:
 
     void start(QString filename);
     void stop();
+    void zero();
+    void display_parameters();
 
 private:
     OsmerElbow& _osmer;

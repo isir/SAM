@@ -5,6 +5,7 @@
 #include <QCoreApplication>
 #include <QTime>
 #include <QThread>
+#include <QDebug>
 
 OsmerElbow::OsmerElbow() : RoboClaw::Client(),
     _calibrated(false)
@@ -35,6 +36,7 @@ OsmerElbow::OsmerElbow() : RoboClaw::Client(),
     _menu.addItem(ConsoleMenuItem("Calibrate","calib",[this](QString){ this->calibration(); }));
     _menu.addItem(ConsoleMenuItem("Read encoder","e",[this](QString){ std::cout << this->read_encoder_position() << std::endl; }));
     _menu.addItem(ConsoleMenuItem("Go to","g",[this](QString args){ if(!args.isEmpty()) this->move_to_angle(args.toInt(),10); }));
+    _menu.addItem(ConsoleMenuItem("Set velocity (deg/s)","v",[this](QString args = "0"){ if(!args.isEmpty()) this->set_velocity(args.toInt()); }));
 
     RoboClaw::velocity_pid_params_t v_params = {};
     _settings.beginGroup("Velocity_PID");
@@ -90,7 +92,7 @@ void OsmerElbow::calibration() {
     forward(0);
     _calibrated = true;
 
-    move_to_angle(-90,10);
+    move_to_angle(-90,20);
 
     RoboClaw::position_pid_params_t p_params = read_position_pid();
     _settings.beginGroup("Position_PID");
@@ -111,12 +113,12 @@ double OsmerElbow::angle() {
  * \param speed Default is 30°/s
  * \return
  */
-void OsmerElbow::move_to_angle(double angle, int speed, bool block) {
+void OsmerElbow::move_to_angle(double angle, double speed, bool block) {
     if(!_calibrated)
         return;
 
     qint32 target = static_cast<qint32>(angle*_incs_per_deg);
-    move_to(speed*_incs_per_deg*2,speed*_incs_per_deg,speed*_incs_per_deg*2,target);
+    move_to(qRound(speed*_incs_per_deg*2),qRound(speed*_incs_per_deg),qRound(speed*_incs_per_deg*2),target);
 
     if(block) {
         int threshold = 10000;
@@ -132,10 +134,19 @@ void OsmerElbow::move_to_angle(double angle, int speed, bool block) {
  * \param value velocity (degs/s)
  */
 void OsmerElbow::set_velocity(double value) {
+    static bool locked = false;
+
     if(!_calibrated)
         return;
 
-    move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
+    if (value == 0 && !locked){
+        move_to_angle(angle());
+        locked = true;
+    }
+    else if(value != 0) {
+        move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
+        locked = false;
+    }
 }
 
 void OsmerElbow::on_exit() {
