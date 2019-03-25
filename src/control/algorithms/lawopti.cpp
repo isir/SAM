@@ -1,6 +1,8 @@
 #include "lawopti.h"
 #include <QDebug>
 #include <math.h>
+#include <iostream>
+#include <eigen3/Eigen/Geometry>
 
 LawOpti::LawOpti()
 {
@@ -10,9 +12,8 @@ LawOpti::~LawOpti()
 {
 }
 
-
-void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, unsigned int freq){
-    posA0 = Eigen::Vector3d::Zero();;
+void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, unsigned int freq){
+    posA0 = Eigen::Vector3d::Zero();
     posAinHip = posA;
 
     posEEinHip = posEE;
@@ -22,6 +23,22 @@ void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, unsign
 
     posEE_filt = posEE;
     posEE_filt_old = posEE;
+
+    posHip0 = Eigen::Vector3d::Zero();
+    qHip0.w() = 0.;
+    qHip0.x() = 0.;
+    qHip0.y() = 0.;
+    qHip0.z() = 0.;
+    qHip_filt_old = qHip;
+    qHip_filt.w() = 0.;
+    qHip_filt.x() = 0.;
+    qHip_filt.y() = 0.;
+    qHip_filt.z() = 0.;
+
+    qHip_relative.w() = 0.;
+    qHip_relative.x() = 0.;
+    qHip_relative.y() = 0.;
+    qHip_relative.z() = 0.;
 
     samplePeriod = 1./freq;
     coeff = samplePeriod/(0.03 + samplePeriod);
@@ -35,22 +52,113 @@ void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, unsign
 }
 
 /**
- * @brief LawOpti::initialAcromionPosition compute the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
+ * @brief LawOpti::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
+ *  and the initial position + orientation of the hip cluster = mean over the initCounts first measures
  * @param posA cartesian coordinates of the acromion marker (from optitrack)
+ * @param posHip cartesian coordinates of the hip marker (from optitrack)
+ * @param qHip quaternions of the hip marker (from optitrack)
  * @param initCounter counter of time steps
  * @param initCounts number of time step to take into account to compute the initial position
  */
-void LawOpti::initialAcromionPosition(Eigen::Vector3d posA, int initCounter, int initCounts){
+void LawOpti::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record, int initCounter, int initCounts){
     if (initCounter<initCounts){
         posA0 += posA;
+        posHip0 +=posHip;
+        qHip0.w() += qHip.w();
+        qHip0.x() += qHip.x();
+        qHip0.y() += qHip.y();
+        qHip0.z() += qHip.z();
+        qFA0.w() += qFA_record.w();
+        qFA0.x() += qFA_record.x();
+        qFA0.y() += qFA_record.y();
+        qFA0.z() += qFA_record.z();
+
     }
 
     if (initCounter == initCounts){
         posA0 += posA;
         posA0 = posA0/initCounts;
+
+        posHip0 += posHip;
+        posHip0 = posHip0/initCounts;
+
+        qHip0.w() += qHip.w();
+        qHip0.x() += qHip.x();
+        qHip0.y() += qHip.y();
+        qHip0.z() += qHip.z();
+
+        qHip0.w() = qHip0.w()/initCounts;
+        qHip0.x() = qHip0.x()/initCounts;
+        qHip0.y() = qHip0.y()/initCounts;
+        qHip0.z() = qHip0.z()/initCounts;
+
+        qHip0 = qHip0.normalized();
+
+        qFA0.w() += qFA_record.w();
+        qFA0.x() += qFA_record.x();
+        qFA0.y() += qFA_record.y();
+        qFA0.z() += qFA_record.z();
+
+        qFA0.w() = qFA0.w()/initCounts;
+        qFA0.x() = qFA0.x()/initCounts;
+        qFA0.y() = qFA0.y()/initCounts;
+        qFA0.z() = qFA0.z()/initCounts;
+
+        qFA0 = qFA0.normalized();
     }
 }
 
+void LawOpti::rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record){
+    qHip_filt.w() = qHip_filt_old.w() + coeff*(qHip.w()  - qHip_filt_old.w());
+    qHip_filt.x() = qHip_filt_old.x() + coeff*(qHip.x()  - qHip_filt_old.x());
+    qHip_filt.y() = qHip_filt_old.y() + coeff*(qHip.y()  - qHip_filt_old.y());
+    qHip_filt.z() = qHip_filt_old.z() + coeff*(qHip.z()  - qHip_filt_old.z());
+
+//    qHip_filt = qHip_filt.normalized();
+//    qHip_relative = qHip_filt*qHip0.conjugate(); // for IMU quaternion definition
+    qHip_relative = qHip_filt.normalized().conjugate()*qHip0;
+    qHip_relative = qHip_relative.normalized();
+//    qHip_relative = quat_multiply(qHip_filt,quat_conj(qHip0));
+
+    ///  From quaternions to orientation
+    /// for IMU quaternion definition
+//    R11 = 2*qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.x()*qHip_relative.x();
+//    R21 = 2*(qHip_relative.x()*qHip_relative.y() - qHip_relative.w()*qHip_relative.z());
+//    R31 = 2*(qHip_relative.x()*qHip_relative.z() + qHip_relative.w()*qHip_relative.y());
+
+//    R12 = 2*(qHip_relative.x()*qHip_relative.y() + qHip_relative.w()*qHip_relative.z());
+//    R22 = 2* qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.y()*qHip_relative.y();
+//    R32 = 2*(qHip_relative.y()*qHip_relative.z() - qHip_relative.w()*qHip_relative.x());
+
+//    R13 = 2*(qHip_relative.x()*qHip_relative.z() - qHip_relative.w()*qHip_relative.y());
+//    R23 = 2*(qHip_relative.y()*qHip_relative.z() + qHip_relative.w()*qHip_relative.x());
+//    R33 = 2* qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.z()*qHip_relative.z();
+
+    /// For optitrack quaternion definition
+    R = qHip_relative.toRotationMatrix();
+    //ea = R.eulerAngles(2,1,0).cast<double>();
+
+    qFA = qFA;
+    qFA_relative = qFA.normalized().conjugate()*qFA0;
+////    qFA_relative = quat_multiply(qFA0,quat_multiply(qFA,quat_multiply(quat_conj(qFA0),quat_conj(qFA0))));
+
+//    ///  From quaternions to orientation
+
+
+}
+
+void LawOpti::initialAcromionPositionInHip(){
+    // project initial position of acromion in hip frame
+    posA0inHip = R*(posA0-posHip0);
+}
+
+void LawOpti::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip){
+
+    // project in hip frame
+    posAinHip  = R*(posA-posHip);
+    posEEinHip = R*(posEE-posHip);
+
+}
 
 void LawOpti::filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE){
     posA_filt = posA_filt_old + coeff*(posA - posA_filt_old);
@@ -60,6 +168,7 @@ void LawOpti::filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE){
 void LawOpti::bufferingOldValues(){
     posA_filt_old = posA_filt;
     posEE_filt_old = posEE_filt;
+    qHip_filt_old = qHip_filt;
 }
 
 /**
@@ -71,7 +180,8 @@ void LawOpti::bufferingOldValues(){
  */
 void LawOpti::controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, int lambda, double threshold){
     // delta = distance between the initial acromion position (considered as the reference position) and the actual end-effector position
-    delta = (posEE-posA0).norm();
+//    delta = (posEE-posA0).norm();
+    delta = (posEEinHip-posA0inHip).norm();
 
     // limit conditions
     if (delta>(Lua+Lfa))
@@ -96,12 +206,12 @@ void LawOpti::controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double 
 }
 
 void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta){
-    debug[0] = posA0[0];
-    debug[1] = posA0[1];
-    debug[2] = posA0[2];
-    debug[3] = posEE[0];
-    debug[4] = posEE[1];
-    debug[5] = posEE[2];
+    debug[0] = posA0inHip[0];
+    debug[1] = posA0inHip[1];
+    debug[2] = posA0inHip[2];
+    debug[3] = posEEinHip[0];
+    debug[4] = posEEinHip[1];
+    debug[5] = posEEinHip[2];
     debug[6] = delta;
     debug[9] = beta_new;
     debug[10] = beta;
@@ -111,8 +221,8 @@ void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta)
 }
 
 void LawOpti::displayData(Eigen::Vector3d posEE, double beta){
-    qDebug("posA0: %lf; %lf, %lf", posA0[0], posA0[1], posA0[2]);
-    qDebug("posA in hip frame: %lf; %lf, %lf", posAinHip[0], posAinHip[1], posAinHip[2]);
+    //qDebug("posA0 : %lf; %lf, %lf", posA0[0], posA0[1], posA0[2]);
+    qDebug("posA0 in hip frame: %lf; %lf, %lf", posA0inHip[0], posA0inHip[1], posA0inHip[2]);
     qDebug("posEE: %lf; %lf, %lf", posEE[0], posEE[1], posEE[2]);
     qDebug("posEE in hip frame: %lf; %lf, %lf", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
     qDebug("beta: %lf \n beta_new: %lf", beta, beta_new);

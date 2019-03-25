@@ -26,6 +26,7 @@ public:
     void stop();
     void zero();
     void display_parameters();
+    void display_optiData();
 
 private:
     OsmerElbow& _osmer;
@@ -59,6 +60,7 @@ private:
 private slots:
     void on_activated();
     void on_new_data(optitrack_data_t data);
+    void read_optiData(optitrack_data_t data);
     void on_def();
 };
 
