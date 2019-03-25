@@ -40,6 +40,16 @@ void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen:
     qHip_relative.y() = 0.;
     qHip_relative.z() = 0.;
 
+    qFA0.w() = 0.;
+    qFA0.x() = 0.;
+    qFA0.y() = 0.;
+    qFA0.z() = 0.;
+
+    qFA_relative.w() = 0.;
+    qFA_relative.x() = 0.;
+    qFA_relative.y() = 0.;
+    qFA_relative.z() = 0.;
+
     samplePeriod = 1./freq;
     coeff = samplePeriod/(0.03 + samplePeriod);
 
@@ -138,9 +148,10 @@ void LawOpti::rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_r
     R = qHip_relative.toRotationMatrix();
     //ea = R.eulerAngles(2,1,0).cast<double>();
 
-    qFA = qFA;
+    qFA = qFA_record;
     qFA_relative = qFA.normalized().conjugate()*qFA0;
-////    qFA_relative = quat_multiply(qFA0,quat_multiply(qFA,quat_multiply(quat_conj(qFA0),quat_conj(qFA0))));
+    /// For optitrack quaternion definition
+    R_FA = qFA_relative.toRotationMatrix();
 
 //    ///  From quaternions to orientation
 
@@ -205,6 +216,27 @@ void LawOpti::controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double 
     betaDot = lambda*dBeta;
 }
 
+/**
+ * @brief LawOpti::controlLawWrist control law for prono-supination
+ * @param lambdaW gain of the integrator for wrist
+ * @param thresholdW threshold of activation in rad
+ */
+void LawOpti::controlLawWrist(int lambdaW, double thresholdW){
+
+    phi = atan2(R_FA(1,2), R_FA(2,2));  //rotation around X-axis
+    theta = -atan(R_FA(0,2)/sqrt(1-R_FA(0,2)*R_FA(0,2)));   //rotation around Y-axis
+    wristAngle_new = atan2(R_FA(0,1), R_FA(0,0)); //rotation around Z-axis
+
+    if (abs(wristAngle_new)<thresholdW)
+        wristVel = 0.;
+    else if (wristAngle_new<-thresholdW){
+        //        wristVel = lambdaW*sign*(wristAngle_new-thresholdW);
+        wristVel = lambdaW*(wristAngle_new+thresholdW);}
+    else if (wristAngle_new>thresholdW){
+        //        wristVel = lambdaW*sign*(wristAngle_new-thresholdW);
+        wristVel = lambdaW*(wristAngle_new-thresholdW);}
+}
+
 void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta){
     debug[0] = posA0inHip[0];
     debug[1] = posA0inHip[1];
@@ -217,6 +249,10 @@ void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta)
     debug[10] = beta;
     debug[11] = dBeta;
     debug[12] = betaDot;
+    debug[13] = phi;
+    debug[14] = theta;
+    debug[15] = wristAngle_new;
+    debug[16] = wristVel;
 
 }
 

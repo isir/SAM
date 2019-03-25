@@ -16,7 +16,9 @@ CompensationOptitrack::CompensationOptitrack(QObject *parent) : QObject(parent),
     _Lfa(0.),
     _lsh(-35),
     _lambda(0),
-    _threshold(0.)
+    _threshold(0.),
+    _lambdaW(0),
+    _thresholdW(5.)
 {
     _settings.beginGroup("CompensationOptitrack");
 
@@ -58,6 +60,8 @@ void CompensationOptitrack::display_parameters(){
     qDebug("Lfa:%lf",_Lfa);
     qDebug("Lua:%lf",_Lua);
     qDebug("Threshold (in rad):%lf",_threshold);
+    qDebug("Threshold wrist (in rad):%lf",_thresholdW);
+    qDebug("lambda wrist :%d",_lambdaW);
 }
 
 void CompensationOptitrack::display_optiData(){
@@ -151,7 +155,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
     int btn_sync = digitalRead(_settings.value("btn_sync", 29).toInt());
 
     Eigen::Vector3d posA, posElbow, posEE, posHip;
-    Eigen::Quaterniond qHip;
+    Eigen::Quaterniond qHip, qFA;
     double timeWithDelta = _time.elapsed() / 1000.;
     double deltaTtable = timeWithDelta - _previous_elapsed;
     double absTtable = _abs_time.elapsed() / 1000.;
@@ -167,7 +171,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
 
     double debugData[35];
 
-    int index_acromion = -1, index_EE = -1, index_elbow = -1, index_hip = -1;
+    int index_acromion = -1, index_FA = -1, index_EE = -1, index_elbow = -1, index_hip = -1;
 
     for (int i = 0; i < data.nRigidBodies; i++){
         if(data.rigidBodies[i].ID == _settings.value("acromion_id", 3).toInt()) {
@@ -175,6 +179,13 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
             posA[1] = data.rigidBodies[i].y*100;
             posA[2] = data.rigidBodies[i].z*100;
             index_acromion = i;
+        }
+        else if(data.rigidBodies[i].ID == _settings.value("fa_id", 4).toInt()) {
+            qFA.w() = data.rigidBodies[i].qw;
+            qFA.x() = data.rigidBodies[i].qx;
+            qFA.y() = data.rigidBodies[i].qy;
+            qFA.z() = data.rigidBodies[i].qz;
+            index_FA = i;
         }
         else if(data.rigidBodies[i].ID == _settings.value("elbow_id", 6).toInt()) {
             posElbow[0] = data.rigidBodies[i].x*100;
@@ -198,6 +209,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
             qHip.z() = data.rigidBodies[i].qz;
             index_hip = i;
         }
+
     }
 
     double beta = _osmer.angle() * M_PI/180.;
@@ -222,18 +234,19 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
         _lawopti.initialization(posA, posEE, posHip, qHip, opti_freq);
     }
     else if(_cnt <= init_cnt) {
-        _lawopti.initialPositions(posA,posHip, qHip, _cnt, init_cnt);
+        _lawopti.initialPositions(posA,posHip, qHip, qFA, _cnt, init_cnt);
         if (_cnt == init_cnt){
-        _lawopti.rotationMatrices(qHip);
+        _lawopti.rotationMatrices(qHip, qFA);
         _lawopti.initialAcromionPositionInHip();
         _lawopti.bufferingOldValues();
         }
         _lawopti.filter_optitrackData(posA, posEE);
     }
     else {
-        _lawopti.rotationMatrices(qHip);
+        _lawopti.rotationMatrices(qHip, qFA);
         _lawopti.projectionInHip(posA, posEE, posHip);
         _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _lambda, _threshold);
+        _lawopti.controlLawWrist(_lambdaW, _thresholdW);
         _osmer.set_velocity(_lawopti.returnBetaDot_deg());
         _lawopti.bufferingOldValues();
 
@@ -290,7 +303,10 @@ void CompensationOptitrack::on_def() {
         _lambda = tmp;
 
         ts >> tmp;
-        _threshold = tmp*M_PI/180.; // dead zone limit for trunk, in rad.
+        _threshold = tmp*M_PI/180.; // dead zone limit for beta change, in rad.
+
+        _thresholdW = 5*M_PI/180;  // dead zone limit for wrist angle change, in rad.
+        _lambdaW = 5;
 
 
     }

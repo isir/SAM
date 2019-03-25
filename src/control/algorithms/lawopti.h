@@ -18,9 +18,11 @@ public:
     void filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE);
     void bufferingOldValues();
     void controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, int lambda, double threshold);
+    void controlLawWrist(int lambdaW, double thresholdW);
     void writeDebugData(double debug[], Eigen::Vector3d posEE, double beta);
     void displayData(Eigen::Vector3d posEE, double beta);
     double returnBetaDot_deg() { return betaDot*180./M_PI; }
+    double returnWristVel_deg() { return wristVel*180./M_PI; }
 
 private:
     Eigen::Vector3d posA0; // initial position of the acromion
@@ -38,12 +40,13 @@ private:
     double samplePeriod;
     double coeff; // coefficient for low-pass filtering
 
-    Eigen::Quaterniond qFA; // quaternion of forearm cluster
+    Eigen::Quaterniond qFA, qFA0, qFA_relative; // quaternion of forearm cluster
 
-    Eigen::Matrix3d R; // term of rotation matrix of hip frame in initial hip frame
+    Eigen::Matrix3d R, R_FA; // term of rotation matrix of hip frame in initial hip frame anf of FA in initial FA frame
     double R11, R12, R13, R21, R22, R23, R31, R32, R33;
     Eigen::Vector3d ea;
-    double phi, theta, psi; // euler angles
+    double phi, theta, wristAngle_new; // euler angles for wrist frame
+    double wristVel;
 };
 
 #endif // LAWOPTI_H
