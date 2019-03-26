@@ -262,4 +262,6 @@ void LawOpti::displayData(Eigen::Vector3d posEE, double beta){
     qDebug("posEE: %lf; %lf, %lf", posEE[0], posEE[1], posEE[2]);
     qDebug("posEE in hip frame: %lf; %lf, %lf", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
     qDebug("beta: %lf \n beta_new: %lf", beta, beta_new);
+    qDebug("phi: %lf -- theta: %lf  -- wristAngle: %lf", phi, theta, wristAngle_new);
+    qDebug("Wrist velocity: %lf",wristVel);
 }

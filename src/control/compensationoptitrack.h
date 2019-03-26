@@ -54,8 +54,8 @@ private:
     double _Lua;
     double _Lfa;
     int _lsh;
-    int _lambda, _lambdaW;
-    double _threshold, _thresholdW;
+    int _lambdaW, _lambda;
+    double _thresholdW, _threshold;
 
 private slots:
     void on_activated();

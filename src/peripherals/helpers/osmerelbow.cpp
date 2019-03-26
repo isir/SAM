@@ -92,7 +92,7 @@ void OsmerElbow::calibration() {
     forward(0);
     _calibrated = true;
 
-    move_to_angle(-90,20);
+    move_to_angle(0,20);
 
     RoboClaw::position_pid_params_t p_params = read_position_pid();
     _settings.beginGroup("Position_PID");

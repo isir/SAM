@@ -230,6 +230,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
         if(_Lua == 0 && _Lfa == 0) {
             _Lua = qRound((posElbow - posA).norm());
             _Lfa = qRound((posElbow - posEE).norm());
+            qDebug("Lua: %lf, Lfa: %lf",_Lua,_Lfa);
         }
         _lawopti.initialization(posA, posEE, posHip, qHip, opti_freq);
     }
@@ -248,6 +249,20 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
         _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _lambda, _threshold);
         _lawopti.controlLawWrist(_lambdaW, _thresholdW);
         _osmer.set_velocity(_lawopti.returnBetaDot_deg());
+//        if (_lawopti.returnWristVel_deg()>0)
+//            _pronosup.forward(64);
+//        else if (_lawopti.returnWristVel_deg()<0)
+//            _pronosup.backward(64);
+//        else if (_lawopti.returnWristVel_deg()==0)
+//            _pronosup.forward(0);
+
+        if (_lawopti.returnWristVel_deg()>0)
+            _pronosup.move_to(6000,_lawopti.returnWristVel_deg()*100,6000,35000);
+        else if (_lawopti.returnWristVel_deg()<0)
+            _pronosup.move_to(6000,-_lawopti.returnWristVel_deg()*100,6000,-35000);
+        else if (_lawopti.returnWristVel_deg()==0)
+            _pronosup.forward(0);
+
         _lawopti.bufferingOldValues();
 
         if (_cnt % _settings.value("display_count", 50).toInt() == 0){
@@ -266,6 +281,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data) {
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
     ts << ' ' << debugData[3] << ' ' << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
     ts << ' ' << debugData[9] << ' ' << debugData[10] << ' ' << debugData[11] << ' ' << debugData[12] <<  ' ' << _lambda << ' ' << data.nRigidBodies;
+    ts << ' ' << debugData[13] << ' ' << debugData[14] << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW;
 
     for(int i = 0; i < data.nRigidBodies; i++){
         ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
@@ -305,8 +321,8 @@ void CompensationOptitrack::on_def() {
         ts >> tmp;
         _threshold = tmp*M_PI/180.; // dead zone limit for beta change, in rad.
 
-        _thresholdW = 5*M_PI/180;  // dead zone limit for wrist angle change, in rad.
-        _lambdaW = 5;
+        _thresholdW = 2*M_PI/180;  // dead zone limit for wrist angle change, in rad.
+        _lambdaW = 2;
 
 
     }
