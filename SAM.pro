@@ -17,6 +17,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 HEADERS += \
         src/control/algorithms/lawopti.h \
+        src/control/algorithms/myocontrol.h \
         src/control/basiccontroller.h \
         src/control/compensationoptitrack.h \
         src/control/demo.h \
@@ -52,6 +53,7 @@ HEADERS += \
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
+        src/control/algorithms/myocontrol.cpp \
         src/control/basiccontroller.cpp \
         src/control/compensationoptitrack.cpp \
         src/control/demo.cpp \
