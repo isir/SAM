@@ -1,8 +1,8 @@
 #ifndef MYOCONTROL_H
 #define MYOCONTROL_H
 
-#include <stdio.h>
 #include <algorithm>
+#include <stdio.h>
 
 /**
  * \brief The MyoControl class allows to use state machine based algorithms to achieve EMGs control.
@@ -11,8 +11,7 @@
  *  - init this control
  *  - call the getJointAction method
  */
-class MyoControl
-{
+class MyoControl {
 
 public:
     /**
@@ -81,105 +80,92 @@ public:
      */
     enum CONTROL_TYPE {
         NO_CONTROL,
-        COCO_CONTROL,           // Classic cocontraction control
-        BUBBLE_COCO_CONTROL,    // Classic cocontraction control with intermediate thresholds
-        PROP_CONTROL,           // Classic proportionnal control
-        BUBBLE_PROP_CONTROL     // Classic proportionnal control with intermediate thresholds
+        COCO_CONTROL, // Classic cocontraction control
+        BUBBLE_COCO_CONTROL, // Classic cocontraction control with intermediate thresholds
+        PROP_CONTROL, // Classic proportionnal control
+        BUBBLE_PROP_CONTROL // Classic proportionnal control with intermediate thresholds
     };
 
     MyoControl();
-    void                init();
-    JOINT_ACTION        getJointAction(int emg1, int emg2);
-    void                jumpThisMode();
+    void init();
+    JOINT_ACTION getJointAction(int emg1, int emg2);
+    void jumpThisMode();
 
-    void                initCocontractionControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int threshold_emg1, int threshold_emg2,
-                                        int cocontraction_threshold_emg1, int cocontraction_threshold_emg2);
+    void initCocontractionControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int threshold_emg1, int threshold_emg2, int cocontraction_threshold_emg1, int cocontraction_threshold_emg2);
+    void initPropControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int threshold_high_forarm_emg1, int threshold_low_forarm_emg1, int threshold_high_forarm_emg2, int threshold_low_forarm_emg2, int cocontraction_threshold_emg1, int cocontraction_threshold_emg2, int deltaTInCount, int threshold_elbow_emg1 = 0, int threshold_elbow_emg2 = 0);
+    void initBubbleCocontractionControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int counts_before_bubble, int counts_after_bubble, int threshold_high_emg1, int threshold_low_emg1, int threshold_high_emg2, int threshold_low_emg2, int cocontraction_threshold_emg1, int cocontraction_threshold_emg2);
+    void initBubblePropControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int counts_before_bubble, int counts_after_bubble, int threshold_high_forarm_emg1, int threshold_low_forarm_emg1, int threshold_high_forarm_emg2, int threshold_low_forarm_emg2, int cocontraction_threshold_emg1, int cocontraction_threshold_emg2, int deltaTInCount, int threshold_high_elbow_emg1, int threshold_low_elbow_emg1, int threshold_high_elbow_emg2, int threshold_low_elbow_emg2);
 
-    void                initPropControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int threshold_high_forarm_emg1, int threshold_low_forarm_emg1,
-                                        int threshold_high_forarm_emg2, int threshold_low_forarm_emg2, int cocontraction_threshold_emg1, int cocontraction_threshold_emg2, int deltaTInCount,
-                                        int threshold_elbow_emg1 = 0, int threshold_elbow_emg2 = 0);
+    int getCurrentMode() { return _current_mode; }
+    int getOldMode() { return _old_mode; }
+    bool hasChangedMode() { return _has_changed_mode; }
 
-    void                initBubbleCocontractionControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int counts_before_bubble, int counts_after_bubble,
-                                        int threshold_high_emg1, int threshold_low_emg1, int threshold_high_emg2, int threshold_low_emg2, int cocontraction_threshold_emg1,
-                                        int cocontraction_threshold_emg2);
-
-    void                initBubblePropControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int counts_before_bubble, int counts_after_bubble,
-                                        int threshold_high_forarm_emg1, int threshold_low_forarm_emg1, int threshold_high_forarm_emg2, int threshold_low_forarm_emg2, int cocontraction_threshold_emg1,
-                                        int cocontraction_threshold_emg2, int deltaTInCount, int threshold_high_elbow_emg1, int threshold_low_elbow_emg1, int threshold_high_elbow_emg2,
-                                        int threshold_low_elbow_emg2);
-
-    int                 getCurrentMode() {return _current_mode;}
-    int                 getOldMode() {return _old_mode;}
-    bool                hasChangedMode() {return _has_changed_mode;}
-
-    void                setControlType(CONTROL_TYPE type);
-
+    void setControlType(CONTROL_TYPE type);
 
 private:
-    JOINT_ACTION               _cocontractionStateMachine(int emg1, int emg2);
-    JOINT_ACTION               _propStateMachine(int emg1, int emg2);
-    JOINT_ACTION               _bubbleCocontractionStateMachine(int emg1, int emg2);
-    JOINT_ACTION               _bubblePropStateMachine(int emg1, int emg2);
+    JOINT_ACTION _cocontractionStateMachine(int emg1, int emg2);
+    JOINT_ACTION _propStateMachine(int emg1, int emg2);
+    JOINT_ACTION _bubbleCocontractionStateMachine(int emg1, int emg2);
+    JOINT_ACTION _bubblePropStateMachine(int emg1, int emg2);
 
     /// Specific to all controls
-    int             _emg1;
-    int             _emg2;
-    CONTROL_TYPE    _control_type;
+    int _emg1;
+    int _emg2;
+    CONTROL_TYPE _control_type;
 
-    MODE            _current_mode;
-    MODE            _old_mode;
-    bool            _has_changed_mode;
+    MODE _current_mode;
+    MODE _old_mode;
+    bool _has_changed_mode;
 
-    int             _counts_after_modes;
-    int             _counter_after_modes;
-    int             _counts_cocontraction;
-    int             _counter_cocontraction;
-    bool            _smoothly_changed_mode;
+    int _counts_after_modes;
+    int _counter_after_modes;
+    int _counts_cocontraction;
+    int _counter_cocontraction;
+    bool _smoothly_changed_mode;
 
     /// Specific to coco control
-    bool            _has_init_cocontraction;
-    MODE*           _sequence_modes;
-    int             _sequence_modes_index;
-    int             _sequence_modes_size;
-    int             _cocontraction_threshold_emg1;
-    int             _cocontraction_threshold_emg2;
-    int             _threshold_emg1;
-    int             _threshold_emg2;
+    bool _has_init_cocontraction;
+    MODE* _sequence_modes;
+    int _sequence_modes_index;
+    int _sequence_modes_size;
+    int _cocontraction_threshold_emg1;
+    int _cocontraction_threshold_emg2;
+    int _threshold_emg1;
+    int _threshold_emg2;
 
     /// Specific to bubble coco control
-    bool            _has_init_bubble_cocontraction;
-    int             _threshold_high_emg1;
-    int             _threshold_low_emg1;
-    int             _threshold_high_emg2;
-    int             _threshold_low_emg2;
-    int             _activated_emg;
+    bool _has_init_bubble_cocontraction;
+    int _threshold_high_emg1;
+    int _threshold_low_emg1;
+    int _threshold_high_emg2;
+    int _threshold_low_emg2;
+    int _activated_emg;
 
     /// Specific to bubble modes
-    int             _counter_before_bubble;
-    int             _counts_before_bubble;
-    int             _counter_after_bubble;
-    int             _counts_after_bubble;
-    int             _current_bubble_mode;
+    int _counter_before_bubble;
+    int _counts_before_bubble;
+    int _counter_after_bubble;
+    int _counts_after_bubble;
+    int _current_bubble_mode;
 
     /// Specific to prop control
-    int*            _old_emg1;
-    int*            _old_emg2;
-    bool            _has_init_prop;
-    bool            _prop_control_with_elbow;
-    int             _deltaT_in_count;
-    int             _threshold_high_forarm_emg1;
-    int             _threshold_low_forarm_emg1;
-    int             _threshold_elbow_emg1;
-    int             _threshold_high_forarm_emg2;
-    int             _threshold_low_forarm_emg2;
-    int             _threshold_elbow_emg2;
+    int* _old_emg1;
+    int* _old_emg2;
+    bool _has_init_prop;
+    bool _prop_control_with_elbow;
+    int _deltaT_in_count;
+    int _threshold_high_forarm_emg1;
+    int _threshold_low_forarm_emg1;
+    int _threshold_elbow_emg1;
+    int _threshold_high_forarm_emg2;
+    int _threshold_low_forarm_emg2;
+    int _threshold_elbow_emg2;
 
     /// Specific to bubble prop control
-    int             _threshold_high_elbow_emg1;
-    int             _threshold_low_elbow_emg1;
-    int             _threshold_high_elbow_emg2;
-    int             _threshold_low_elbow_emg2;
-
+    int _threshold_high_elbow_emg1;
+    int _threshold_low_elbow_emg1;
+    int _threshold_high_elbow_emg2;
+    int _threshold_low_elbow_emg2;
 };
 
 #endif // MYOCONTROL_H
