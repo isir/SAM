@@ -242,6 +242,10 @@ void Demo::loop(double, double)
             }
         }
     }
+
+    if (!digitalRead(4)) {
+        stop();
+    }
 }
 
 void Demo::cleanup()
