@@ -1,13 +1,12 @@
 #ifndef BASICCONTROLLER_H
 #define BASICCONTROLLER_H
 
-#include <QThread>
+#include "ui/consolemenu.h"
 #include <QMutex>
 #include <QString>
-#include "ui/consolemenu.h"
+#include <QThread>
 
-class BasicController : public QThread
-{
+class BasicController : public QThread {
     Q_OBJECT
 public:
     BasicController(int period_s = 1);
@@ -20,7 +19,7 @@ public slots:
     virtual void stop();
 
 protected:
-    virtual void setup() = 0;
+    virtual bool setup() = 0;
     virtual void loop(double dt, double time) = 0;
     virtual void cleanup() = 0;
 

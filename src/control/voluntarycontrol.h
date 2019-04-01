@@ -1,19 +1,18 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-#include <QSettings>
 #include "basiccontroller.h"
 #include "peripherals/helpers/osmerelbow.h"
+#include <QSettings>
 
-class VoluntaryControl : public BasicController
-{
+class VoluntaryControl : public BasicController {
     Q_OBJECT
 public:
     explicit VoluntaryControl();
     ~VoluntaryControl();
 
 private:
-    void setup();
+    bool setup();
     void loop(double dt, double time);
     void cleanup();
 
