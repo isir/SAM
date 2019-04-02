@@ -128,7 +128,12 @@ void OsmerElbow::move_to_angle(double angle, double speed, bool block)
         return;
 
     qint32 target = static_cast<qint32>(angle * _incs_per_deg);
-    move_to(_accel_decel, speed * _incs_per_deg, _accel_decel, target);
+    quint32 velocity = static_cast<quint32>(speed * _incs_per_deg);
+
+    if (velocity == 0)
+        velocity = 1;
+
+    move_to(_accel_decel, velocity, _accel_decel, target);
 
     if (block) {
         int threshold = 10000;
@@ -163,12 +168,7 @@ void OsmerElbow::set_velocity(double value)
     if (!_calibrated)
         return;
 
-    if (value == 0) {
-        forward(0);
-        move_to_angle(angle());
-    } else {
-        move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
-    }
+    move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
 }
 
 void OsmerElbow::on_exit()
