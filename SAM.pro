@@ -17,8 +17,10 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 HEADERS += \
         src/control/algorithms/lawopti.h \
+        src/control/algorithms/myocontrol.h \
         src/control/basiccontroller.h \
         src/control/compensationoptitrack.h \
+        src/control/demo.h \
         src/control/voluntarycontrol.h \
         src/peripherals/adafruit_ads1115.h \
         src/peripherals/buzzer.h \
@@ -26,12 +28,24 @@ HEADERS += \
         src/peripherals/XIMU.h \
         src/peripherals/helpers/osmerelbow.h \
         src/peripherals/helpers/pronosupination.h \
+        src/peripherals/myoband/myoLinux/bleapi.h \
+        src/peripherals/myoband/myoLinux/bled112client.h \
+        src/peripherals/myoband/myoLinux/buffer.h \
+        src/peripherals/myoband/myoLinux/firstargument.h \
+        src/peripherals/myoband/myoLinux/gattclient.h \
+        src/peripherals/myoband/myoLinux/myoapi.h \
+        src/peripherals/myoband/myoLinux/myoapi_p.h \
+        src/peripherals/myoband/myoLinux/myoclient.h \
+        src/peripherals/myoband/myoLinux/myolinux.h \
+        src/peripherals/myoband/myoLinux/serial.h \
+        src/peripherals/myoband/myoband.h \
         src/peripherals/roboclaw/casthelper.h \
         src/peripherals/roboclaw/client.h \
         src/peripherals/roboclaw/factory.h \
         src/peripherals/roboclaw/message.h \
         src/peripherals/roboclaw/server.h \
         src/peripherals/roboclaw/types.h \
+        src/peripherals/touch_bionics/touch_bionics_hand.h \
         src/ui/consoleinput.h \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
@@ -39,8 +53,10 @@ HEADERS += \
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
+        src/control/algorithms/myocontrol.cpp \
         src/control/basiccontroller.cpp \
         src/control/compensationoptitrack.cpp \
+        src/control/demo.cpp \
         src/control/voluntarycontrol.cpp \
         src/main.cpp \
         src/peripherals/adafruit_ads1115.cpp \
@@ -49,10 +65,15 @@ SOURCES += \
         src/peripherals/mcp4728.cpp \
         src/peripherals/XIMU.cpp \
         src/peripherals/helpers/pronosupination.cpp \
+        src/peripherals/myoband/myoLinux/gattclient.cpp \
+        src/peripherals/myoband/myoLinux/myoclient.cpp \
+        src/peripherals/myoband/myoLinux/serial.cpp \
+        src/peripherals/myoband/myoband.cpp \
         src/peripherals/roboclaw/client.cpp \
         src/peripherals/roboclaw/factory.cpp \
         src/peripherals/roboclaw/message.cpp \
         src/peripherals/roboclaw/server.cpp \
+        src/peripherals/touch_bionics/touch_bionics_hand.cpp \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
         src/utils/optilistener.cpp
