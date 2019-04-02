@@ -1,13 +1,9 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-<<<<<<< HEAD
-#include <QSettings>
-#include <QFile>
-=======
->>>>>>> 33eeae6fb5852c7cfbd80fb2df1a053c3385cb5a
 #include "basiccontroller.h"
 #include "peripherals/helpers/osmerelbow.h"
+#include <QFile>
 #include <QSettings>
 
 class VoluntaryControl : public BasicController {

@@ -2,13 +2,10 @@
 #include "peripherals/roboclaw/factory.h"
 #include "peripherals/roboclaw/server.h"
 #include <QCoreApplication>
-#include <QThread>
-<<<<<<< HEAD
 #include <QDebug>
-=======
+#include <QThread>
 #include <QTime>
 #include <iostream>
->>>>>>> 33eeae6fb5852c7cfbd80fb2df1a053c3385cb5a
 
 OsmerElbow::OsmerElbow()
     : RoboClaw::Client()
@@ -33,17 +30,6 @@ OsmerElbow::OsmerElbow()
     _menu.set_title(QString("Osmer - ") + read_firmware_version() + " - " + port_name + " - " + QString::number(baudrate) + " - " + QString::number(address) + "/" + QString::number(chan()));
     _menu.set_code(QString("osmer"));
 
-<<<<<<< HEAD
-    _menu.addItem(ConsoleMenuItem("Forward","f",[this](QString){ this->forward(10); }));
-    _menu.addItem(ConsoleMenuItem("Backward","b",[this](QString){ this->backward(10); }));
-    _menu.addItem(ConsoleMenuItem("Print current","pc",[this](QString){ std::cout << "Current: " << this->read_current() << "A" << std::endl; }));
-    _menu.addItem(ConsoleMenuItem("Print encoder speed","es",[this](QString){ std::cout << "Speed: " << this->read_encoder_speed() << std::endl; }));
-    _menu.addItem(ConsoleMenuItem("Stop","s",[this](QString){ this->forward(0); }));
-    _menu.addItem(ConsoleMenuItem("Calibrate","calib",[this](QString){ this->calibration(); }));
-    _menu.addItem(ConsoleMenuItem("Read encoder","e",[this](QString){ std::cout << this->read_encoder_position() << std::endl; }));
-    _menu.addItem(ConsoleMenuItem("Go to","g",[this](QString args){ if(!args.isEmpty()) this->move_to_angle(args.toInt(),10); }));
-    _menu.addItem(ConsoleMenuItem("Set velocity (deg/s)","v",[this](QString args = "0"){ if(!args.isEmpty()) this->set_velocity(args.toInt()); }));
-=======
     _menu.addItem(ConsoleMenuItem("Forward", "f", [this](QString) { this->forward(10); }));
     _menu.addItem(ConsoleMenuItem("Backward", "b", [this](QString) { this->backward(10); }));
     _menu.addItem(ConsoleMenuItem("Print current", "pc", [this](QString) { std::cout << "Current: " << this->read_current() << "A" << std::endl; }));
@@ -52,7 +38,7 @@ OsmerElbow::OsmerElbow()
     _menu.addItem(ConsoleMenuItem("Calibrate", "calib", [this](QString) { this->calibration(); }));
     _menu.addItem(ConsoleMenuItem("Read encoder", "e", [this](QString) { std::cout << this->read_encoder_position() << std::endl; }));
     _menu.addItem(ConsoleMenuItem("Go to", "g", [this](QString args) { if(!args.isEmpty()) this->move_to_angle(args.toInt(),10); }));
->>>>>>> 33eeae6fb5852c7cfbd80fb2df1a053c3385cb5a
+    _menu.addItem(ConsoleMenuItem("Set velocity (deg/s)", "v", [this](QString args = "0") { if(!args.isEmpty()) this->set_velocity(args.toInt()); }));
 
     RoboClaw::velocity_pid_params_t v_params = {};
     _settings.beginGroup("Velocity_PID");
@@ -113,11 +99,7 @@ void OsmerElbow::calibration()
     forward(0);
     _calibrated = true;
 
-<<<<<<< HEAD
-    move_to_angle(0,20);
-=======
-    move_to_angle(-90, 10);
->>>>>>> 33eeae6fb5852c7cfbd80fb2df1a053c3385cb5a
+    move_to_angle(0, 20);
 
     RoboClaw::position_pid_params_t p_params = read_position_pid();
     _settings.beginGroup("Position_PID");
@@ -139,22 +121,14 @@ double OsmerElbow::angle()
  * \param speed Default is 30°/s
  * \return
  */
-<<<<<<< HEAD
-void OsmerElbow::move_to_angle(double angle, double speed, bool block) {
-    if(!_calibrated)
-        return;
 
-    qint32 target = static_cast<qint32>(angle*_incs_per_deg);
-    move_to(qRound(speed*_incs_per_deg*2),qRound(speed*_incs_per_deg),qRound(speed*_incs_per_deg*2),target);
-=======
-void OsmerElbow::move_to_angle(double angle, int speed, bool block)
+void OsmerElbow::move_to_angle(double angle, double speed, bool block)
 {
     if (!_calibrated)
         return;
 
     qint32 target = static_cast<qint32>(angle * _incs_per_deg);
     move_to(_accel_decel, speed * _incs_per_deg, _accel_decel, target);
->>>>>>> 33eeae6fb5852c7cfbd80fb2df1a053c3385cb5a
 
     if (block) {
         int threshold = 10000;
@@ -169,21 +143,21 @@ void OsmerElbow::move_to_angle(double angle, int speed, bool block)
  * \brief OsmerElbow::set_velocity Controlled speed funtion with software stops.
  * \param value velocity (degs/s)
  */
-<<<<<<< HEAD
-void OsmerElbow::set_velocity(double value) {
-    static bool locked = false;
+//void OsmerElbow::set_velocity(double value) {
+//    static bool locked = false;
 
-    if(!_calibrated)
-        return;
+//    if(!_calibrated)
+//        return;
 
-    if (value == 0 && !locked){
-        move_to_angle(angle());
-        locked = true;
-    }
-    else if(value != 0) {
-        move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
-        locked = false;
-=======
+//    if (value == 0 && !locked){
+//        move_to_angle(angle());
+//        locked = true;
+//    }
+//    else if(value != 0) {
+//        move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
+//        locked = false;
+//    }
+//}
 void OsmerElbow::set_velocity(double value)
 {
     if (!_calibrated)
@@ -194,7 +168,6 @@ void OsmerElbow::set_velocity(double value)
         move_to_angle(angle());
     } else {
         move_to_angle(value > 0 ? _max_angle : _min_angle, qAbs(value));
->>>>>>> 33eeae6fb5852c7cfbd80fb2df1a053c3385cb5a
     }
 }
 
