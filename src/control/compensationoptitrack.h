@@ -24,6 +24,9 @@ public:
 
     void start(QString filename);
     void stop();
+    void zero();
+    void display_parameters();
+    void display_optiData();
 
 private:
     OsmerElbow& _osmer;
@@ -50,13 +53,15 @@ private:
     int _Lt;
     double _Lua;
     double _Lfa;
+    int _l;
     int _lsh;
-    int _lambda;
-    double _threshold;
+    int _lambdaW, _lambda;
+    double _thresholdW, _threshold;
 
 private slots:
     void on_activated();
     void on_new_data(optitrack_data_t data);
+    void read_optiData(optitrack_data_t data);
     void on_def();
 };
 
