@@ -15,6 +15,7 @@ OsmerElbow::OsmerElbow()
     _incs_per_deg = _settings.value("incs_per_deg", 23422).toInt();
     _min_angle = _settings.value("min_angle", -100.).toDouble();
     _max_angle = _settings.value("max_angle", 0.).toDouble();
+    _accel_decel = _settings.value("accel_decel", 100 * _incs_per_deg).toDouble(); //100degres/sec² (in one second)
     int address = _settings.value("address", 0x80).toInt();
     Channel channel = static_cast<Channel>(_settings.value("channel", 1).toInt());
     QString port_name = _settings.value("port_name", "/dev/ttyAMA0").toString();
@@ -124,7 +125,7 @@ void OsmerElbow::move_to_angle(double angle, int speed, bool block)
         return;
 
     qint32 target = static_cast<qint32>(angle * _incs_per_deg);
-    move_to(speed * _incs_per_deg * 2, speed * _incs_per_deg, speed * _incs_per_deg * 2, target);
+    move_to(_accel_decel, speed * _incs_per_deg, _accel_decel, target);
 
     if (block) {
         int threshold = 10000;
