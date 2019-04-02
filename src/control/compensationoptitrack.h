@@ -53,6 +53,7 @@ private:
     int _Lt;
     double _Lua;
     double _Lfa;
+    int _l;
     int _lsh;
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;
