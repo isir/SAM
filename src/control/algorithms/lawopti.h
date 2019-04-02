@@ -4,8 +4,7 @@
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 
-class LawOpti
-{
+class LawOpti {
 
 public:
     LawOpti();
@@ -15,15 +14,15 @@ public:
     void rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record);
     void initialAcromionPositionInHip();
     void computeEEfromFA(Eigen::Vector3d posFA, int _l, Eigen::Quaterniond qFA_record);
-    void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip);
+    void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE);
     void bufferingOldValues();
     void controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, int l, int lambda, double threshold);
     void controlLawWrist(int lambdaW, double thresholdW);
     void writeDebugData(double debug[], Eigen::Vector3d posEE, double beta);
     void displayData(Eigen::Vector3d posEE, double beta);
-    double returnBetaDot_deg() { return betaDot*180./M_PI; }
-    double returnWristVel_deg() { return wristVel*180./M_PI; }
+    double returnBetaDot_deg() { return betaDot * 180. / M_PI; }
+    double returnWristVel_deg() { return wristVel * 180. / M_PI; }
 
 private:
     Eigen::Vector3d posA0; // initial position of the acromion

@@ -150,11 +150,15 @@ void LawOpti::computeEEfromFA(Eigen::Vector3d posFA, int _l, Eigen::Quaterniond 
     zFA = qFA_record._transformVector(z0);
     posEEfromFA = posFA + _l * zFA;
 }
-void LawOpti::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip)
+void LawOpti::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
     // project in hip frame
     posAinHip = R * (posA - posHip);
     posEEinHip = R * (posEEfromFA - posHip);
+    if (initCounter == initCounts) {
+        posA0inHip = R * (posA0 - posHip0);
+        posA0inHip[2] = posEEinHip[2]; // to avoid the shift due to EE on the prosthesis and A on the healthy arm
+    }
 }
 void LawOpti::filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE)
 {
