@@ -1,8 +1,10 @@
 #include "myoband.h"
+#include <QDebug>
 #include <QMutexLocker>
 
 Myoband::Myoband()
-    : _client(myolinux::Serial("/dev/myoband", 115200))
+    : BasicController(0.0025)
+    , _client(myolinux::Serial("/dev/ttyACM0", 115200))
 {
     _client.onEmg([this](myolinux::myo::EmgSample sample) {
         QMutexLocker lock(&_mutex);
@@ -19,6 +21,9 @@ Myoband::Myoband()
         for (unsigned i = 0; i < 3; i++)
             this->_imus[7 + i] = (float)gyr[i] / myolinux::myo::GyroscopeScale;
     });
+
+    _menu.set_title("Myoband");
+    _menu.set_code("mb");
 }
 
 Myoband::~Myoband()
@@ -27,7 +32,7 @@ Myoband::~Myoband()
 
 bool Myoband::setup()
 {
-    qInfo("MYOBAND : Trying to connect... Try to plug in/unplug the USB port\n");
+    qInfo("MYOBAND : Trying to connect... Try to plug in/unplug the USB port");
     _client.connect();
     _client.setSleepMode(myolinux::myo::SleepMode::NeverSleep);
     _client.setMode(myolinux::myo::EmgMode::SendEmg, myolinux::myo::ImuMode::SendData, myolinux::myo::ClassifierMode::Disabled);
@@ -36,6 +41,11 @@ bool Myoband::setup()
 
 void Myoband::loop(double, double)
 {
+    static bool connected = false;
+    if (!connected && _client.connected()) {
+        qInfo("MYOBAND : Connected");
+        connected = true;
+    }
     _client.listen();
 }
 

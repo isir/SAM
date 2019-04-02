@@ -1,6 +1,7 @@
 #include "demo.h"
 #include "algorithms/myocontrol.h"
 #include <QDebug>
+#include <QTime>
 
 #define FULL_MYO 0
 #define IMU_ELBOW 1
@@ -11,8 +12,12 @@ Demo::Demo()
     , _buzzer(29)
     , _pronosup(PronoSupination::instance())
     , _osmer(OsmerElbow::instance())
-    , _hand("/dev/tb_hand")
+    , _hand("/dev/ttyUSB0")
 {
+    _menu.set_title("Demo");
+    _menu.set_code("demo");
+    _menu.addItem(_pronosup.menu());
+    _menu.addItem(_osmer.menu());
 }
 
 bool Demo::setup()
@@ -42,9 +47,6 @@ bool Demo::setup()
     _hand.move(TouchBionicsHand::HAND_OPENING_ALL);
     QThread::msleep(500);
 
-    if (!_myoband.connected()) {
-        return false;
-    }
     return true;
 }
 
@@ -52,8 +54,9 @@ void Demo::loop(double, double)
 {
     static MyoControl myocontrol;
 
-    static int control_mode = 0, counter_auto_control = 0, move_elbow_counter = 0, elbow_mode = 0, old_elbow_mode = 0;
-    static const int max_acc_change_mode = 100000000;
+    static int control_mode = 0;
+    static int counter_auto_control = 0, move_elbow_counter = 0, elbow_mode = 0, old_elbow_mode = 0;
+    static const int max_acc_change_mode = 15;
 
     static const int elbow_speed_up = -35;
     static const int elbow_speed_down = 35;
@@ -62,22 +65,32 @@ void Demo::loop(double, double)
     static double elbow_speed_decel = 0;
     static const int wrist_speed = 50;
 
-    static const int threshold_emg1_demo_nat = 550;
-    static const int threshold_emg2_demo_nat = 550;
-    static const int threshold_emg1_coco_demo_nat = 550;
-    static const int threshold_emg2_coco_demo_nat = 550;
+    static const int threshold_emg1_demo_nat = 35;
+    static const int threshold_emg2_demo_nat = 35;
+    static const int threshold_emg1_coco_demo_nat = 35;
+    static const int threshold_emg2_coco_demo_nat = 35;
 
     static const MyoControl::MODE demoCocoSequence1[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW };
     static const MyoControl::MODE demoCocoSequence2[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
     static const MyoControl::MODE demoCocoSequence3[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
 
-    double emg[2], imu[10];
+    volatile double emg[2], acc[3];
 
-    for (int i = 0; i < 10; i++) {
-        imu[i] = _myoband.getIMUs()[i];
+    static bool first = true;
+    if (first) {
+        control_mode = FULL_MYO;
+        myocontrol.setControlType(MyoControl::BUBBLE_COCO_CONTROL);
+        myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+        first = false;
     }
 
-    if ((imu[0] * imu[0] + imu[1] * imu[1] + imu[2] * imu[2]) > max_acc_change_mode && counter_auto_control == 0) {
+    for (int i = 0; i < 3; i++) {
+        acc[i] = _myoband.getAccs()[i];
+    }
+
+    _pronosup.forward(5);
+
+    if (((acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]) > max_acc_change_mode) && counter_auto_control == 0) {
         emg[0] = 0;
         emg[1] = 0;
         control_mode = (control_mode + 1) % 3;
@@ -86,11 +99,11 @@ void Demo::loop(double, double)
         counter_auto_control = 100;
 
         if (control_mode == FULL_MYO)
-            myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 150, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 150, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+            myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         else if (control_mode == IMU_ELBOW)
-            myocontrol.initBubbleCocontractionControl(demoCocoSequence2, 2, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 150, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 150, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+            myocontrol.initBubbleCocontractionControl(demoCocoSequence2, 2, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         else if (control_mode == FULL_MYO_FINGERS)
-            myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 150, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 150, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+            myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
     } else {
         emg[0] = _myoband.getEMGs()[3];
         emg[1] = _myoband.getEMGs()[7];
@@ -109,7 +122,9 @@ void Demo::loop(double, double)
         }
     }
 
-    switch (myocontrol.getJointAction(emg[0], emg[1])) {
+    MyoControl::JOINT_ACTION action = myocontrol.getJointAction(emg[0], emg[1]);
+    //qDebug() << "emg :" << emg[0] << "," << emg[1] << action;
+    switch (action) {
     case MyoControl::ELBOW_DOWN:
         _osmer.set_velocity(elbow_speed_down);
         elbow_mode = 1;
@@ -135,9 +150,11 @@ void Demo::loop(double, double)
         }
         break;
     case MyoControl::WRIST_BACKWARD:
+        qDebug() << "Wrist bwd";
         _pronosup.backward(wrist_speed);
         break;
     case MyoControl::WRIST_FORWARD:
+        qDebug() << "Wrist fwd";
         _pronosup.forward(wrist_speed);
         break;
     case MyoControl::WRIST_STOP:
@@ -199,6 +216,7 @@ void Demo::loop(double, double)
         break;
     default:
         qWarning() << "MYOCONTROL ERROR : Unknown joint to activate...";
+        break;
     }
 
     // Elbow control if not full myo
@@ -207,13 +225,13 @@ void Demo::loop(double, double)
     } else {
         if (control_mode == IMU_ELBOW) {
             old_elbow_mode = elbow_mode;
-            if (imu[1] > 1000 || imu[1] < -1200) {
+            if (acc[1] > 1000 || acc[1] < -1200) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
-                    if (imu[1] > 1000) {
+                    if (acc[1] > 1000) {
                         // elbow down : -1
                         elbow_mode = -1;
                         _osmer.set_velocity(elbow_speed_down);
-                    } else if (imu[1] < -1200) {
+                    } else if (acc[1] < -1200) {
                         // elbow up : 1
                         elbow_mode = 1;
                         _osmer.set_velocity(elbow_speed_up);
@@ -243,11 +261,14 @@ void Demo::loop(double, double)
         }
     }
 
-    if (!digitalRead(4)) {
+    if (digitalRead(4)) {
         stop();
     }
 }
 
 void Demo::cleanup()
 {
+    _myoband.stop();
+    _pronosup.forward(0);
+    _osmer.move_to_angle(0);
 }
