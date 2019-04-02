@@ -3,7 +3,7 @@
 #include <QMutexLocker>
 #include <QTime>
 
-BasicController::BasicController(int period_s)
+BasicController::BasicController(double period_s)
     : _period_s(period_s)
 {
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &BasicController::stop);
@@ -69,5 +69,5 @@ void BasicController::run()
     }
 
     cleanup();
-    qInfo() << "Thread finished - Avg loop time = " << avg << "s, min = " << min * 1000. << "ms, max = " << max * 1000. << "ms";
+    qInfo() << "Thread finished - Avg loop time = " << avg * 1000. << "ms, min = " << min * 1000. << "ms, max = " << max * 1000. << "ms";
 }
