@@ -25,7 +25,7 @@ public:
     void stop();
     void zero();
     void display_parameters();
-    void display_optiData();
+    void display_lengths();
 
 private:
     OsmerElbow& _osmer;
@@ -46,6 +46,7 @@ private:
     QSettings _settings;
     LawOpti _lawopti;
     unsigned int _cnt;
+    unsigned int _ind;
 
     ConsoleMenu _menu;
 

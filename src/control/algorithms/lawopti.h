@@ -13,7 +13,7 @@ public:
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record);
     void computeEEfromFA(Eigen::Vector3d posFA, int _l, Eigen::Quaterniond qFA_record);
-    void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, int initCounter, int initCounts);
+    void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posElbow, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE);
     void bufferingOldValues();
     void controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold);
@@ -22,11 +22,13 @@ public:
     void displayData(Eigen::Vector3d posEE, double beta);
     double returnBetaDot_deg() { return betaDot * 180. / M_PI; }
     double returnWristVel_deg() { return wristVel * 180. / M_PI; }
+    Eigen::Vector3d returnPosAinHip() { return posAinHip; }
+    Eigen::Vector3d returnPosElbowinHip() { return posElbowinHip; }
 
 private:
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
-    Eigen::Vector3d posAinHip; // position of the acromion in hip frame
+    Eigen::Vector3d posAinHip, posElbowinHip; // position of the acromion and the elbow in hip frame
     Eigen::Vector3d posA_filt, posA_filt_old; // filtered acromion position
     Eigen::Vector3d posEEinHip; // position of the end-effector in hip frame
     Eigen::Vector3d posEEfromFA; // position of the end-effector reconstructed from forearm cluster
