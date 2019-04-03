@@ -1,23 +1,22 @@
 #ifndef COMPENSATIONOPTITRACK_H
 #define COMPENSATIONOPTITRACK_H
 
-#include <QSettings>
-#include <QUdpSocket>
-#include <QFile>
-#include <QTime>
-#include "ui/consolemenu.h"
+#include "algorithms/lawopti.h"
+#include "peripherals/XIMU.h"
+#include "peripherals/adafruit_ads1115.h"
 #include "peripherals/helpers/osmerelbow.h"
 #include "peripherals/helpers/pronosupination.h"
-#include "peripherals/adafruit_ads1115.h"
-#include "peripherals/XIMU.h"
+#include "ui/consolemenu.h"
 #include "utils/optilistener.h"
-#include "algorithms/lawopti.h"
+#include <QFile>
+#include <QSettings>
+#include <QTime>
+#include <QUdpSocket>
 
-class CompensationOptitrack : public QObject
-{
+class CompensationOptitrack : public QObject {
     Q_OBJECT
 public:
-    explicit CompensationOptitrack(QObject *parent = nullptr);
+    explicit CompensationOptitrack(QObject* parent = nullptr);
     ~CompensationOptitrack();
 
     ConsoleMenu& menu() { return _menu; }
@@ -53,7 +52,7 @@ private:
     int _Lt;
     double _Lua;
     double _Lfa;
-    int _l;
+    double _l;
     int _lsh;
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;

@@ -15,7 +15,7 @@ CompensationOptitrack::CompensationOptitrack(QObject* parent)
     , _Lt(40)
     , _Lua(0.)
     , _Lfa(0.)
-    , _l(0.)
+    , _l(25.)
     , _lsh(-35)
     , _lambda(0)
     , _threshold(0.)
@@ -248,6 +248,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
         _lawopti.initialPositions(posA, posHip, qHip, qFA_record, _cnt, init_cnt);
         if (_cnt == init_cnt) {
             _lawopti.rotationMatrices(qHip, qFA_record);
+            _lawopti.computeEEfromFA(posFA, _l, qFA_record);
             _lawopti.projectionInHip(posA, posEE, posHip, _cnt, init_cnt);
             _lawopti.bufferingOldValues();
         }
@@ -290,7 +291,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
     ts << ' ' << debugData[3] << ' ' << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
     ts << ' ' << debugData[9] << ' ' << debugData[10] << ' ' << debugData[11] << ' ' << debugData[12] << ' ' << _lambda << ' ' << data.nRigidBodies;
-    ts << ' ' << debugData[13] << ' ' << debugData[14] << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW;
+    ts << ' ' << debugData[13] << ' ' << debugData[14] << ' ' << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
         ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;

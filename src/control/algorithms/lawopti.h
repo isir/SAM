@@ -12,12 +12,11 @@ public:
     void initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, unsigned int freq);
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record);
-    void initialAcromionPositionInHip();
     void computeEEfromFA(Eigen::Vector3d posFA, int _l, Eigen::Quaterniond qFA_record);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE);
     void bufferingOldValues();
-    void controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, int l, int lambda, double threshold);
+    void controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold);
     void controlLawWrist(int lambdaW, double thresholdW);
     void writeDebugData(double debug[], Eigen::Vector3d posEE, double beta);
     void displayData(Eigen::Vector3d posEE, double beta);
@@ -35,7 +34,7 @@ private:
     double delta; // distance between initial (=reference) acromion position and current end-effector position
     double Lee; // length from elbow to EE
     Eigen::Vector3d posHip0; // initial position of hip
-    Eigen::Quaterniond qHip0, qHip_filt, qHip_filt_old, qHip_relative; // quaternions for hip frame rotation
+    Eigen::Quaterniond qHip0, qHip_filt, qHip_filt_old; // quaternions for hip frame rotation
     double beta_new; // desired elbow flexion/extension angle
     double dBeta; // difference between current beta and desired beta
     double betaDot; // elbow angular velocity
