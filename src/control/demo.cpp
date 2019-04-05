@@ -65,32 +65,30 @@ void Demo::loop(double, double)
     static double elbow_speed_decel = 0;
     static const int wrist_speed = 50;
 
-    static const int threshold_emg1_demo_nat = 35;
-    static const int threshold_emg2_demo_nat = 35;
-    static const int threshold_emg1_coco_demo_nat = 35;
-    static const int threshold_emg2_coco_demo_nat = 35;
+    static const int threshold_emg1_demo_nat = 15;
+    static const int threshold_emg2_demo_nat = 15;
+    static const int threshold_emg1_coco_demo_nat = 15;
+    static const int threshold_emg2_coco_demo_nat = 15;
 
     static const MyoControl::MODE demoCocoSequence1[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW };
     static const MyoControl::MODE demoCocoSequence2[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
     static const MyoControl::MODE demoCocoSequence3[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
 
-    volatile double emg[2], acc[3];
+    volatile double emg[2];
 
     static bool first = true;
     if (first) {
         control_mode = FULL_MYO;
         myocontrol.setControlType(MyoControl::BUBBLE_COCO_CONTROL);
-        myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+        myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         first = false;
     }
 
-    for (int i = 0; i < 3; i++) {
-        acc[i] = _myoband.getAccs()[i];
-    }
+    Eigen::Vector3d acc = _myoband.get_acc();
 
     _pronosup.forward(5);
 
-    if (((acc[0] * acc[0] + acc[1] * acc[1] + acc[2] * acc[2]) > max_acc_change_mode) && counter_auto_control == 0) {
+    if ((acc.squaredNorm() > max_acc_change_mode) && counter_auto_control == 0) {
         emg[0] = 0;
         emg[1] = 0;
         control_mode = (control_mode + 1) % 3;
@@ -99,14 +97,14 @@ void Demo::loop(double, double)
         counter_auto_control = 100;
 
         if (control_mode == FULL_MYO)
-            myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+            myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         else if (control_mode == IMU_ELBOW)
-            myocontrol.initBubbleCocontractionControl(demoCocoSequence2, 2, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+            myocontrol.initBubbleCocontractionControl(demoCocoSequence2, 2, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         else if (control_mode == FULL_MYO_FINGERS)
-            myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 15, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 15, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+            myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
     } else {
-        emg[0] = _myoband.getEMGs()[3];
-        emg[1] = _myoband.getEMGs()[7];
+        emg[0] = _myoband.get_emgs_rms()[3];
+        emg[1] = _myoband.get_emgs_rms()[7];
     }
 
     if (myocontrol.hasChangedMode()) {

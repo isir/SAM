@@ -7,19 +7,41 @@ Myoband::Myoband()
     , _client(myolinux::Serial("/dev/ttyACM0", 115200))
 {
     _client.onEmg([this](myolinux::myo::EmgSample sample) {
+        static const int window_size = 20;
+        static Eigen::MatrixXd emgs_history(window_size, sample.size());
+        static unsigned int history_idx = 0;
+
         QMutexLocker lock(&_mutex);
-        for (unsigned i = 0; i < _NB_EMGS; i++)
+
+        if (_emgs.size() < sample.size())
+            _emgs.resize(sample.size());
+        if (_emgs_rms.size() < sample.size())
+            _emgs_rms.resize(sample.size());
+
+        for (unsigned i = 0; i < sample.size(); i++) {
             this->_emgs[i] = sample[i];
+            emgs_history(history_idx++, i) = sample[i];
+            this->_emgs_rms[i] = sqrt(emgs_history.col(i).squaredNorm() / window_size);
+            if (history_idx >= window_size) {
+                history_idx = 0;
+            }
+        }
     });
 
     _client.onImu([this](myolinux::myo::OrientationSample ori, myolinux::myo::AccelerometerSample acc, myolinux::myo::GyroscopeSample gyr) {
         QMutexLocker lock(&_mutex);
-        for (unsigned i = 0; i < 4; i++)
-            this->_imus[i] = (float)ori[i] / myolinux::myo::OrientationScale;
-        for (unsigned i = 0; i < 3; i++)
-            this->_imus[4 + i] = (float)acc[i] / myolinux::myo::AccelerometerScale;
-        for (unsigned i = 0; i < 3; i++)
-            this->_imus[7 + i] = (float)gyr[i] / myolinux::myo::GyroscopeScale;
+        for (unsigned i = 0; i < 4; i++) {
+            _imu = Eigen::Quaterniond(ori[0] / myolinux::myo::OrientationScale,
+                ori[1] / myolinux::myo::OrientationScale,
+                ori[2] / myolinux::myo::OrientationScale,
+                ori[3] / myolinux::myo::OrientationScale);
+        }
+        for (unsigned i = 0; i < 3; i++) {
+            this->_acc[i] = acc[i] / myolinux::myo::AccelerometerScale;
+        }
+        for (unsigned i = 0; i < 3; i++) {
+            this->_gyro[i] = gyr[i] / myolinux::myo::GyroscopeScale;
+        }
     });
 
     _menu.set_title("Myoband");
