@@ -11,7 +11,7 @@ public:
     ~LawOpti();
     void initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, unsigned int freq);
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record, int initCounter, int initCounts);
-    void rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record);
+    void rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record, int initCounter, int initCounts);
     void computeEEfromFA(Eigen::Vector3d posFA, int _l, Eigen::Quaterniond qFA_record);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posElbow, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void filter_optitrackData(Eigen::Vector3d posA, Eigen::Vector3d posEE);

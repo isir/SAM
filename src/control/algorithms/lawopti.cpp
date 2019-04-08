@@ -104,7 +104,12 @@ void LawOpti::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eig
         qFA0 = qFA0.normalized();
     }
 }
-void LawOpti::rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record)
+/**
+ * @brief LawOpti::rotationMatrices compute the rotation matrices of the hip and forearm frames with respect to the global frame
+ * @param qHip quaternions of the hip cluster
+ * @param qFA_record quaternions of the forearm cluster
+ */
+void LawOpti::rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_record, int initCounter, int initCounts)
 {
     qHip_filt.w() = qHip_filt_old.w() + coeff * (qHip.w() - qHip_filt_old.w());
     qHip_filt.x() = qHip_filt_old.x() + coeff * (qHip.x() - qHip_filt_old.x());
@@ -124,8 +129,11 @@ void LawOpti::rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_r
     //    R23 = 2*(qHip_relative.y()*qHip_relative.z() + qHip_relative.w()*qHip_relative.x());
     //    R33 = 2* qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.z()*qHip_relative.z();
     /// For optitrack quaternion definition
-
-    R = qHip_filt.toRotationMatrix();
+    if (initCounter == initCounts) {
+        R = qHip0.toRotationMatrix();
+    } else {
+        R = qHip_filt.toRotationMatrix();
+    }
     //ea = R.eulerAngles(2,1,0).cast<double>();
     qFA = qFA_record;
     qFA_relative = qFA.normalized().conjugate() * qFA0;
@@ -133,13 +141,26 @@ void LawOpti::rotationMatrices(Eigen::Quaterniond qHip, Eigen::Quaterniond qFA_r
     R_FA = qFA_relative.toRotationMatrix();
     //    ///  From quaternions to orientation
 }
-
+/**
+ * @brief LawOpti::computeEEfromFA compute end-effector position from the position of the forearm marker
+ * @param posFA forearm marker position
+ * @param _l length between the forearm marker and the end-effector (computed or measured at the beginning of the experiment)
+ * @param qFA_record quaternion of the forearm cluster
+ */
 void LawOpti::computeEEfromFA(Eigen::Vector3d posFA, int _l, Eigen::Quaterniond qFA_record)
 {
     //zFA_quat = qFA_record.normalized().conjugate()*z0_quat*qFA_record.normalized();
     zFA = qFA_record._transformVector(z0);
     posEEfromFA = posFA + _l * zFA;
 }
+/**
+ * @brief LawOpti::projectionInHip project positions in the hip frame
+ * @param posA position of the acromion
+ * @param posElbow position of the elbow
+ * @param posHip position of the hip
+ * @param initCounter counter
+ * @param initCounts number of counts that defined the initial position
+ */
 void LawOpti::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posElbow, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
     // project in hip frame
@@ -163,11 +184,14 @@ void LawOpti::bufferingOldValues()
     qHip_filt_old = qHip_filt;
 }
 /**
- * @brief LawOpti::controlLaw
+ * @brief LawOpti::controlLaw control law for elbow joint
  * @param posEE cartesian coordinates of the end-effector (from optitrack)
  * @param beta elbow angle
  * @param Lua length of the upper-arm
- * @param Lfa length of the forearm
+ * @param Lfa length of the forearm (elbow-forearm marker)
+ * @param l length from forearm marker to end-effector marker
+ * @param lambda gain
+ * @param threshold activation threshold
  */
 void LawOpti::controlLaw(Eigen::Vector3d posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold)
 {
@@ -204,10 +228,8 @@ void LawOpti::controlLawWrist(int lambdaW, double thresholdW)
     if (abs(wristAngle_new) < thresholdW)
         wristVel = 0.;
     else if (wristAngle_new < -thresholdW) {
-        //        wristVel = lambdaW*sign*(wristAngle_new-thresholdW);
         wristVel = lambdaW * (wristAngle_new + thresholdW);
     } else if (wristAngle_new > thresholdW) {
-        //        wristVel = lambdaW*sign*(wristAngle_new-thresholdW);
         wristVel = lambdaW * (wristAngle_new - thresholdW);
     }
 }
@@ -237,7 +259,7 @@ void LawOpti::displayData(Eigen::Vector3d posEE, double beta)
     qDebug("posA0 in hip frame: %lf; %lf, %lf", posA0inHip[0], posA0inHip[1], posA0inHip[2]);
     qDebug("posEE from FA: %lf; %lf, %lf", posEEfromFA[0], posEEfromFA[1], posEEfromFA[2]);
     qDebug("posEE in hip frame: %lf; %lf, %lf", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
-    qDebug("beta: %lf \n beta_new: %lf", beta, beta_new);
-    qDebug("phi: %lf -- theta: %lf  -- wristAngle: %lf", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI);
-    qDebug("Wrist velocity: %lf", wristVel * 180 / M_PI);
+    qDebug("beta (deg): %lf \n beta_new (deg): %lf", beta * 180 / M_PI, beta_new * 180 / M_PI);
+    qDebug("phi: %lf -- theta: %lf  -- wristAngle (deg): %lf ", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI);
+    qDebug("Wrist velocity (deg): %lf", wristVel * 180 / M_PI);
 }
