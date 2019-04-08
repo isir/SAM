@@ -4,7 +4,9 @@
 #include "myoLinux/myoclient.h"
 #include "myoLinux/serial.h"
 #include <QMutex>
+#include <QVector>
 #include <control/basiccontroller.h>
+#include <eigen3/Eigen/Dense>
 
 class Myoband : public BasicController {
 
@@ -18,41 +20,41 @@ public:
 
     bool connected() { return _client.connected(); }
 
-    /**
-     * @brief getEMGs
-     * @return Pointer of 8 EMGs i nrange [-127 ; 128].
-     */
-    int* getEMGs() { return _emgs; }
-    /**
-     * @brief getIMUs
-     * @return Pointer of 10 IMUs values : [ 4 Quats ; 3 Accs ; 3 Gyros].
-     */
-    float* getIMUs() { return _imus; }
-    /**
-     * @brief getAccs
-     * @return Pointer of 3 Accs in g.
-     */
-    float* getAccs() { return &_imus[4]; }
-    /**
-     * @brief getQuats
-     * @return Pointer of 4 Quats in std units.
-     */
-    float* getQuats() { return _imus; }
-    /**
-     * @brief getGyros
-     * @return Pointer of 3 Gyros in deg/s (to check).
-     */
-    float* getGyros() { return &_imus[7]; }
+    QVector<qint8> get_emgs()
+    {
+        QMutexLocker lock(&_mutex);
+        return _emgs;
+    }
+    QVector<qint32> get_emgs_rms()
+    {
+        QMutexLocker lock(&_mutex);
+        return _emgs_rms;
+    }
+    Eigen::Quaterniond get_imu()
+    {
+        QMutexLocker lock(&_mutex);
+        return _imu;
+    }
+    Eigen::Vector3d get_acc()
+    {
+        QMutexLocker lock(&_mutex);
+        return _acc;
+    }
+    Eigen::Vector3d get_gyro()
+    {
+        QMutexLocker lock(&_mutex);
+        return _gyro;
+    }
 
 private:
     myolinux::myo::Client _client;
     QMutex _mutex;
 
-    static const int _NB_EMGS = 8;
-    static const int _NB_IMUS = 10;
-
-    int _emgs[_NB_EMGS];
-    float _imus[_NB_IMUS];
+    QVector<qint8> _emgs;
+    QVector<qint32> _emgs_rms;
+    Eigen::Vector3d _acc;
+    Eigen::Vector3d _gyro;
+    Eigen::Quaterniond _imu;
 };
 
 #endif // MYOBAND_H

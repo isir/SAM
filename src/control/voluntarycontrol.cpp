@@ -61,7 +61,7 @@ void VoluntaryControl::loop(double, double)
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
         _osmer.set_velocity(-30);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _osmer.forward(0);
+        _osmer.set_velocity(0);
         //        sleep(2);
         //        _osmer.set_velocity(0);
     }

@@ -9,11 +9,11 @@
 class BasicController : public QThread {
     Q_OBJECT
 public:
-    BasicController(int period_s = 1);
+    BasicController(double period_s = 1);
     virtual ~BasicController();
 
     void set_period(double seconds);
-    double return_period(){return _period_s;}
+    double return_period() { return _period_s; }
     ConsoleMenu& menu() { return _menu; }
 
 public slots:
