@@ -94,7 +94,7 @@ void Demo::loop(double, double)
         emg[0] = 0;
         emg[1] = 0;
         control_mode = (control_mode + 1) % 3;
-        _buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ, 10000);
+        _buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ);
         _osmer.set_velocity(0);
         counter_auto_control = 100;
 
