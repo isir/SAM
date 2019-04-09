@@ -90,9 +90,10 @@ void Demo::loop(double, double)
 
     _pronosup.forward(5);
 
+    emg[0] = 0;
+    emg[1] = 0;
+
     if ((acc.squaredNorm() > max_acc_change_mode) && counter_auto_control == 0) {
-        emg[0] = 0;
-        emg[1] = 0;
         control_mode = (control_mode + 1) % 3;
         _buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ);
         _osmer.set_velocity(0);
@@ -105,8 +106,11 @@ void Demo::loop(double, double)
         else if (control_mode == FULL_MYO_FINGERS)
             myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
     } else {
-        emg[0] = _myoband.get_emgs_rms()[3];
-        emg[1] = _myoband.get_emgs_rms()[7];
+        QVector<qint32> rms = _myoband.get_emgs_rms();
+        if (rms.size() < 8)
+            return;
+        emg[0] = rms[3];
+        emg[1] = rms[7];
     }
 
     if (myocontrol.hasChangedMode()) {
