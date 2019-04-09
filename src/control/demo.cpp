@@ -114,7 +114,7 @@ void Demo::loop(double, double)
     }
 
     if (myocontrol.hasChangedMode()) {
-        _buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ, 10000);
+        _buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ);
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_HAND || myocontrol.getOldMode() == MyoControl::MYO_MODE_HAND_CLOSING || myocontrol.getOldMode() == MyoControl::MYO_MODE_HAND_OPENING) {
             _hand.move(0);
         }
