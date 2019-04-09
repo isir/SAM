@@ -1,5 +1,4 @@
 #include <QCoreApplication>
-#include <QRandomGenerator>
 
 #include <iostream>
 
@@ -64,17 +63,9 @@ int main(int argc, char* argv[])
 
     wiringPiSetup();
 
-    QRandomGenerator rng;
-
-    MCP4728 dac0("/dev/i2c-1", 0x60);
-    MCP4728 dac1("/dev/i2c-1", 0x61);
-    dac0.analogWrite(0, 0, 0, 0);
-    dac1.analogWrite(0, 0, 0, 0);
-
     Buzzer buzzer(29);
     ConsoleMenu menu("Main menu", "main");
     ConsoleMenu buzzer_submenu("Buzzer submenu", "buzzer");
-    ConsoleMenu dac_submenu("DAC submenu", "dac");
 
     VoluntaryControl vc;
     CompensationOptitrack opti;
@@ -86,9 +77,6 @@ int main(int argc, char* argv[])
     buzzer_submenu.addItem(ConsoleMenuItem("Triple Buzz", "tb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
     menu.addItem(buzzer_submenu);
 
-    dac_submenu.addItem(ConsoleMenuItem("Random Values", "r", [&dac0, &dac1, &rng](QString) { dac0.analogWrite(rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096)); dac1.analogWrite(rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096)); }));
-    menu.addItem(dac_submenu);
-
     menu.addItem(opti.menu());
     menu.addItem(vc.menu());
     menu.addItem(dm.menu());
@@ -98,8 +86,6 @@ int main(int argc, char* argv[])
 
     int ret = a.exec();
 
-    dac0.analogWrite(0, 0, 0, 0);
-    dac1.analogWrite(0, 0, 0, 0);
 
     return ret;
 }
