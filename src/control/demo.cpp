@@ -210,19 +210,21 @@ void Demo::loop(double, double)
         break;
     }
 
+    LedStrip::instance().set(colors);
+
     // Elbow control if not full myo
     if (counter_auto_control > 0) {
         counter_auto_control--;
     } else {
         if (control_mode == IMU_ELBOW) {
             old_elbow_mode = elbow_mode;
-            if (acc[1] > 1000 || acc[1] < -1200) {
+            if (acc[1] > 0.2 || acc[1] < -0.2) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
-                    if (acc[1] > 1000) {
+                    if (acc[1] > 0.2) {
                         // elbow down : -1
                         elbow_mode = -1;
                         _osmer.set_velocity(elbow_speed_down);
-                    } else if (acc[1] < -1200) {
+                    } else if (acc[1] < -0.2) {
                         // elbow up : 1
                         elbow_mode = 1;
                         _osmer.set_velocity(elbow_speed_up);
