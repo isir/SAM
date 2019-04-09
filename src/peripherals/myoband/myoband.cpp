@@ -4,7 +4,7 @@
 
 Myoband::Myoband()
     : BasicController(0.0025)
-    , _client(myolinux::Serial("/dev/ttyACM0", 115200))
+    , _client(myolinux::Serial("/dev/ttyACM0", 115200)) // TODO: Handle file not found exception
 {
     _client.onEmg([this](myolinux::myo::EmgSample sample) {
         static const int window_size = 20;
@@ -68,7 +68,14 @@ void Myoband::loop(double, double)
         qInfo("MYOBAND : Connected");
         connected = true;
     }
-    _client.listen();
+    try {
+        _client.listen();
+    } catch (std::exception& e) {
+        qCritical() << e.what();
+        _client.disconnect();
+        connected = false;
+        setup();
+    }
 }
 
 void Myoband::cleanup()
