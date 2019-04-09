@@ -37,7 +37,7 @@ CompensationOptitrack::CompensationOptitrack(QObject* parent)
     _menu.addItem(ConsoleMenuItem("Stop", "s", [this](QString) { this->stop(); }));
     _menu.addItem(ConsoleMenuItem("Back to 0°", "zero", [this](QString) { this->zero(); }));
     _menu.addItem(ConsoleMenuItem("Display law parameters", "disp", [this](QString) { this->display_parameters(); }));
-    _menu.addItem(ConsoleMenuItem("Display Optitrack data", "opt", [this](QString) { this->display_optiData(); }));
+    _menu.addItem(ConsoleMenuItem("Display anatomical lengths", "opt", [this](QString) { this->display_lengths(); }));
     _menu.addItem(_osmer.menu());
     _menu.addItem(_pronosup.menu());
 
@@ -69,21 +69,28 @@ void CompensationOptitrack::display_parameters()
     qDebug("lambda wrist :%d", _lambdaW);
 }
 
-void CompensationOptitrack::display_optiData()
+void CompensationOptitrack::display_lengths()
 {
+    _ind = 0;
     qInfo("Wait for Optitrack data");
     QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 }
 
 void CompensationOptitrack::read_optiData(optitrack_data_t data)
 {
+    unsigned int opti_freq = _settings.value("optitrack_frequency", 100).toInt();
+
     int index_acromion = -1, index_EE = -1, index_elbow = -1, index_hip = -1;
     Eigen::Vector3d posA = Eigen::Vector3d::Zero(), posElbow = Eigen::Vector3d::Zero(), posFA = Eigen::Vector3d::Zero(), posEE = Eigen::Vector3d::Zero(), posHip = Eigen::Vector3d::Zero();
-    Eigen::Quaterniond qHip;
+    Eigen::Quaterniond qHip, qFA_record;
     qHip.w() = 0.;
+    qFA_record.w() = 0.;
     qHip.x() = 0.;
+    qFA_record.x() = 0.;
     qHip.y() = 0.;
+    qFA_record.y() = 0.;
     qHip.z() = 0.;
+    qFA_record.z() = 0.;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
         if (data.rigidBodies[i].ID == _settings.value("acromion_id", 3).toInt()) {
@@ -95,6 +102,11 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
             posFA[0] = data.rigidBodies[i].x * 100;
             posFA[1] = data.rigidBodies[i].y * 100;
             posFA[2] = data.rigidBodies[i].z * 100;
+
+            qFA_record.w() = data.rigidBodies[i].qw;
+            qFA_record.x() = data.rigidBodies[i].qx;
+            qFA_record.y() = data.rigidBodies[i].qy;
+            qFA_record.z() = data.rigidBodies[i].qz;
         } else if (data.rigidBodies[i].ID == _settings.value("elbow_id", 6).toInt()) {
             posElbow[0] = data.rigidBodies[i].x * 100;
             posElbow[1] = data.rigidBodies[i].y * 100;
@@ -116,11 +128,24 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
             index_hip = i;
         }
     }
-    qDebug("posA: %lf, %lf, %lf", posA[0], posA[1], posA[2]);
-    qDebug("posFA: %lf, %lf, %lf", posFA[0], posFA[1], posFA[2]);
-    qDebug("posEE: %lf, %lf, %lf", posEE[0], posEE[1], posEE[2]);
-    qDebug("posHip: %lf, %lf, %lf", posHip[0], posHip[1], posHip[2]);
-    qDebug("qHip: %lf, %lf, %lf, %lf", qHip.w(), qHip.x(), qHip.y(), qHip.z());
+
+    _lawopti.initialization(posA, posEE, posHip, qHip, opti_freq);
+    _lawopti.rotationMatrices(qHip, qFA_record);
+    _lawopti.computeEEfromFA(posFA, _l, qFA_record);
+    _lawopti.projectionInHip(posA, posElbow, posHip, 1, 10);
+    _Lua = qRound((_lawopti.returnPosElbowinHip() - _lawopti.returnPosAinHip()).norm());
+    _Lfa = qRound((posElbow - posFA).norm());
+    _l = qRound((posFA - posEE).norm());
+
+    if (_ind == 0) {
+        qDebug("posA: %lf, %lf, %lf", posA[0], posA[1], posA[2]);
+        qDebug("posFA: %lf, %lf, %lf", posFA[0], posFA[1], posFA[2]);
+        qDebug("posEE: %lf, %lf, %lf", posEE[0], posEE[1], posEE[2]);
+        qDebug("posHip: %lf, %lf, %lf", posHip[0], posHip[1], posHip[2]);
+        qDebug("qHip: %lf, %lf, %lf, %lf", qHip.w(), qHip.x(), qHip.y(), qHip.z());
+        qDebug("Lua: %lf, Lfa: %lf, l: %lf", _Lua, _Lfa, _l);
+        _ind = 1;
+    }
 }
 
 void CompensationOptitrack::start(QString filename = QString())
@@ -248,14 +273,15 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
         _lawopti.initialPositions(posA, posHip, qHip, qFA_record, _cnt, init_cnt);
         if (_cnt == init_cnt) {
             _lawopti.rotationMatrices(qHip, qFA_record);
-            _lawopti.initialAcromionPositionInHip();
+            _lawopti.computeEEfromFA(posFA, _l, qFA_record);
+            _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
             _lawopti.bufferingOldValues();
         }
         _lawopti.filter_optitrackData(posA, posEE);
     } else {
         _lawopti.rotationMatrices(qHip, qFA_record);
         _lawopti.computeEEfromFA(posFA, _l, qFA_record);
-        _lawopti.projectionInHip(posA, posEE, posHip);
+        _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _l, _lambda, _threshold);
         _lawopti.controlLawWrist(_lambdaW, _thresholdW);
         _osmer.set_velocity(_lawopti.returnBetaDot_deg());
@@ -284,13 +310,12 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
     _lawopti.writeDebugData(debugData, posEE, beta);
 
     QTextStream ts(&_file);
-    //ts.setPadChar(' ');
     ts << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _adc.readADC_SingleEnded(0) << ' ' << _adc.readADC_SingleEnded(1) << ' ' << timerTask;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
     ts << ' ' << debugData[3] << ' ' << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
     ts << ' ' << debugData[9] << ' ' << debugData[10] << ' ' << debugData[11] << ' ' << debugData[12] << ' ' << _lambda << ' ' << data.nRigidBodies;
-    ts << ' ' << debugData[13] << ' ' << debugData[14] << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW;
+    ts << ' ' << debugData[13] << ' ' << debugData[14] << ' ' << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
         ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
@@ -315,13 +340,13 @@ void CompensationOptitrack::on_def()
         int tmp;
 
         ts >> tmp;
-        _Lt = tmp;
-
-        ts >> tmp;
         _Lua = tmp;
 
         ts >> tmp;
         _Lfa = tmp;
+
+        ts >> tmp;
+        _l = tmp;
 
         ts >> tmp;
         _lambda = tmp;
