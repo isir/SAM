@@ -22,7 +22,9 @@ Demo::Demo()
 
 bool Demo::setup()
 {
-    if (digitalRead(4)) {
+    pinMode(28, INPUT);
+    pullUpDnControl(28, PUD_UP);
+    if (digitalRead(28)) {
         _buzzer.makeNoise(BuzzerConfig::SHORT_BUZZ);
         return false;
     }
@@ -259,7 +261,7 @@ void Demo::loop(double, double)
         }
     }
 
-    if (digitalRead(4)) {
+    if (digitalRead(28)) {
         stop();
     }
 }
