@@ -1,5 +1,6 @@
 #include "demo.h"
 #include "algorithms/myocontrol.h"
+#include "peripherals/ledstrip.h"
 #include <QDebug>
 #include <QTime>
 
@@ -76,11 +77,14 @@ void Demo::loop(double, double)
     static const MyoControl::MODE demoCocoSequence2[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
     static const MyoControl::MODE demoCocoSequence3[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
 
+    static LedStrip::color current_color = LedStrip::none;
+
     volatile double emg[2];
 
     static bool first = true;
     if (first) {
         control_mode = FULL_MYO;
+        current_color = LedStrip::green;
         myocontrol.setControlType(MyoControl::BUBBLE_COCO_CONTROL);
         myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         first = false;
@@ -99,12 +103,19 @@ void Demo::loop(double, double)
         _osmer.set_velocity(0);
         counter_auto_control = 100;
 
-        if (control_mode == FULL_MYO)
+        if (control_mode == FULL_MYO) {
+            qInfo() << "Full myo";
+            current_color = LedStrip::green;
             myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
-        else if (control_mode == IMU_ELBOW)
+        } else if (control_mode == IMU_ELBOW) {
+            qInfo() << "IMU Elbow";
+            current_color = LedStrip::red;
             myocontrol.initBubbleCocontractionControl(demoCocoSequence2, 2, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
-        else if (control_mode == FULL_MYO_FINGERS)
+        } else if (control_mode == FULL_MYO_FINGERS) {
+            qInfo() << "Full myo + fingers";
+            current_color = LedStrip::blue;
             myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+        }
     } else {
         QVector<qint32> rms = _myoband.get_emgs_rms();
         if (rms.size() < 8)
@@ -127,26 +138,48 @@ void Demo::loop(double, double)
     }
 
     MyoControl::JOINT_ACTION action = myocontrol.getJointAction(emg[0], emg[1]);
-    //qDebug() << "emg :" << emg[0] << "," << emg[1] << action;
+
+    QVector<LedStrip::color> colors;
+    colors.fill(current_color, 10);
+    switch (myocontrol.get_current_index()) {
+    case 0:
+        colors[4] = LedStrip::color(80, 30, 0, 1);
+        break;
+    case 1:
+        colors[4] = LedStrip::color(0, 50, 50, 1);
+        break;
+    case 2:
+        colors[4] = LedStrip::color(50, 0, 50, 1);
+        break;
+    default:
+        break;
+    }
+
     switch (action) {
     case MyoControl::ELBOW_DOWN:
         _osmer.set_velocity(elbow_speed_down);
+        colors[2] = LedStrip::white;
+        colors[3] = LedStrip::white;
         elbow_mode = 1;
         break;
     case MyoControl::ELBOW_UP:
         _osmer.set_velocity(elbow_speed_up);
+        colors[5] = LedStrip::white;
+        colors[6] = LedStrip::white;
         elbow_mode = -1;
         break;
     case MyoControl::ELBOW_STOP:
         _osmer.set_velocity(0);
         break;
     case MyoControl::WRIST_BACKWARD:
-        qDebug() << "Wrist bwd";
         _pronosup.backward(wrist_speed);
+        colors[2] = LedStrip::white;
+        colors[3] = LedStrip::white;
         break;
     case MyoControl::WRIST_FORWARD:
-        qDebug() << "Wrist fwd";
         _pronosup.forward(wrist_speed);
+        colors[5] = LedStrip::white;
+        colors[6] = LedStrip::white;
         break;
     case MyoControl::WRIST_STOP:
         _pronosup.forward(0);
@@ -171,9 +204,13 @@ void Demo::loop(double, double)
         break;
     case MyoControl::HAND_OPEN:
         _hand.move(TouchBionicsHand::HAND_OPENING_ALL);
+        colors[2] = LedStrip::white;
+        colors[3] = LedStrip::white;
         break;
     case MyoControl::HAND_CLOSE:
         _hand.move(TouchBionicsHand::HAND_CLOSING_ALL);
+        colors[5] = LedStrip::white;
+        colors[6] = LedStrip::white;
         break;
     case MyoControl::THUMB_OPEN:
         _hand.move(TouchBionicsHand::THUMB_OPENING);
@@ -233,23 +270,7 @@ void Demo::loop(double, double)
                     move_elbow_counter++;
                 }
             } else {
-                move_elbow_counter = 0;
-                // elbow stop : 0
-                if (old_elbow_mode == -1) {
-                    elbow_speed_gain = -1;
-                    elbow_speed_decel = elbow_speed_gain / elbow_speed_time;
-                } else if (old_elbow_mode == 1) {
-                    elbow_speed_gain = 1;
-                    elbow_speed_decel = elbow_speed_gain / elbow_speed_time;
-                }
-                elbow_mode = 0;
-
-                _osmer.set_velocity(elbow_speed_gain * elbow_speed_up);
-                if (elbow_speed_gain != 0. && qAbs(elbow_speed_gain) >= abs(elbow_speed_decel)) {
-                    elbow_speed_gain -= elbow_speed_decel;
-                } else {
-                    elbow_speed_gain = 0.;
-                }
+                _osmer.set_velocity(0);
             }
         }
     }
@@ -264,4 +285,5 @@ void Demo::cleanup()
     _myoband.stop();
     _pronosup.forward(0);
     _osmer.move_to_angle(0);
+    LedStrip::instance().set(LedStrip::white, 10);
 }

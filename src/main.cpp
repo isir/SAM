@@ -6,6 +6,7 @@
 #include "control/demo.h"
 #include "control/voluntarycontrol.h"
 #include "peripherals/buzzer.h"
+#include "peripherals/ledstrip.h"
 #include "peripherals/mcp4728.h"
 #include "ui/consolemenu.h"
 
@@ -67,6 +68,9 @@ int main(int argc, char* argv[])
     ConsoleMenu menu("Main menu", "main");
     ConsoleMenu buzzer_submenu("Buzzer submenu", "buzzer");
 
+    LedStrip& ls = LedStrip::instance();
+    ls.set(LedStrip::white, 10);
+
     VoluntaryControl vc;
     CompensationOptitrack opti;
 
@@ -83,9 +87,12 @@ int main(int argc, char* argv[])
 
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
+    dm.menu().activate();
+    dm.start();
 
     int ret = a.exec();
 
+    ls.set(LedStrip::none, 10);
 
     return ret;
 }
