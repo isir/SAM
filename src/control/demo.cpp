@@ -138,20 +138,7 @@ void Demo::loop(double, double)
         elbow_mode = -1;
         break;
     case MyoControl::ELBOW_STOP:
-        if (elbow_mode == 1) {
-            elbow_speed_gain = -1;
-            elbow_speed_decel = elbow_speed_gain / elbow_speed_time;
-        } else if (elbow_mode == -1) {
-            elbow_speed_gain = 1;
-            elbow_speed_decel = elbow_speed_gain / elbow_speed_time;
-        }
-        elbow_mode = 0;
-        _osmer.set_velocity(elbow_speed_gain * elbow_speed_up);
-        if (elbow_speed_gain != 0. && qAbs(elbow_speed_gain) >= qAbs(elbow_speed_decel)) {
-            elbow_speed_gain -= elbow_speed_decel;
-        } else {
-            elbow_speed_gain = 0.;
-        }
+        _osmer.set_velocity(0);
         break;
     case MyoControl::WRIST_BACKWARD:
         qDebug() << "Wrist bwd";
