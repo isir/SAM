@@ -128,7 +128,7 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
     }
 
     _lawopti.initialization(posA, posEE, posHip, qHip, opti_freq);
-    _lawopti.rotationMatrices(qHip, qFA_record);
+    _lawopti.rotationMatrices(qHip, qFA_record, 1, 10);
     _lawopti.computeEEfromFA(posFA, _l, qFA_record);
     _lawopti.projectionInHip(posA, posElbow, posHip, 1, 10);
     _Lua = qRound((_lawopti.returnPosElbowinHip() - _lawopti.returnPosAinHip()).norm());
@@ -261,11 +261,12 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
     if (_cnt == 0) {
         unsigned int opti_freq = _settings.value("optitrack_frequency", 100).toInt();
         if (_Lua == 0 && _Lfa == 0) {
-            _Lua = qRound((posElbow - posA).norm());
-            //            _Lfa = qRound((posElbow - posEE).norm());
-            _Lfa = qRound((posElbow - posFA).norm());
-            _l = qRound((posFA - posEE).norm());
-            qDebug("Lua: %lf, Lfa: %lf, l: %lf", _Lua, _Lfa, _l);
+            //            _Lua = qRound((posElbow - posA).norm());
+            //            //            _Lfa = qRound((posElbow - posEE).norm());
+            //            _Lfa = qRound((posElbow - posFA).norm());
+            //            _l = qRound((posFA - posEE).norm());
+            //            qDebug("Lua: %lf, Lfa: %lf, l: %lf", _Lua, _Lfa, _l);
+            qDebug("Anatomical lengths not defined");
         }
         _lawopti.initialization(posA, posEE, posHip, qHip, opti_freq);
     } else if (_cnt <= init_cnt) {
@@ -299,6 +300,10 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
             _lawopti.displayData(posEE, beta);
             //            qDebug() << "betaDot in deg:" << _lawopti.returnBetaDot_deg();
         }
+        // buzzer after 1s, to indicate the start of the task
+        if (_cnt == 100) {
+            _buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ);
+        }
     }
 
     _lawopti.writeDebugData(debugData, posEE, beta);
@@ -328,6 +333,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
 void CompensationOptitrack::on_activated()
 {
     _osmer.calibration();
+    _pronosup.set_encoder_position(0);
 }
 
 void CompensationOptitrack::on_def()
