@@ -3,8 +3,8 @@
 
 #include "basiccontroller.h"
 #include "peripherals/helpers/osmerelbow.h"
+#include "utils/settings.h"
 #include <QFile>
-#include <QSettings>
 
 class VoluntaryControl : public BasicController {
     Q_OBJECT
@@ -19,7 +19,7 @@ private:
 
     QFile _file;
     bool _need_to_write_header;
-    QSettings _settings;
+    Settings _settings;
     OsmerElbow& _osmer;
 
     int _pin_up;

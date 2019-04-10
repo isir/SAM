@@ -3,7 +3,7 @@
 
 #include "peripherals/roboclaw/client.h"
 #include "ui/consolemenu.h"
-#include <QSettings>
+#include "utils/settings.h"
 
 /**
  * @brief The OsmerElbow class creates an instance to control the osmer elbow through roboclaw.
@@ -25,7 +25,7 @@ private:
     OsmerElbow();
 
     ConsoleMenu _menu;
-    QSettings _settings;
+    Settings _settings;
 
     bool _calibrated;
     int _calibration_velocity_threshold;

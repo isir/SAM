@@ -8,8 +8,8 @@
 #include "peripherals/helpers/pronosupination.h"
 #include "ui/consolemenu.h"
 #include "utils/optilistener.h"
+#include "utils/settings.h"
 #include <QFile>
-#include <QSettings>
 #include <QTime>
 #include <QUdpSocket>
 
@@ -43,7 +43,7 @@ private:
 
     QFile _file;
     bool _need_to_write_header;
-    QSettings _settings;
+    Settings _settings;
     LawOpti _lawopti;
     unsigned int _cnt;
     unsigned int _ind;

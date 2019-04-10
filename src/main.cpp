@@ -9,6 +9,7 @@
 #include "peripherals/ledstrip.h"
 #include "peripherals/mcp4728.h"
 #include "ui/consolemenu.h"
+#include "utils/settings.h"
 
 static QFile info_file("/var/log/sam_info");
 static QFile err_file("/var/log/sam_err");
@@ -58,7 +59,7 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("SAM");
 
     {
-        QSettings dummy;
+        Settings dummy;
         qInfo() << "Using settings from " << dummy.fileName();
     }
 

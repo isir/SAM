@@ -1,12 +1,11 @@
 #ifndef PRONOSUPINATION_H
 #define PRONOSUPINATION_H
 
-#include <QSettings>
 #include "peripherals/roboclaw/client.h"
 #include "ui/consolemenu.h"
+#include "utils/settings.h"
 
-class PronoSupination : public RoboClaw::Client
-{
+class PronoSupination : public RoboClaw::Client {
     Q_OBJECT
 public:
     ~PronoSupination();
@@ -18,7 +17,7 @@ private:
     PronoSupination();
 
     ConsoleMenu _menu;
-    QSettings _settings;
+    Settings _settings;
 
 private slots:
     void on_exit();
