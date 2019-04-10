@@ -19,5 +19,5 @@ QVariant Settings::value(const QString& key, const QVariant& defaultValue)
     if (!contains(key)) {
         setValue(key, defaultValue);
     }
-    return value(key, defaultValue);
+    return QSettings::value(key, defaultValue);
 }
