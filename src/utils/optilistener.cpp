@@ -8,6 +8,7 @@
 
 OptiListener::OptiListener()
 {
+    QObject::connect(&_udpSocket, &QUdpSocket::readyRead, this, &OptiListener::on_new_packet);
 }
 
 OptiListener& OptiListener::instance()
@@ -18,7 +19,6 @@ OptiListener& OptiListener::instance()
 
 void OptiListener::begin(int port)
 {
-    QObject::connect(&_udpSocket, &QUdpSocket::readyRead, this, &OptiListener::on_new_packet);
     if (!_udpSocket.bind(QHostAddress::AnyIPv4, port)) {
         qCritical() << _udpSocket.errorString();
     }
