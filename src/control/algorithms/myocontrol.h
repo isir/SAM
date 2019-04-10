@@ -97,6 +97,7 @@ public:
     void initBubblePropControl(MODE sequence[], int sizeOfSequence, int counts_after_modes, int counts_cocontraction, int counts_before_bubble, int counts_after_bubble, int threshold_high_forarm_emg1, int threshold_low_forarm_emg1, int threshold_high_forarm_emg2, int threshold_low_forarm_emg2, int cocontraction_threshold_emg1, int cocontraction_threshold_emg2, int deltaTInCount, int threshold_high_elbow_emg1, int threshold_low_elbow_emg1, int threshold_high_elbow_emg2, int threshold_low_elbow_emg2);
 
     int getCurrentMode() { return _current_mode; }
+    int get_current_index() { return _sequence_modes_index; }
     int getOldMode() { return _old_mode; }
     bool hasChangedMode() { return _has_changed_mode; }
 

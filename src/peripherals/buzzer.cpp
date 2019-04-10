@@ -1,23 +1,27 @@
 #include "buzzer.h"
 #include <QDebug>
 
-Buzzer::Buzzer(int pin) :  QObject(), _pin(pin)
+Buzzer::Buzzer(int pin)
+    : QObject()
+    , _pin(pin)
 {
     pinMode(_pin, OUTPUT);
     digitalWrite(_pin, LOW);
 
     qRegisterMetaType<BuzzerConfig::buzzer_config_t>("BuzzerConfig::buzzer_config_t");
     _worker.moveToThread(&_thread);
-    QObject::connect(this,&Buzzer::buzz,&_worker,&BuzzerWorker::doWork);
-    _thread.start();
+    QObject::connect(this, &Buzzer::buzz, &_worker, &BuzzerWorker::doWork);
+    _thread.start(QThread::TimeCriticalPriority);
 }
 
-Buzzer::~Buzzer() {
+Buzzer::~Buzzer()
+{
     _thread.quit();
     _thread.wait();
 }
 
-void Buzzer::makeNoise(BuzzerConfig::BUZZ_TYPE buzz_type, int freq) {
+void Buzzer::makeNoise(BuzzerConfig::BUZZ_TYPE buzz_type, int freq)
+{
     BuzzerConfig::buzzer_config_t config;
     config.pin = _pin;
     config.n_pulses = 500;
@@ -25,7 +29,7 @@ void Buzzer::makeNoise(BuzzerConfig::BUZZ_TYPE buzz_type, int freq) {
     config.time_between_buzzes_us = 200000;
     config.n_buzzes = 1;
 
-    switch(buzz_type) {
+    switch (buzz_type) {
     case BuzzerConfig::NO_BUZZ:
         return;
     case BuzzerConfig::STANDARD_BUZZ:
@@ -34,6 +38,8 @@ void Buzzer::makeNoise(BuzzerConfig::BUZZ_TYPE buzz_type, int freq) {
         config.n_buzzes = 2;
         break;
     case BuzzerConfig::TRIPLE_BUZZ:
+        config.n_pulses = 200;
+        config.time_between_buzzes_us = 50000;
         config.n_buzzes = 3;
         break;
     case BuzzerConfig::SHORT_BUZZ:

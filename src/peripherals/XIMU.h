@@ -29,21 +29,21 @@
 
 #define XIMU_BAUDRATE B115200
 
-#include <math.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <errno.h>
-#include <termios.h>
-#include <sys/ioctl.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <cstdio>
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/bind.hpp>
 #include <boost/signals2.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
+#include <cstdio>
+#include <errno.h>
+#include <fcntl.h>
+#include <inttypes.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <termios.h>
+#include <unistd.h>
 
 #define RX_PACKET_BUFFER_SIZE 1024
 #define XIMU_READ_REGISTER_TRIES 5
@@ -53,14 +53,13 @@
 
 #define XIMU_DEBUG_DEFAULT_SLOTS 0
 
-
-class XIMU{
+class XIMU {
 public:
-    XIMU(const char *filename, int level=XIMU_LOGLEVEL_NONE, int baudrate=XIMU_BAUDRATE);
+    XIMU(const char* filename, int level = XIMU_LOGLEVEL_NONE, int baudrate = XIMU_BAUDRATE);
     ~XIMU();
-    int  set_loglevel(int i);
-    int  detect_device();
-    bool hasOpenedPort() {return _hasOpenPort;}
+    int set_loglevel(int i);
+    int detect_device();
+    bool hasOpenedPort() { return _hasOpenPort; }
 
     bool send_command_algorithm_init();
     bool send_command_algorithm_init_then_tare();
@@ -70,14 +69,13 @@ public:
 
     bool get_device_detected();
 
-    int  get_register(unsigned int register_address, unsigned int *val);
-    bool get_euler(double *e);
-    bool get_quat(double *e);
-    bool get_cal(double *gyro, double *accel, double *mag);
-    bool get_time(struct tm *time);
+    int get_register(unsigned int register_address, unsigned int* val);
+    bool get_euler(double* e);
+    bool get_quat(double* e);
+    bool get_cal(double* gyro, double* accel, double* mag);
+    bool get_time(struct tm* time);
 
     bool areQuatConsistent(double currentQuatW, double currentQuatX, double currentQuatY, double currentQuatZ);
-
 
     enum XIMU_LOGLEVEL {
         XIMU_LOGLEVEL_NONE,
@@ -105,7 +103,7 @@ public:
         PACKET_HEADER_CALADXL345BUSDATA
     };
 
-    enum XIMU_ERROR_CODES{
+    enum XIMU_ERROR_CODES {
         ERROR_CODE_NoError,
         ERROR_CODE_FactoryResetFailed,
         ERROR_CODE_LowBattery,
@@ -132,7 +130,7 @@ public:
         ERROR_CODE_UARTtransmitBufferOverrun
     };
 
-    enum XIMU_COMMAND_CODES{
+    enum XIMU_COMMAND_CODES {
         COMMAND_CODE_NullCommand,
         COMMAND_CODE_FactoryReset,
         COMMAND_CODE_Reset,
@@ -152,7 +150,7 @@ public:
         COMMAND_CODE_AlgorithmInitialiseThenTare
     };
 
-    enum XIMU_REGISTER_ADDRESSES{
+    enum XIMU_REGISTER_ADDRESSES {
         REGISTER_ADDRESS_FirmwareVersionMajorNum,
         REGISTER_ADDRESS_FirmwareVersionMinorNum,
         REGISTER_ADDRESS_DeviceID,
@@ -268,17 +266,17 @@ public:
         REGISTER_ADDRESS_NumRegisters
     };
 
-    typedef boost::signals2::signal<void (double *)> signal_incoming_data_euler_t;
-    typedef boost::signals2::signal<void (double *)> signal_incoming_data_quat_t;
-    typedef boost::signals2::signal<void (uint16_t *, uint16_t *, uint16_t *)> signal_incoming_data_raw_t;
-    typedef boost::signals2::signal<void (double *, double *, double *)> signal_incoming_data_cal_t;
-    typedef boost::signals2::signal<void (struct tm now)> signal_incoming_data_time_t;
+    typedef boost::signals2::signal<void(double*)> signal_incoming_data_euler_t;
+    typedef boost::signals2::signal<void(double*)> signal_incoming_data_quat_t;
+    typedef boost::signals2::signal<void(uint16_t*, uint16_t*, uint16_t*)> signal_incoming_data_raw_t;
+    typedef boost::signals2::signal<void(double*, double*, double*)> signal_incoming_data_cal_t;
+    typedef boost::signals2::signal<void(struct tm now)> signal_incoming_data_time_t;
 
     void connect_slot_incoming_data_euler(const signal_incoming_data_euler_t::slot_type& slot);
     void connect_slot_incoming_data_quat(const signal_incoming_data_quat_t::slot_type& slot);
-    void connect_slot_incoming_data_raw  (const signal_incoming_data_raw_t::slot_type& slot);
-    void connect_slot_incoming_data_cal  (const signal_incoming_data_cal_t::slot_type& slot);
-    void connect_slot_incoming_data_time (const signal_incoming_data_time_t::slot_type& slot);
+    void connect_slot_incoming_data_raw(const signal_incoming_data_raw_t::slot_type& slot);
+    void connect_slot_incoming_data_cal(const signal_incoming_data_cal_t::slot_type& slot);
+    void connect_slot_incoming_data_time(const signal_incoming_data_time_t::slot_type& slot);
 
     void disconnect_slot_incoming_data_euler();
     void disconnect_slot_incoming_data_quat();
@@ -289,7 +287,7 @@ public:
 private:
     void init_imudata();
     bool _hasOpenPort;
-    bool open_port(const char *fn, int baudrate);
+    bool open_port(const char* fn, int baudrate);
 
     bool check_len(int len, int check);
     void comm_thread();
@@ -297,31 +295,34 @@ private:
 
     void send_register_read_request(unsigned int reg);
 
-    void send_packet(unsigned char *buf, unsigned int len);
-    void process_packet(unsigned char *packet_ptr, int len);
-    int decode_packet(unsigned char *packet, int len);
-    void process_packet_error_data(unsigned char *ptr, int len);
-    void process_packet_command_data(unsigned char *ptr, int len);
-    void process_packet_write_register(unsigned char *ptr, int len);
-    void process_packet_write_datetime(unsigned char *ptr, int len);
-    void process_packet_raw_battery_and_thermometer_data(unsigned char *ptr, int len);
-    void process_packet_cal_battery_and_thermometer_data(unsigned char *ptr, int len);
-    void process_packet_raw_inertialandmagnetic_data(unsigned char *ptr, int len);
-    void process_packet_cal_inertialandmagnetic_data(unsigned char *ptr, int len);
-    void process_packet_quaternion_data(unsigned char *ptr, int len);
-    void process_digital_io_data(unsigned char *packet_ptr, int len);
-    void process_raw_analog_data(unsigned char *packet_ptr, int len);
-    void process_cal_analog_data(unsigned char *packet_ptr, int len);
-    void process_pwm_data(unsigned char *packet_ptr, int len);
-    void process_raw_adxl_bus_data(unsigned char *ptr, int len);
-    void process_cal_adxl_bus_data(unsigned char *packet_ptr, int len);
+    void send_packet(unsigned char* buf, unsigned int len);
+    void process_packet(unsigned char* packet_ptr, int len);
+    int decode_packet(unsigned char* packet, int len);
+    void process_packet_error_data(unsigned char* ptr, int len);
+    void process_packet_command_data(unsigned char* ptr, int len);
+    void process_packet_write_register(unsigned char* ptr, int len);
+    void process_packet_write_datetime(unsigned char* ptr, int len);
+    void process_packet_raw_battery_and_thermometer_data(unsigned char* ptr, int len);
+    void process_packet_cal_battery_and_thermometer_data(unsigned char* ptr, int len);
+    void process_packet_raw_inertialandmagnetic_data(unsigned char* ptr, int len);
+    void process_packet_cal_inertialandmagnetic_data(unsigned char* ptr, int len);
+    void process_packet_quaternion_data(unsigned char* ptr, int len);
+    void process_digital_io_data(unsigned char* packet_ptr, int len);
+    void process_raw_analog_data(unsigned char* packet_ptr, int len);
+    void process_cal_analog_data(unsigned char* packet_ptr, int len);
+    void process_pwm_data(unsigned char* packet_ptr, int len);
+    void process_raw_adxl_bus_data(unsigned char* ptr, int len);
+    void process_cal_adxl_bus_data(unsigned char* packet_ptr, int len);
 
-    void left_shift(unsigned char *packet, int len);
-    void right_shift(unsigned char *packet, int len);
+    void left_shift(unsigned char* packet, int len);
+    void right_shift(unsigned char* packet, int len);
 
-    float to_float(unsigned char hi, unsigned char lo, unsigned int q){ int16_t val=(hi<<8)|lo; return to_float(val,q); }
-    float to_float(int d, unsigned int q){ return ((float)d) / ((float)(1<<q)); }
-
+    float to_float(unsigned char hi, unsigned char lo, unsigned int q)
+    {
+        int16_t val = (hi << 8) | lo;
+        return to_float(val, q);
+    }
+    float to_float(int d, unsigned int q) { return ((float)d) / ((float)(1 << q)); }
 
     unsigned char rx_packet_buffer[RX_PACKET_BUFFER_SIZE];
     int rx_packet_buffer_pos;
@@ -344,10 +345,9 @@ private:
     struct tm imudata_time;
     bool imudata_time_available;
 
-
     //keep track of register requests & values
     unsigned int register_raw_value[REGISTER_ADDRESS_NumRegisters];
-    bool         register_raw_pending[REGISTER_ADDRESS_NumRegisters];
+    bool register_raw_pending[REGISTER_ADDRESS_NumRegisters];
 
     //keep track of requested commands
     int pending_command;
@@ -356,10 +356,10 @@ private:
     boost::mutex data_access_mutex;
 
     //default slots
-    static void default_slot_incoming_data_euler(double *euler);
-    static void default_slot_incoming_data_quat(double *quat);
-    static void default_slot_incoming_data_raw(uint16_t *gyro, uint16_t *accel, uint16_t *mag);
-    static void default_slot_incoming_data_cal(double *gyro, double *accel, double *mag);
+    static void default_slot_incoming_data_euler(double* euler);
+    static void default_slot_incoming_data_quat(double* quat);
+    static void default_slot_incoming_data_raw(uint16_t* gyro, uint16_t* accel, uint16_t* mag);
+    static void default_slot_incoming_data_cal(double* gyro, double* accel, double* mag);
     static void default_slot_incoming_data_time(struct tm now);
     //signals
     signal_incoming_data_euler_t signal_incoming_data_euler;
@@ -367,8 +367,6 @@ private:
     signal_incoming_data_raw_t signal_incoming_data_raw;
     signal_incoming_data_cal_t signal_incoming_data_cal;
     signal_incoming_data_time_t signal_incoming_data_time;
-
 };
-
 
 #endif

@@ -9,9 +9,11 @@ CompensationOptitrack::CompensationOptitrack(QObject* parent)
     : QObject(parent)
     , _osmer(OsmerElbow::instance())
     , _pronosup(PronoSupination::instance())
+    , _optitrack(OptiListener::instance())
     , _adc("/dev/i2c-1", 0x48)
-    , _imu_bras("/dev/ttyUSB0", XIMU::XIMU_LOGLEVEL_NONE, 115200)
-    , _imu_tronc("/dev/ttyUSB1", XIMU::XIMU_LOGLEVEL_NONE, 115200)
+    , _imu_bras("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200)
+    , _imu_tronc("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200)
+    , _Lt(40)
     , _Lua(0.)
     , _Lfa(0.)
     , _l(0.)
@@ -20,6 +22,7 @@ CompensationOptitrack::CompensationOptitrack(QObject* parent)
     , _threshold(0.)
     , _lambdaW(0)
     , _thresholdW(5.)
+    , _buzzer(29)
 {
     _settings.beginGroup("CompensationOptitrack");
 
@@ -101,6 +104,7 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
             posFA[0] = data.rigidBodies[i].x * 100;
             posFA[1] = data.rigidBodies[i].y * 100;
             posFA[2] = data.rigidBodies[i].z * 100;
+
             qFA_record.w() = data.rigidBodies[i].qw;
             qFA_record.x() = data.rigidBodies[i].qx;
             qFA_record.y() = data.rigidBodies[i].qy;

@@ -9,8 +9,8 @@
 #include "peripherals/helpers/pronosupination.h"
 #include "ui/consolemenu.h"
 #include "utils/optilistener.h"
+#include "utils/settings.h"
 #include <QFile>
-#include <QSettings>
 #include <QTime>
 #include <QUdpSocket>
 
@@ -31,7 +31,7 @@ public:
 private:
     OsmerElbow& _osmer;
     PronoSupination& _pronosup;
-    OptiListener _optitrack;
+    OptiListener& _optitrack;
     QUdpSocket _receiver;
     Adafruit_ADS1115 _adc;
     Buzzer _buzzer;
@@ -45,7 +45,7 @@ private:
 
     QFile _file;
     bool _need_to_write_header;
-    QSettings _settings;
+    Settings _settings;
     LawOpti _lawopti;
     unsigned int _cnt;
     unsigned int _ind;

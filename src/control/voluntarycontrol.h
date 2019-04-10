@@ -5,8 +5,8 @@
 #include "peripherals/helpers/osmerelbow.h"
 #include "peripherals/helpers/pronosupination.h"
 #include "utils/optilistener.h"
+#include "utils/settings.h"
 #include <QFile>
-#include <QSettings>
 
 class VoluntaryControl : public BasicController {
     Q_OBJECT
@@ -21,10 +21,9 @@ private:
 
     QFile _file;
     bool _need_to_write_header;
-    QSettings _settings;
+    Settings _settings;
     OsmerElbow& _osmer;
     PronoSupination& _pronosup;
-    OptiListener _optitrack;
 
     int _pin_up;
     int _pin_down;

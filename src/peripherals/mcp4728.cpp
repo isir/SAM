@@ -1,16 +1,16 @@
 #ifndef DEBUG
 #define QT_NO_DEBUG_OUTPUT
 #endif
-#include <sys/errno.h>
-#include <cstring>
 #include <QCoreApplication>
-#include <sys/types.h>
-#include <sys/ioctl.h>
-#include <termios.h>
-#include <string>
+#include <cstring>
 #include <fcntl.h>
-#include <unistd.h>
 #include <linux/i2c-dev.h>
+#include <string>
+#include <sys/errno.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <termios.h>
+#include <unistd.h>
 
 extern "C" {
 #include <i2c/smbus.h>
@@ -19,31 +19,30 @@ extern "C" {
 #include "mcp4728.h"
 
 #define BYTE_TO_BINARY_PATTERN "%c%c%c%c%c%c%c%c"
-#define BYTE_TO_BINARY(byte)  \
-  (byte & 0x80 ? '1' : '0'), \
-  (byte & 0x40 ? '1' : '0'), \
-  (byte & 0x20 ? '1' : '0'), \
-  (byte & 0x10 ? '1' : '0'), \
-  (byte & 0x08 ? '1' : '0'), \
-  (byte & 0x04 ? '1' : '0'), \
-  (byte & 0x02 ? '1' : '0'), \
-  (byte & 0x01 ? '1' : '0')
+#define BYTE_TO_BINARY(byte)       \
+    (byte & 0x80 ? '1' : '0'),     \
+        (byte & 0x40 ? '1' : '0'), \
+        (byte & 0x20 ? '1' : '0'), \
+        (byte & 0x10 ? '1' : '0'), \
+        (byte & 0x08 ? '1' : '0'), \
+        (byte & 0x04 ? '1' : '0'), \
+        (byte & 0x02 ? '1' : '0'), \
+        (byte & 0x01 ? '1' : '0')
 
-#define defaultVDD      5000
-#define RESET           0B00000110
-#define WAKE            0B00001001
-#define UPDATE          0B00001000
-#define MULTIWRITE      0B01000000
-#define SINGLEWRITE     0B01011000
-#define SEQWRITE        0B01010000
-#define VREFWRITE       0B10000000
-#define GAINWRITE       0B11000000
-#define POWERDOWNWRITE  0B10100000
-#define GENERALCALL     0B00000000
-#define GAINWRITE       0B11000000
+#define defaultVDD 5000
+#define RESET 0B00000110
+#define WAKE 0B00001001
+#define UPDATE 0B00001000
+#define MULTIWRITE 0B01000000
+#define SINGLEWRITE 0B01011000
+#define SEQWRITE 0B01010000
+#define VREFWRITE 0B10000000
+#define GAINWRITE 0B11000000
+#define POWERDOWNWRITE 0B10100000
+#define GENERALCALL 0B00000000
+#define GAINWRITE 0B11000000
 
-#define MAX_VALUE       4095
-
+#define MAX_VALUE 4095
 
 inline uint8_t lowByte(uint16_t word)
 {
@@ -51,30 +50,27 @@ inline uint8_t lowByte(uint16_t word)
 }
 inline uint8_t highByte(uint16_t word)
 {
-    return (uint8_t)(word>>8);;
+    return (uint8_t)(word >> 8);
+    ;
 }
 inline uint16_t word(uint8_t highB, uint8_t lowB)
 {
     return (uint16_t)((highB << 8) | lowB);
 }
 
-
 /**
 Constructor.
 Creates class object. Initialize buffers
 */
-MCP4728::MCP4728(const char *deviceName, uint8_t i2cAddress)
+MCP4728::MCP4728(const char* deviceName, uint8_t i2cAddress)
 {
     _i2cPort = open(deviceName, O_RDWR);
-    if (_i2cPort == -1)
-    {
+    if (_i2cPort == -1) {
         qCritical("MCP4728 ERROR : Failed to open I2C device %s. Error %d : %s.", deviceName, errno, strerror(errno));
-    }
-    else {
+    } else {
         qDebug("### MCP4728 : Open device %s", deviceName);
     }
-    if (ioctl(_i2cPort, I2C_SLAVE, i2cAddress) == -1)
-    {
+    if (ioctl(_i2cPort, I2C_SLAVE, i2cAddress) == -1) {
         qCritical("MCP4728 ERROR : Failed to set address %d. Error %d : %s.", i2cAddress, errno, strerror(errno));
     }
 
@@ -82,8 +78,9 @@ MCP4728::MCP4728(const char *deviceName, uint8_t i2cAddress)
     getStatus();
 }
 
-MCP4728::~MCP4728() {
-    if(_i2cPort != -1) {
+MCP4728::~MCP4728()
+{
+    if (_i2cPort != -1) {
         close(_i2cPort);
     }
 }
@@ -91,27 +88,31 @@ MCP4728::~MCP4728() {
 /*
 Specific Call Reset of MCP4728 - EEPROM value will loaded to input register. refer to DATASHEET 5.4.1
 */
-void MCP4728::reset() {
+void MCP4728::reset()
+{
     i2c_smbus_write_byte(_i2cPort, RESET);
 }
 /*
 Specific Call Wake-Up of MCP4728 - Reset Power-Down bits (PD0,PD1 = 0,0). refer to DATASHEET 5.4.2
 */
-void MCP4728::wake() {
+void MCP4728::wake()
+{
     i2c_smbus_write_byte(_i2cPort, WAKE);
 }
 /*
 Specific Call Software update of MCP4728 - All DAC ouput update. refer to DATASHEET 5.4.3
 */
-void MCP4728::update() {
+void MCP4728::update()
+{
     i2c_smbus_write_byte(_i2cPort, UPDATE);
 }
 /*
 Write input register values to each channel using fastwrite method.
 Values : 0-4095
 */
-void MCP4728::analogWrite(uint16_t value1, uint16_t value2, uint16_t value3, uint16_t value4) {
-    if(value1 > 4095 || value2 > 4095 || value3 > 4095 || value4 > 4095)
+void MCP4728::analogWrite(uint16_t value1, uint16_t value2, uint16_t value3, uint16_t value4)
+{
+    if (value1 > 4095 || value2 > 4095 || value3 > 4095 || value4 > 4095)
         qWarning("MCP4728 ERROR : Analog values must be in range 0 - 4095 !\n");
     else {
         _values[0] = value1;
@@ -127,8 +128,9 @@ void MCP4728::analogWrite(uint16_t value1, uint16_t value2, uint16_t value3, uin
 Write input resister value to specified channel using fastwrite method.
 Channel : 0-3, Values : 0-4095
 */
-void MCP4728::analogWrite(uint8_t channel, uint16_t value) {
-    if(value > 4095) {
+void MCP4728::analogWrite(uint8_t channel, uint16_t value)
+{
+    if (value > 4095) {
         qWarning("MCP4728 ERROR : Analog values must be in range 0 - 4095 !\n");
         value = 4095;
     }
@@ -198,7 +200,8 @@ void MCP4728::eepromReset()
     Vref setting = 1 (internal), Gain = 1 (x2)   ==> Vref = 4.096V
     Vref setting = 0 (external), Gain = ignored  ==> Vref = VDD
 */
-void MCP4728::setVref(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4) {
+void MCP4728::setVref(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4)
+{
     _intVref[0] = value1;
     _intVref[1] = value2;
     _intVref[2] = value3;
@@ -208,7 +211,8 @@ void MCP4728::setVref(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t va
 /*
   Write Voltage reference setting to a input regiter
 */
-void MCP4728::setVref(uint8_t channel, uint8_t value) {
+void MCP4728::setVref(uint8_t channel, uint8_t value)
+{
     _intVref[channel] = value;
     writeVref();
 }
@@ -218,7 +222,8 @@ void MCP4728::setVref(uint8_t channel, uint8_t value) {
     Vref setting = 1 (internal), Gain = 1 (x2)   ==> Vref = 4.096V
     Vref setting = 0 (external), Gain = ignored  ==> Vref = VDD
 */
-void MCP4728::setGain(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4) {
+void MCP4728::setGain(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4)
+{
     _gain[0] = value1;
     _gain[1] = value2;
     _gain[2] = value3;
@@ -228,7 +233,8 @@ void MCP4728::setGain(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t va
 /*
   Write Gain setting to a input regiter
 */
-void MCP4728::setGain(uint8_t channel, uint8_t value) {
+void MCP4728::setGain(uint8_t channel, uint8_t value)
+{
     _gain[channel] = value;
     writeGain();
 }
@@ -238,7 +244,8 @@ void MCP4728::setGain(uint8_t channel, uint8_t value) {
     1 = 1K ohms to GND, 2 = 100K ohms to GND, 3 = 500K ohms to GND
 */
 
-void MCP4728::setPowerDown(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4) {
+void MCP4728::setPowerDown(uint8_t value1, uint8_t value2, uint8_t value3, uint8_t value4)
+{
     _powerDown[0] = value1;
     _powerDown[1] = value2;
     _powerDown[2] = value3;
@@ -248,7 +255,8 @@ void MCP4728::setPowerDown(uint8_t value1, uint8_t value2, uint8_t value3, uint8
 /*
   Write Power-Down setting to a input regiter
 */
-void MCP4728::setPowerDown(uint8_t channel, uint8_t value) {
+void MCP4728::setPowerDown(uint8_t channel, uint8_t value)
+{
     _powerDown[channel] = value;
     writePowerDown();
 }
@@ -330,8 +338,7 @@ uint16_t MCP4728::getVout(uint8_t channel)
     uint32_t vref;
     if (_intVref[channel] == 1) {
         vref = 2048;
-    }
-    else {
+    } else {
         vref = _vdd;
     }
 
@@ -373,12 +380,12 @@ void MCP4728::getStatus()
     tcflush(_i2cPort, TCIFLUSH);
 
     int readBytes = read(_i2cPort, _buf, 24);
-    if(readBytes == 24) {
+    if (readBytes == 24) {
         qDebug("### MCP4728 : status : [%s]", _buf);
-        for(uint8_t seq=0; seq<8 ; seq++) {
-            uint8_t deviceID = _buf[seq*3];
-            uint8_t hiByte = _buf[seq*3 + 1];
-            uint8_t loByte = _buf[seq*3 + 2];
+        for (uint8_t seq = 0; seq < 8; seq++) {
+            uint8_t deviceID = _buf[seq * 3];
+            uint8_t hiByte = _buf[seq * 3 + 1];
+            uint8_t loByte = _buf[seq * 3 + 2];
             qDebug("Seq %d : [" BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN " " BYTE_TO_BINARY_PATTERN "]", seq, BYTE_TO_BINARY(deviceID), BYTE_TO_BINARY(hiByte), BYTE_TO_BINARY(loByte));
 
             uint8_t isEEPROM = (deviceID & 0B00001000) >> 3;
@@ -388,8 +395,7 @@ void MCP4728::getStatus()
                 _gainEp[channel] = (hiByte & 0B00010000) >> 4;
                 _powerDownEp[channel] = (hiByte & 0B01100000) >> 5;
                 _valuesEp[channel] = word((hiByte & 0B00001111), loByte);
-            }
-            else {
+            } else {
                 _intVref[channel] = (hiByte & 0B10000000) >> 7;
                 _gain[channel] = (hiByte & 0B00010000) >> 4;
                 _powerDown[channel] = (hiByte & 0B01100000) >> 5;
@@ -405,10 +411,11 @@ FastWrite input register values - All DAC ouput update. refer to DATASHEET 5.6.1
 DAC Input and PowerDown bits update.
 No EEPROM update
 */
-void MCP4728::fastWrite() {
-    for (uint8_t channel=0; channel <= 3; channel++) {
-        _buf[2*channel] = highByte(_values[channel]) | ((_powerDown[channel] << 4));
-        _buf[2*channel+1] = lowByte(_values[channel]);
+void MCP4728::fastWrite()
+{
+    for (uint8_t channel = 0; channel <= 3; channel++) {
+        _buf[2 * channel] = highByte(_values[channel]) | ((_powerDown[channel] << 4));
+        _buf[2 * channel + 1] = lowByte(_values[channel]);
     }
     uint8_t cmd = 0B0000000 | _buf[0]; // fastwrite cm
     i2c_smbus_write_i2c_block_data(_i2cPort, cmd, 7, &_buf[1]);
@@ -418,7 +425,8 @@ MultiWrite input register values - All DAC ouput update. refer to DATASHEET 5.6.
 DAC Input, Gain, Vref and PowerDown bits update
 No EEPROM update
 */
-void MCP4728::multiWrite() {
+void MCP4728::multiWrite()
+{
     // TO DO IF NEEDED...
 }
 /*
@@ -426,7 +434,8 @@ SingleWrite input register and EEPROM - a DAC ouput update. refer to DATASHEET 5
 DAC Input, Gain, Vref and PowerDown bits update
 EEPROM update
 */
-void MCP4728::singleWrite(uint8_t channel) {
+void MCP4728::singleWrite(uint8_t channel)
+{
 
     uint8_t cmd = SINGLEWRITE | (channel << 1);
     _buf[0] = _intVref[channel] << 7 | _powerDown[channel] << 5 | _gain[channel] << 4 | highByte(_values[channel]);
@@ -438,20 +447,23 @@ SequencialWrite input registers and EEPROM - ALL DAC ouput update. refer to DATA
 DAC Input, Gain, Vref and PowerDown bits update
 EEPROM update
 */
-void MCP4728::seqWrite() {
+void MCP4728::seqWrite()
+{
     // We only implemented seqwrite from starting channel 0.
-    for (uint8_t channel=0; channel <= 3; channel++) {
-        _buf[2*channel] = _intVref[channel] << 7 | _powerDown[channel] << 5 | _gain[channel] << 4 | highByte(_values[channel]);
-        _buf[2*channel+1] = lowByte(_values[channel]);
+    for (uint8_t channel = 0; channel <= 3; channel++) {
+        _buf[2 * channel] = _intVref[channel] << 7 | _powerDown[channel] << 5 | _gain[channel] << 4 | highByte(_values[channel]);
+        _buf[2 * channel + 1] = lowByte(_values[channel]);
     }
-    uint8_t cmd = SEQWRITE;;
+    uint8_t cmd = SEQWRITE;
+    ;
     i2c_smbus_write_i2c_block_data(_i2cPort, cmd, 8, &_buf[0]);
 }
 /*
 Write Voltage reference setting to input registers. refer to DATASHEET 5.6.5
 No EEPROM update
 */
-void MCP4728::writeVref() {
+void MCP4728::writeVref()
+{
     uint8_t cmd = VREFWRITE | (_intVref[0] << 3) | (_intVref[1] << 2) | (_intVref[2] << 1) | _intVref[3];
     i2c_smbus_write_byte(_i2cPort, cmd);
 }
@@ -459,7 +471,8 @@ void MCP4728::writeVref() {
 Write Gain setting to input registers. refer to DATASHEET 5.6.7
 No EEPROM update
 */
-void MCP4728::writeGain() {
+void MCP4728::writeGain()
+{
     uint8_t cmd = GAINWRITE | (_gain[0] << 3) | (_gain[1] << 2) | (_gain[2] << 1) | _gain[3];
     i2c_smbus_write_byte(_i2cPort, cmd);
 }
@@ -467,7 +480,8 @@ void MCP4728::writeGain() {
 Write PowerDown setting to input registers. refer to DATASHEET 5.6.6
 No EEPROM update
 */
-void MCP4728::writePowerDown() {
+void MCP4728::writePowerDown()
+{
     _buf[0] = POWERDOWNWRITE | (_powerDown[0] << 2) | _powerDown[1];
     _buf[1] = (_powerDown[2] << 6) | (_powerDown[3] << 4);
     i2c_smbus_write_byte_data(_i2cPort, _buf[0], _buf[1]);
@@ -478,12 +492,11 @@ No EEPROM update
 */
 void MCP4728::writeVout()
 {
-    for (uint8_t channel=0; channel <= 3; channel++) {
+    for (uint8_t channel = 0; channel <= 3; channel++) {
         if (_intVref[channel] == 1) {
             _values[channel] = _vOut[channel] / (_gain[channel] + 1) * 2;
-        }
-        else {
-            _values[channel] = (long(_vOut[channel]) * 4096) / _vdd ;
+        } else {
+            _values[channel] = (long(_vOut[channel]) * 4096) / _vdd;
         }
     }
     fastWrite();

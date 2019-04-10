@@ -4,8 +4,7 @@
 #include <QString>
 #include <functional>
 
-class ConsoleMenuItem
-{
+class ConsoleMenuItem {
 public:
     enum item_type_t {
         STANDARD,
@@ -15,10 +14,11 @@ public:
     };
 
     ConsoleMenuItem() {}
-    ConsoleMenuItem(QString description, QString code, std::function<void(QString)> callback, item_type_t type = STANDARD) : _callback(callback),
-        _type(type),
-        _description(description),
-        _code(code)
+    ConsoleMenuItem(QString description, QString code, std::function<void(QString)> callback, item_type_t type = STANDARD)
+        : _callback(callback)
+        , _type(type)
+        , _description(description)
+        , _code(code)
     {
     }
 

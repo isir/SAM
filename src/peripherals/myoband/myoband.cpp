@@ -4,7 +4,7 @@
 
 Myoband::Myoband()
     : BasicController(0.0025)
-    , _client(myolinux::Serial("/dev/ttyACM0", 115200))
+    , _client(myolinux::Serial("/dev/ttyACM0", 115200)) // TODO: Handle file not found exception
 {
     _client.onEmg([this](myolinux::myo::EmgSample sample) {
         static const int window_size = 20;
@@ -19,9 +19,9 @@ Myoband::Myoband()
             _emgs_rms.resize(sample.size());
 
         for (unsigned i = 0; i < sample.size(); i++) {
-            this->_emgs[i] = sample[i];
+            _emgs[i] = sample[i];
             emgs_history(history_idx++, i) = sample[i];
-            this->_emgs_rms[i] = sqrt(emgs_history.col(i).squaredNorm() / window_size);
+            _emgs_rms[i] = sqrt(emgs_history.col(i).squaredNorm() / window_size);
             if (history_idx >= window_size) {
                 history_idx = 0;
             }
@@ -68,7 +68,14 @@ void Myoband::loop(double, double)
         qInfo("MYOBAND : Connected");
         connected = true;
     }
-    _client.listen();
+    try {
+        _client.listen();
+    } catch (std::exception& e) {
+        qCritical() << e.what();
+        _client.disconnect();
+        connected = false;
+        setup();
+    }
 }
 
 void Myoband::cleanup()

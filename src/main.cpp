@@ -1,5 +1,4 @@
 #include <QCoreApplication>
-#include <QRandomGenerator>
 
 #include <iostream>
 
@@ -7,8 +6,10 @@
 #include "control/demo.h"
 #include "control/voluntarycontrol.h"
 #include "peripherals/buzzer.h"
+#include "peripherals/ledstrip.h"
 #include "peripherals/mcp4728.h"
 #include "ui/consolemenu.h"
+#include "utils/settings.h"
 
 static QFile info_file("/var/log/sam_info");
 static QFile err_file("/var/log/sam_err");
@@ -58,23 +59,18 @@ int main(int argc, char* argv[])
     QCoreApplication::setApplicationName("SAM");
 
     {
-        QSettings dummy;
+        Settings dummy;
         qInfo() << "Using settings from " << dummy.fileName();
     }
 
     wiringPiSetup();
 
-    QRandomGenerator rng;
-
-    MCP4728 dac0("/dev/i2c-1", 0x60);
-    MCP4728 dac1("/dev/i2c-1", 0x61);
-    dac0.analogWrite(0, 0, 0, 0);
-    dac1.analogWrite(0, 0, 0, 0);
-
     Buzzer buzzer(29);
     ConsoleMenu menu("Main menu", "main");
     ConsoleMenu buzzer_submenu("Buzzer submenu", "buzzer");
-    ConsoleMenu dac_submenu("DAC submenu", "dac");
+
+    LedStrip& ls = LedStrip::instance();
+    ls.set(LedStrip::white, 10);
 
     VoluntaryControl vc;
     CompensationOptitrack opti;
@@ -86,20 +82,18 @@ int main(int argc, char* argv[])
     buzzer_submenu.addItem(ConsoleMenuItem("Triple Buzz", "tb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
     menu.addItem(buzzer_submenu);
 
-    dac_submenu.addItem(ConsoleMenuItem("Random Values", "r", [&dac0, &dac1, &rng](QString) { dac0.analogWrite(rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096)); dac1.analogWrite(rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096),rng.bounded(0,4096)); }));
-    menu.addItem(dac_submenu);
-
     menu.addItem(opti.menu());
     menu.addItem(vc.menu());
     menu.addItem(dm.menu());
 
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
+    dm.menu().activate();
+    dm.start();
 
     int ret = a.exec();
 
-    dac0.analogWrite(0, 0, 0, 0);
-    dac1.analogWrite(0, 0, 0, 0);
+    ls.set(LedStrip::none, 10);
 
     return ret;
 }
