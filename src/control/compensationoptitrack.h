@@ -30,7 +30,7 @@ public:
 private:
     OsmerElbow& _osmer;
     PronoSupination& _pronosup;
-    OptiListener _optitrack;
+    OptiListener& _optitrack;
     QUdpSocket _receiver;
     Adafruit_ADS1115 _adc;
 

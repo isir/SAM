@@ -1,7 +1,7 @@
 #include "optilistener.h"
+#include <QDebug>
 #include <QNetworkInterface>
 #include <inttypes.h>
-#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -10,12 +10,17 @@ OptiListener::OptiListener()
 {
 }
 
+OptiListener& OptiListener::instance()
+{
+    static OptiListener listener;
+    return listener;
+}
+
 void OptiListener::begin(int port)
 {
     QObject::connect(&_udpSocket, &QUdpSocket::readyRead, this, &OptiListener::on_new_packet);
-    if (!_udpSocket.bind(QHostAddress::AnyIPv4, port)) //, QUdpSocket::ShareAddress))
-    {
-        std::cout << _udpSocket.errorString().toStdString() << std::endl;
+    if (!_udpSocket.bind(QHostAddress::AnyIPv4, port)) {
+        qCritical() << _udpSocket.errorString();
     }
 }
 
@@ -178,9 +183,6 @@ optitrack_data_t OptiListener::unpack(char* pData)
     return tmpData;
 }
 
-/**
- * \brief OptiListener::InternalThreadEntry Continously listen to the socket
- */
 void OptiListener::on_new_packet()
 {
     QByteArray dataToReceive;
