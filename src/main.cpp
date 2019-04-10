@@ -75,8 +75,6 @@ int main(int argc, char* argv[])
     VoluntaryControl vc;
     CompensationOptitrack opti;
 
-    Demo dm;
-
     buzzer_submenu.addItem(ConsoleMenuItem("Single Buzz", "sb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ); }));
     buzzer_submenu.addItem(ConsoleMenuItem("Double Buzz", "db", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::DOUBLE_BUZZ); }));
     buzzer_submenu.addItem(ConsoleMenuItem("Triple Buzz", "tb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
@@ -84,12 +82,18 @@ int main(int argc, char* argv[])
 
     menu.addItem(opti.menu());
     menu.addItem(vc.menu());
-    menu.addItem(dm.menu());
 
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
-    dm.menu().activate();
-    dm.start();
+
+    try {
+        Demo dm;
+        menu.addItem(dm.menu());
+        dm.menu().activate();
+        dm.start();
+    } catch (std::exception& e) {
+        qCritical() << e.what();
+    }
 
     int ret = a.exec();
 
