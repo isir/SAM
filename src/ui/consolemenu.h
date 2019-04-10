@@ -1,13 +1,12 @@
 #ifndef CONSOLEMENU_H
 #define CONSOLEMENU_H
 
-#include <QObject>
-#include <QMap>
-#include <QList>
 #include "consolemenuitem.h"
+#include <QList>
+#include <QMap>
+#include <QObject>
 
-class ConsoleMenu : public QObject, public ConsoleMenuItem
-{
+class ConsoleMenu : public QObject, public ConsoleMenuItem {
     Q_OBJECT
 public:
     explicit ConsoleMenu(QString title = QString(), QString code = QString());
@@ -24,7 +23,7 @@ protected:
     void prepare_to_read();
 
     static QList<ConsoleMenu*> _parents;
-    QMap<QString,ConsoleMenuItem> _menu;
+    QMap<QString, ConsoleMenuItem> _menu;
     int _max_key_length;
 
 protected slots:

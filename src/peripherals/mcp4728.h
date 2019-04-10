@@ -3,11 +3,10 @@
 
 #include <stdint.h>
 
-class MCP4728
-{
+class MCP4728 {
 
 public:
-    MCP4728(const char * deviceName, uint8_t i2cAddress);
+    MCP4728(const char* deviceName, uint8_t i2cAddress);
     ~MCP4728();
     void vdd(uint16_t);
     void reset();
@@ -63,7 +62,6 @@ private:
     uint16_t _vOut[4];
     uint16_t _vdd;
     uint8_t _buf[30];
-
 };
 
 #endif // MCP4728_H

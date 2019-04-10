@@ -1,9 +1,9 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
+#include "wiringPi.h"
 #include <QObject>
 #include <QThread>
-#include "wiringPi.h"
 
 namespace BuzzerConfig {
 enum BUZZ_TYPE {
@@ -26,21 +26,20 @@ typedef struct {
 
 Q_DECLARE_METATYPE(BuzzerConfig::buzzer_config_t)
 
-class BuzzerWorker : public QObject
-{
+class BuzzerWorker : public QObject {
     Q_OBJECT
 
 public slots:
-    void doWork(BuzzerConfig::buzzer_config_t config) {
-        for(;config.n_buzzes > 0; --config.n_buzzes) {
-            for(int i = 0; i < config.n_pulses; i++)
-            {
+    void doWork(BuzzerConfig::buzzer_config_t config)
+    {
+        for (; config.n_buzzes > 0; --config.n_buzzes) {
+            for (int i = 0; i < config.n_pulses; i++) {
                 digitalWrite(config.pin, 1);
                 QThread::usleep(config.half_period_us);
                 digitalWrite(config.pin, 0);
                 QThread::usleep(config.half_period_us);
             }
-            if(config.n_buzzes > 0)
+            if (config.n_buzzes > 0)
                 QThread::usleep(config.time_between_buzzes_us);
         }
     }
@@ -49,11 +48,9 @@ public slots:
 /**
  * \brief The Buzzer class handles the buzzer on the prosthesis. Through it, you can beep the buzzer in a thread with different patterns.
  */
-class Buzzer : public QObject
-{
+class Buzzer : public QObject {
     Q_OBJECT
 public:
-
     Buzzer(int pin);
     ~Buzzer();
 

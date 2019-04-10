@@ -4,13 +4,13 @@
 #include <QObject>
 #include <QThread>
 
-class ConsoleInput : public QObject
-{
+class ConsoleInput : public QObject {
     Q_OBJECT
 public:
     ~ConsoleInput();
 
-    static ConsoleInput& instance() {
+    static ConsoleInput& instance()
+    {
         static ConsoleInput _instance;
         return _instance;
     }
@@ -21,7 +21,7 @@ public slots:
     void read_line();
 
 private:
-    ConsoleInput(QObject *parent = nullptr);
+    ConsoleInput(QObject* parent = nullptr);
 
     QThread _thread;
     static const unsigned int _buffer_size = 128;

@@ -1,8 +1,8 @@
 #ifndef OPTILISTENER_H
 #define OPTILISTENER_H
 
-#include <QUdpSocket>
 #include <QObject>
+#include <QUdpSocket>
 #include <unistd.h>
 
 typedef struct {
@@ -11,7 +11,7 @@ typedef struct {
     float posz;
 } optitrack_marker_t;
 
-typedef struct  {
+typedef struct {
     char name[256];
     int nMarkers;
     std::vector<optitrack_marker_t> markers;
@@ -112,8 +112,7 @@ typedef struct {
 
 Q_DECLARE_METATYPE(optitrack_data_t)
 
-class OptiListener : public QObject
-{
+class OptiListener : public QObject {
     Q_OBJECT
 public:
     OptiListener();
