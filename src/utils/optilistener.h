@@ -117,11 +117,13 @@ class OptiListener : public QObject {
 public:
     static OptiListener& instance();
     void begin(int port = 1511);
+    optitrack_data_t get_last_data() { return _last_data; }
 
 private:
     OptiListener();
 
     optitrack_data_t unpack(char* pData);
+    optitrack_data_t _last_data;
 
     QUdpSocket _udpSocket;
 

@@ -191,6 +191,7 @@ void OptiListener::on_new_packet()
         QHostAddress hostAddress;
         quint16 port;
         _udpSocket.readDatagram(dataToReceive.data(), dataToReceive.size(), &hostAddress, &port);
-        emit new_data(unpack(dataToReceive.data()));
+        _last_data = unpack(dataToReceive.data());
+        emit new_data(_last_data);
     }
 }
