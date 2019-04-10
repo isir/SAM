@@ -50,7 +50,8 @@ HEADERS += \
         src/ui/consoleinput.h \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
-        src/utils/optilistener.h
+        src/utils/optilistener.h \
+        src/utils/settings.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -78,7 +79,8 @@ SOURCES += \
         src/peripherals/touch_bionics/touch_bionics_hand.cpp \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
-        src/utils/optilistener.cpp
+        src/utils/optilistener.cpp \
+        src/utils/settings.cpp
 
 INCLUDEPATH += src/
 
