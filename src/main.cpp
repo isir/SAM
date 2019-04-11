@@ -88,8 +88,6 @@ int main(int argc, char* argv[])
     CompensationOptitrack opti;
     RemoteComputerControl rm;
 
-    //Demo dm;
-
     buzzer_submenu.addItem(ConsoleMenuItem("Single Buzz", "sb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ); }));
     buzzer_submenu.addItem(ConsoleMenuItem("Double Buzz", "db", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::DOUBLE_BUZZ); }));
     buzzer_submenu.addItem(ConsoleMenuItem("Triple Buzz", "tb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
@@ -98,12 +96,9 @@ int main(int argc, char* argv[])
     menu.addItem(opti.menu());
     menu.addItem(vc.menu());
     menu.addItem(rm.menu());
-    //menu.addItem(dm.menu());
 
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
-    //dm.menu().activate();
-    //dm.start();
 
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
