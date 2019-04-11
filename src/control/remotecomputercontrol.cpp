@@ -5,13 +5,17 @@ RemoteComputerControl::RemoteComputerControl()
     , _buzzer(29)
     , _pronosup(PronoSupination::instance())
     , _osmer(OsmerElbow::instance())
-    , _hand("/dev/ttyUSB0")
+    , _hand(TouchBionicsHand::instance())
 {
     _menu.set_title("Remote control with keyboard");
     _menu.set_code("key");
     _menu.addItem(_pronosup.menu());
     _menu.addItem(_osmer.menu());
     _menu.addItem(_hand.menu());
+}
+
+RemoteComputerControl::~RemoteComputerControl()
+{
 }
 
 bool RemoteComputerControl::setup()
