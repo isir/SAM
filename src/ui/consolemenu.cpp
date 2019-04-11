@@ -11,6 +11,7 @@ ConsoleMenu::ConsoleMenu(QString title, QString code)
     , ConsoleMenuItem(
           title, code, [this](QString) { this->activate(); }, ConsoleMenuItem::SUBMENU)
     , _max_key_length(0)
+    , _mqtt(MqttClient::instance())
 {
     QObject::connect(this, &ConsoleMenu::ready_to_read, &ConsoleInput::instance(), &ConsoleInput::read_line);
     addItem(ConsoleMenuItem(
@@ -36,6 +37,8 @@ void ConsoleMenu::addItem(ConsoleMenuItem item)
 
 void ConsoleMenu::activate()
 {
+    static QMqttSubscription* sub = _mqtt.subscribe(QString("sam/menu/input"));
+
     foreach (QMetaObject::Connection con, _stream_connections) {
         QObject::disconnect(con);
     }
@@ -44,6 +47,7 @@ void ConsoleMenu::activate()
         _parents.push_back(this);
 
     _stream_connections.append(QObject::connect(&ConsoleInput::instance(), &ConsoleInput::new_line, this, &ConsoleMenu::on_user_input));
+    _stream_connections.append(QObject::connect(sub, &QMqttSubscription::messageReceived, this, &ConsoleMenu::on_mqtt_message_received));
     display();
     emit activated();
     prepare_to_read();
@@ -57,19 +61,20 @@ void ConsoleMenu::prepare_to_read()
 
 void ConsoleMenu::display()
 {
-    QString filler;
-    std::cout << std::endl;
+    QByteArray buffer("\r\n");
+    QByteArray filler;
     if (!_description.isEmpty()) {
-        filler.resize(_description.length() + 2, '-');
-        std::cout << _description.toStdString() << " : " << std::endl;
-        std::cout << filler.toStdString() << std::endl;
+        filler.fill('-', _description.length() + 2);
+        buffer.append(_description + " : \r\n");
+        buffer.append(filler + "\r\n");
     }
     foreach (ConsoleMenuItem item, _menu) {
         filler.clear();
-        filler.resize(_max_key_length - item.code().length() + 3, '.');
-        std::cout << "[" << item.code().toStdString() << "]" << filler.toStdString() << " " << item.description().toStdString() << std::endl;
+        filler.fill('.', _max_key_length - item.code().length() + 3);
+        buffer.append("[" + item.code() + "]" + filler + " " + item.description() + "\r\n");
     }
-    std::cout.flush();
+    std::cout << buffer.toStdString() << std::flush;
+    _mqtt.publish(QString("sam/menu/output"), buffer);
 }
 
 void ConsoleMenu::on_exit()
@@ -103,4 +108,9 @@ void ConsoleMenu::on_user_input(QString data)
     } else {
         prepare_to_read();
     }
+}
+
+void ConsoleMenu::on_mqtt_message_received(const QMqttMessage msg)
+{
+    on_user_input(msg.payload());
 }

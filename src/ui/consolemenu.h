@@ -2,6 +2,7 @@
 #define CONSOLEMENU_H
 
 #include "consolemenuitem.h"
+#include "utils/mqttclient.h"
 #include <QList>
 #include <QMap>
 #include <QObject>
@@ -25,11 +26,13 @@ protected:
     static QList<ConsoleMenu*> _parents;
     QMap<QString, ConsoleMenuItem> _menu;
     int _max_key_length;
+    MqttClient& _mqtt;
 
 protected slots:
     void display();
     virtual void on_exit();
     void on_user_input(QString data);
+    void on_mqtt_message_received(const QMqttMessage msg);
 
 private:
     static QList<QMetaObject::Connection> _stream_connections;
