@@ -85,13 +85,11 @@ void ConsoleMenu::on_user_input(QString data)
 {
     QString key, args;
     for (QMap<QString, ConsoleMenuItem>::key_iterator i = _menu.keyBegin(); i != _menu.keyEnd(); ++i) {
-        if (*i == data) {
-            key = *i;
+        key = (*i).split(' ', QString::SkipEmptyParts)[0];
+        if (key == data) {
             break;
-        }
-        if (data.startsWith((*i) + QString(" "))) {
-            key = *i;
-            args = data.mid((*i).length() + 1);
+        } else if (data.startsWith(key + QString(" "))) {
+            args = data.mid(key.length() + 1);
             break;
         }
     }
