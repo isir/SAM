@@ -3,9 +3,9 @@
 #include <QMutexLocker>
 
 Myoband::Myoband()
-    : BasicController(0.0025)
-    , _client(myolinux::Serial("/dev/ttyACM0", 115200)) // TODO: Handle file not found exception
-{
+try
+    : BasicController(0.0025),
+      _client(myolinux::Serial("/dev/ttyACM0", 115200)) {
     _client.onEmg([this](myolinux::myo::EmgSample sample) {
         static const int window_size = 20;
         static Eigen::MatrixXd emgs_history(window_size, sample.size());
@@ -46,6 +46,8 @@ Myoband::Myoband()
 
     _menu.set_title("Myoband");
     _menu.set_code("mb");
+} catch (std::exception& e) {
+    qCritical() << e.what();
 }
 
 Myoband::~Myoband()
