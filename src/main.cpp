@@ -9,6 +9,7 @@
 #include "peripherals/ledstrip.h"
 #include "peripherals/mcp4728.h"
 #include "ui/consolemenu.h"
+#include "utils/mqttclient.h"
 #include "utils/settings.h"
 
 static QFile info_file("/var/log/sam_info");
@@ -16,34 +17,44 @@ static QFile err_file("/var/log/sam_err");
 
 void message_handler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
+    static MqttClient& mqtt = MqttClient::instance();
+
     QByteArray localMsg = msg.toLocal8Bit();
-    const char* file = context.file ? context.file : "";
+
+    QFile* log_file = &info_file;
+    QString mqtt_topic_name = "sam/log/";
+    QByteArray line;
+    QByteArray suffix = " (" + QByteArray(context.file ? context.file : "") + ":" + QByteArray::number(context.line) + ")\r\n";
 
     switch (type) {
     case QtDebugMsg:
-        info_file.write(QByteArray("Debug: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
-        info_file.flush();
+        line = "Debug: ";
+        mqtt_topic_name += "debug";
         break;
     case QtInfoMsg:
-        info_file.write(QByteArray("Info: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
-        info_file.flush();
+        line = "Info: ";
+        mqtt_topic_name += "info";
         break;
     case QtWarningMsg:
-        info_file.write(QByteArray("Warning: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
-        info_file.flush();
+        line = "Warning: ";
+        mqtt_topic_name += "warning";
         break;
     case QtCriticalMsg:
-        err_file.write(QByteArray("Critical: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
-        err_file.flush();
+        line = "Critical: ";
+        mqtt_topic_name += "critical";
+        log_file = &err_file;
         break;
     case QtFatalMsg:
-        err_file.write(QByteArray("Fatal: ") + localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
-        err_file.flush();
+        line = "Fatal: ";
+        mqtt_topic_name += "fatal";
+        log_file = &err_file;
         break;
     default:
-        info_file.write(localMsg + " (" + QByteArray(file) + ":" + QByteArray::number(context.line) + ")\r\n");
         break;
     }
+    line += localMsg + suffix;
+    log_file->write(line);
+    mqtt.publish(mqtt_topic_name, line);
 }
 
 int main(int argc, char* argv[])
