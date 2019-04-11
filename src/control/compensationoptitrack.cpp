@@ -75,6 +75,7 @@ void CompensationOptitrack::display_lengths()
 {
     _ind = 0;
     qInfo("Wait for Optitrack data");
+    printf("Wait for Optitrack data");
     QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 }
 

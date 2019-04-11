@@ -56,6 +56,7 @@ void message_handler(QtMsgType type, const QMessageLogContext& context, const QS
     }
     line += localMsg + suffix;
     log_file->write(line);
+    log_file->flush();
     mqtt.publish(mqtt_topic_name, line);
 }
 
