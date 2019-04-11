@@ -12,6 +12,7 @@
 #include "ui/consolemenu.h"
 #include "utils/mqttclient.h"
 #include "utils/settings.h"
+#include "utils/systemmonitor.h"
 
 static QFile info_file("/var/log/sam_info");
 static QFile err_file("/var/log/sam_err");
@@ -65,6 +66,8 @@ int main(int argc, char* argv[])
 
     qInstallMessageHandler(message_handler);
     QCoreApplication a(argc, argv);
+
+    SystemMonitor sm;
 
     QCoreApplication::setOrganizationName("ISIR");
     QCoreApplication::setOrganizationDomain("isir.upmc.fr");
