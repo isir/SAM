@@ -23,6 +23,16 @@ TouchBionicsHand::TouchBionicsHand(char* filename)
     tcsetattr(_f, TCSANOW, &options);
     _speed = 3;
     qDebug() << "### TOUCHBIONICS : Hand port opened";
+
+    _menu.set_title(QString("TouchBionics Hand "));
+    _menu.set_code(QString("tb"));
+
+    _menu.addItem(ConsoleMenuItem("Hand posture", "h", [this](QString) { this->setPosture(HAND_POSTURE); }));
+    _menu.addItem(ConsoleMenuItem("Close hand", "hc", [this](QString) { this->move(HAND_CLOSING); }));
+    _menu.addItem(ConsoleMenuItem("Open hand", "ho", [this](QString) { this->move(HAND_OPENING); }));
+    _menu.addItem(ConsoleMenuItem("Pinch posture", "p", [this](QString) { this->setPosture(PINCH_POSTURE); }));
+    _menu.addItem(ConsoleMenuItem("Close pinch", "cp", [this](QString) { this->move(PINCH_CLOSING); }));
+    _menu.addItem(ConsoleMenuItem("Open pinch ", "op", [this](QString) { this->move(PINCH_OPENING); }));
 }
 
 /**
@@ -178,4 +188,9 @@ void TouchBionicsHand::move(int action)
     }
 
     _last_action = action;
+}
+
+ConsoleMenu& TouchBionicsHand::menu()
+{
+    return _menu;
 }

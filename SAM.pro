@@ -52,7 +52,8 @@ HEADERS += \
         src/ui/consolemenuitem.h \
         src/utils/mqttclient.h \
         src/utils/optilistener.h \
-        src/utils/settings.h
+        src/utils/settings.h \
+    src/control/remotecomputercontrol.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -82,7 +83,8 @@ SOURCES += \
         src/ui/consolemenu.cpp \
         src/utils/mqttclient.cpp \
         src/utils/optilistener.cpp \
-        src/utils/settings.cpp
+        src/utils/settings.cpp \
+    src/control/remotecomputercontrol.cpp
 
 INCLUDEPATH += src/
 

@@ -4,6 +4,7 @@
 #include "algorithms/lawopti.h"
 #include "peripherals/XIMU.h"
 #include "peripherals/adafruit_ads1115.h"
+#include "peripherals/buzzer.h"
 #include "peripherals/helpers/osmerelbow.h"
 #include "peripherals/helpers/pronosupination.h"
 #include "ui/consolemenu.h"
@@ -33,6 +34,7 @@ private:
     OptiListener& _optitrack;
     QUdpSocket _receiver;
     Adafruit_ADS1115 _adc;
+    Buzzer _buzzer;
 
     XIMU _imu_bras;
     XIMU _imu_tronc;

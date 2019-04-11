@@ -8,6 +8,8 @@
 
 VoluntaryControl::VoluntaryControl()
     : _osmer(OsmerElbow::instance())
+    , _pronosup(PronoSupination::instance())
+    , _optilistener(OptiListener::instance())
 {
     _settings.beginGroup("VoluntaryControl");
     _pin_up = _settings.value("pin_up", 24).toInt();
@@ -20,16 +22,19 @@ VoluntaryControl::VoluntaryControl()
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
+    _optilistener.begin(_settings.value("port", 1511).toInt());
 }
 
 VoluntaryControl::~VoluntaryControl()
 {
     _osmer.forward(0);
+    _pronosup.forward(0);
 }
 
 bool VoluntaryControl::setup()
 {
-    _osmer.calibration();
+    //_osmer.calibration();
+    _pronosup.set_encoder_position(0);
     QString filename = QString("voluntary");
 
     int cnt = 0;
@@ -54,30 +59,53 @@ void VoluntaryControl::loop(double, double)
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
 
-    double beta = _osmer.angle() * M_PI / 180.;
+    /// ELBOW
+    //    double beta = _osmer.angle() * M_PI / 180.;
+
+    //    if (pin_down_value == 0 && prev_pin_down_value == 1) {
+    //        _osmer.set_velocity(30);
+    //    } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+    //        _osmer.set_velocity(-30);
+    //    } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+    //        _osmer.set_velocity(0);
+    //        //        sleep(2);
+    //        //        _osmer.set_velocity(0);
+    //    }
+
+    /// WRIST
+    double wristAngle = _pronosup.read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _osmer.set_velocity(30);
+        _pronosup.move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _osmer.set_velocity(-30);
+        _pronosup.move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _osmer.set_velocity(0);
-        //        sleep(2);
-        //        _osmer.set_velocity(0);
+        _pronosup.forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
+    optitrack_data_t data = _optilistener.get_last_data();
     if (_need_to_write_header) {
-        _file.write("period, btnUp, btnDown, beta");
+        //        _file.write("period, btnUp, btnDown, beta");
+        _file.write("period, btnUp, btnDown, wristAngle");
+        for (int i = 0; i < data.nRigidBodies; i++) {
+            _file.write(", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z");
+        }
         _file.write("\r\n");
         _need_to_write_header = false;
     }
 
     QTextStream ts(&_file);
     //ts.setPadChar(' ');
-    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
+    //    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
+    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
+    for (int i = 0; i < data.nRigidBodies; i++) {
+        ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        ts << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    }
     ts << endl;
 }
 
