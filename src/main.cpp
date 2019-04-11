@@ -100,9 +100,6 @@ int main(int argc, char* argv[])
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
 
-    QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
-    menu.activate();
-
     try {
         Demo dm;
         menu.addItem(dm.menu());
