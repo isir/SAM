@@ -51,7 +51,8 @@ HEADERS += \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
         src/utils/optilistener.h \
-        src/utils/settings.h
+        src/utils/settings.h \
+    src/control/remotecomputercontrol.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -80,7 +81,8 @@ SOURCES += \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
         src/utils/optilistener.cpp \
-        src/utils/settings.cpp
+        src/utils/settings.cpp \
+    src/control/remotecomputercontrol.cpp
 
 INCLUDEPATH += src/
 

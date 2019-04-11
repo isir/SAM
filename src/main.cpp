@@ -4,6 +4,7 @@
 
 #include "control/compensationoptitrack.h"
 #include "control/demo.h"
+#include "control/remotecomputercontrol.h"
 #include "control/voluntarycontrol.h"
 #include "peripherals/buzzer.h"
 #include "peripherals/ledstrip.h"
@@ -74,8 +75,9 @@ int main(int argc, char* argv[])
 
     VoluntaryControl vc;
     CompensationOptitrack opti;
+    RemoteComputerControl rm;
 
-    Demo dm;
+    //Demo dm;
 
     buzzer_submenu.addItem(ConsoleMenuItem("Single Buzz", "sb", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ); }));
     buzzer_submenu.addItem(ConsoleMenuItem("Double Buzz", "db", [&buzzer](QString) { buzzer.makeNoise(BuzzerConfig::DOUBLE_BUZZ); }));
@@ -84,12 +86,13 @@ int main(int argc, char* argv[])
 
     menu.addItem(opti.menu());
     menu.addItem(vc.menu());
-    menu.addItem(dm.menu());
+    menu.addItem(rm.menu());
+    //menu.addItem(dm.menu());
 
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
-    dm.menu().activate();
-    dm.start();
+    //dm.menu().activate();
+    //dm.start();
 
     int ret = a.exec();
 

@@ -1,6 +1,7 @@
 #ifndef TOUCHBIONICSHAND_H
 #define TOUCHBIONICSHAND_H
 
+#include "ui/consolemenu.h"
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -56,6 +57,7 @@ public:
     void setPosture(POSTURE posture);
     int getSpeed() { return _speed; }
     void setSpeed(int newSpeed) { _speed = newSpeed; }
+    ConsoleMenu& menu();
 
 private:
     int _f;
@@ -64,6 +66,7 @@ private:
     int _last_action;
     int _count;
     const int _NB_OF_CMD_TO_RESEND = 3;
+    ConsoleMenu _menu;
 };
 
 #endif // TOUCHBIONICSHAND_H

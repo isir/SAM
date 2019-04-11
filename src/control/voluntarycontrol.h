@@ -24,6 +24,7 @@ private:
     Settings _settings;
     OsmerElbow& _osmer;
     PronoSupination& _pronosup;
+    OptiListener& _optilistener;
 
     int _pin_up;
     int _pin_down;
