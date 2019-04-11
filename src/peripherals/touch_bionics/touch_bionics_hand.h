@@ -2,11 +2,8 @@
 #define TOUCHBIONICSHAND_H
 
 #include "ui/consolemenu.h"
-#include <fcntl.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <termios.h>
-#include <unistd.h>
+#include "utils/settings.h"
+#include <QSerialPort>
 
 /**
  * @brief The TouchBionicsHand class allows to control the TouchBionics hands.
@@ -51,7 +48,8 @@ public:
         GLOVE_POSTURE = 24,
     };
 
-    TouchBionicsHand(char* filename);
+    static TouchBionicsHand& instance();
+
     ~TouchBionicsHand();
     void move(int action);
     void setPosture(POSTURE posture);
@@ -60,12 +58,16 @@ public:
     ConsoleMenu& menu();
 
 private:
-    int _f;
+    TouchBionicsHand();
+
     int _speed;
     char _cmd[13];
     int _last_action;
     int _count;
     const int _NB_OF_CMD_TO_RESEND = 3;
+
+    Settings _settings;
+    QSerialPort _sp;
     ConsoleMenu _menu;
 };
 

@@ -21,7 +21,7 @@ private:
     PronoSupination& _pronosup;
     OsmerElbow& _osmer;
     Myoband _myoband;
-    TouchBionicsHand _hand;
+    TouchBionicsHand& _hand;
 };
 
 #endif // DEMO_H

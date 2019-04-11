@@ -1,28 +1,25 @@
 #include "touch_bionics_hand.h"
 
 #include <QDebug>
+#include <QThread>
 
-/**
- * \brief TouchBionicsHand::TouchBionicsHand Constructor
- * \param filename
- */
-TouchBionicsHand::TouchBionicsHand(char* filename)
+TouchBionicsHand::TouchBionicsHand()
+    : _settings("TouchBionics")
 {
-    _f = -1;
-    _f = open(filename, O_RDWR | O_NOCTTY | O_NDELAY);
-    if (_f == -1)
-        qCritical() << "TOUCHBIONICS ERROR : Unable to open port.";
+    _sp.setPortName(_settings.value("port_name", "/dev/ttyUSB0").toString());
+    _sp.setBaudRate(115200);
+    if (_sp.open(QIODevice::ReadWrite)) {
+        qDebug() << "### TOUCHBIONICS : Hand port opened";
+    } else {
+        qCritical() << "TouchBionics:" << _sp.errorString();
+    }
 
-    struct termios options;
-    tcgetattr(_f, &options);
-    options.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-    options.c_iflag = IGNPAR;
-    options.c_oflag = 0;
-    options.c_lflag = 0;
-    tcflush(_f, TCIFLUSH);
-    tcsetattr(_f, TCSANOW, &options);
-    _speed = 3;
-    qDebug() << "### TOUCHBIONICS : Hand port opened";
+    _speed = _settings.value("speed", 3).toInt();
+    if (_speed < 0) {
+        _speed = 0;
+    } else if (_speed > 9) {
+        _speed = 9;
+    }
 
     _menu.set_title(QString("TouchBionics Hand "));
     _menu.set_code(QString("tb"));
@@ -35,61 +32,52 @@ TouchBionicsHand::TouchBionicsHand(char* filename)
     _menu.addItem(ConsoleMenuItem("Open pinch ", "op", [this](QString) { this->move(PINCH_OPENING); }));
 }
 
-/**
- * \brief TouchBionicsHand::~TouchBionicsHand Destructor
- */
-TouchBionicsHand::~TouchBionicsHand()
+TouchBionicsHand& TouchBionicsHand::instance()
 {
-    if (_f != -1) {
-        close(_f);
-    }
+    static TouchBionicsHand hand;
+    return hand;
 }
 
-/**
- * \brief TouchBionicsHand::setPosture Changes the hand's mode of the TouchBionics.
- * Look at the available postures in their amazing doc if you need others.
- * \param posture
- */
+TouchBionicsHand::~TouchBionicsHand()
+{
+}
+
 void TouchBionicsHand::setPosture(POSTURE posture)
 {
-    sprintf(_cmd, "QG%2d\r", posture);
-    write(_f, _cmd, 5);
+    QByteArray cmd = "QG" + QByteArray::number(posture) + "\r";
+    _sp.write(cmd);
 
     switch (posture) {
     case HAND_POSTURE:
-        qDebug("### TOUCHBIONICS : Setting Hand Posture");
+        qDebug() << "TouchBionics: Setting Hand Posture";
         break;
     case PINCH_POSTURE:
-        qDebug("### TOUCHBIONICS : Setting Pinch Posture");
+        qDebug() << "TouchBionics: Setting Pinch Posture";
         break;
     case TRIPLE_PINCH_POSTURE:
-        qDebug("### TOUCHBIONICS : Setting triple Pinchh Posture");
+        qDebug() << "TouchBionics: Setting Triple Pinch Posture";
         break;
     case GLOVE_POSTURE:
-        qDebug("### TOUCHBIONICS : Setting Glove Posture");
+        qDebug() << "TouchBionics: Setting Glove Posture";
         break;
     default:
-        qDebug("### TOUCHBIONICS WARNING : Uncoded posture");
+        qWarning() << "TouchBionics: Unknown Posture";
         break;
     }
 
-    usleep(10 * 1000);
+    QThread::msleep(10);
     move(HAND_OPENING_ALL);
 }
 
-/**
- * \brief TouchBionicsHand::move Performs an action on touchbionics hand.
- * \param action
- */
 void TouchBionicsHand::move(int action)
 {
 
     // If changing direction, send 0 before
     if (((_last_action + action) % 2 == 1) && _last_action != 0) {
         if (_last_action % 2 == 0)
-            write(_f, "+0+0+0+0+0+0\r", 13);
+            _sp.write("+0+0+0+0+0+0\r", 13);
         else
-            write(_f, "-0-0-0-0-0-0\r", 13);
+            _sp.write("-0-0-0-0-0-0\r", 13);
     }
 
     if (_last_action != action) {
@@ -176,14 +164,13 @@ void TouchBionicsHand::move(int action)
         default:
             action = 0;
             sprintf(_cmd, "+0+0+0+0+0+0\r");
-            write(_f, _cmd, 13);
             break;
         }
-        write(_f, _cmd, 13);
+        _sp.write(_cmd, 13);
     } else {
         if (_count < _NB_OF_CMD_TO_RESEND) {
             _count++;
-            write(_f, _cmd, 13);
+            _sp.write(_cmd, 13);
         }
     }
 

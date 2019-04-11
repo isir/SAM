@@ -13,7 +13,7 @@ Demo::Demo()
     , _buzzer(29)
     , _pronosup(PronoSupination::instance())
     , _osmer(OsmerElbow::instance())
-    , _hand("/dev/ttyUSB0")
+    , _hand(TouchBionicsHand::instance())
 {
     _menu.set_title("Demo");
     _menu.set_code("demo");
