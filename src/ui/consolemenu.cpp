@@ -2,6 +2,7 @@
 #include "consoleinput.h"
 #include <QDebug>
 #include <iostream>
+#include <unistd.h>
 
 QList<ConsoleMenu*> ConsoleMenu::_parents;
 QList<QMetaObject::Connection> ConsoleMenu::_stream_connections;
@@ -12,8 +13,14 @@ ConsoleMenu::ConsoleMenu(QString title, QString code)
           title, code, [this](QString) { this->activate(); }, ConsoleMenuItem::SUBMENU)
     , _max_key_length(0)
     , _mqtt(MqttClient::instance())
+    , _has_tty(isatty(fileno(stdin)))
 {
-    QObject::connect(this, &ConsoleMenu::ready_to_read, &ConsoleInput::instance(), &ConsoleInput::read_line);
+    if (_has_tty) {
+        QObject::connect(this, &ConsoleMenu::ready_to_read, &ConsoleInput::instance(), &ConsoleInput::read_line);
+    } else {
+        qInfo() << "TTY not detected";
+    }
+
     addItem(ConsoleMenuItem(
         "Exit", "exit", [this](QString) { this->on_exit(); }, ConsoleMenuItem::EXIT));
 }
@@ -55,7 +62,9 @@ void ConsoleMenu::activate()
 
 void ConsoleMenu::prepare_to_read()
 {
-    std::cout << "> " << std::flush;
+    if (_has_tty) {
+        std::cout << "> " << std::flush;
+    }
     emit ready_to_read();
 }
 
@@ -73,7 +82,9 @@ void ConsoleMenu::display()
         filler.fill('.', _max_key_length - item.code().length() + 3);
         buffer.append("[" + item.code() + "]" + filler + " " + item.description() + "\r\n");
     }
-    std::cout << buffer.toStdString() << std::flush;
+    if (_has_tty) {
+        std::cout << buffer.toStdString() << std::flush;
+    }
     _mqtt.publish(QString("sam/menu/output"), buffer);
 }
 

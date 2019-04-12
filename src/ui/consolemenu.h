@@ -36,6 +36,7 @@ protected slots:
 
 private:
     static QList<QMetaObject::Connection> _stream_connections;
+    bool _has_tty;
 
 signals:
     void activated();
