@@ -97,6 +97,7 @@ void ConsoleMenu::on_user_input(QString data)
             args = data.mid(key.length() + 1);
             break;
         }
+        key = "";
     }
 
     if (_menu.contains(key)) {
