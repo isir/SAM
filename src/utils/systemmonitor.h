@@ -13,6 +13,7 @@ public:
 
 private:
     QFile _stat_file;
+    QFile _temp_file;
     QTimer _timer;
 
 private slots:

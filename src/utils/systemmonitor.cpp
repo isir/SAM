@@ -6,6 +6,8 @@ SystemMonitor::SystemMonitor(QObject* parent)
 {
     _stat_file.setFileName("/proc/stat");
     _stat_file.open(QIODevice::ReadOnly);
+    _temp_file.setFileName("/sys/class/thermal/thermal_zone0/temp");
+    _temp_file.open(QIODevice::ReadOnly);
 
     QObject::connect(&_timer, &QTimer::timeout, this, &SystemMonitor::timer_callback);
     _timer.setInterval(1000);
@@ -15,6 +17,7 @@ SystemMonitor::SystemMonitor(QObject* parent)
 void SystemMonitor::timer_callback()
 {
     static int old_usr[5] = { 0 }, old_nice[5] = { 0 }, old_sys[5] = { 0 }, old_idle[5] = { 0 };
+
     _stat_file.reset();
     double cpu_load[5];
 
@@ -35,4 +38,7 @@ void SystemMonitor::timer_callback()
         msg.append(QByteArray::number(cpu_load[i], 'f', 2) + " ");
     }
     MqttClient::instance().publish(QString("system/cpu_load"), msg);
+
+    _temp_file.reset();
+    MqttClient::instance().publish(QString("system/cpu_temp"), _temp_file.readLine());
 }
