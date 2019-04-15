@@ -1,6 +1,7 @@
 #include "topicplotter.h"
 #include "ui_topicplotter.h"
 #include <QVBoxLayout>
+#include <QtCharts/QLegendMarker>
 
 TopicPlotter::TopicPlotter(QString topic_name, QWidget* parent)
     : QWidget(parent)
@@ -64,6 +65,11 @@ void TopicPlotter::mqtt_callback(QMqttMessage msg)
             _series.last()->attachAxis(&_x_axis);
             _series.last()->attachAxis(&_y_axis);
         }
+
+        QList<QtCharts::QLegendMarker*> markers = _chart->legend()->markers();
+        foreach (QtCharts::QLegendMarker* marker, markers) {
+            QObject::connect(marker, &QtCharts::QLegendMarker::clicked, this, &TopicPlotter::marker_clicked_callback);
+        }
     }
 
     if (_buffers.isEmpty()) {
@@ -110,4 +116,15 @@ void TopicPlotter::mqtt_callback(QMqttMessage msg)
     for (int i = 0; i < _series.size(); ++i) {
         _series[i]->replace(*_buffers[i]);
     }
+}
+
+void TopicPlotter::marker_clicked_callback()
+{
+    QtCharts::QLegendMarker* marker = qobject_cast<QtCharts::QLegendMarker*>(sender());
+
+    if (!marker)
+        return;
+
+    marker->series()->setVisible(!marker->series()->isVisible());
+    marker->setVisible(true);
 }

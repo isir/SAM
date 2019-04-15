@@ -43,6 +43,7 @@ private:
 
 private slots:
     void mqtt_callback(QMqttMessage msg);
+    void marker_clicked_callback();
 };
 
 #endif // TOPICPLOTTER_H
