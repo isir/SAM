@@ -8,6 +8,7 @@ LogDisplay::LogDisplay(QWidget* parent)
 {
     ui->setupUi(this);
     QObject::connect(&_mqtt, &QMqttClient::connected, this, &LogDisplay::setup);
+    QObject::connect(ui->pushButton_clear, &QPushButton::pressed, [this]() { ui->textEdit->clear(); _messages.clear(); });
     QObject::connect(ui->checkBox_debug, &QCheckBox::clicked, this, &LogDisplay::refresh);
     QObject::connect(ui->checkBox_info, &QCheckBox::clicked, this, &LogDisplay::refresh);
     QObject::connect(ui->checkBox_warning, &QCheckBox::clicked, this, &LogDisplay::refresh);

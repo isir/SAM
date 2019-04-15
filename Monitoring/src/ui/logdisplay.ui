@@ -33,6 +33,13 @@
       </spacer>
      </item>
      <item>
+      <widget class="QPushButton" name="pushButton_clear">
+       <property name="text">
+        <string>Clear</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QCheckBox" name="checkBox_debug">
        <property name="text">
         <string>Debug</string>
