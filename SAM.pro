@@ -1,7 +1,7 @@
 QT -= gui
 QT += network serialport mqtt
 
-CONFIG += c++17 console
+CONFIG += console
 CONFIG -= app_bundle
 
 # The following define makes your compiler emit warnings if you use
@@ -89,6 +89,8 @@ SOURCES += \
     src/utils/systemmonitor.cpp
 
 INCLUDEPATH += src/
+
+QMAKE_CXXFLAGS += -std=c++17
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
