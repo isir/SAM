@@ -3,6 +3,7 @@
 
 #include "logdisplay.h"
 #include "menudisplay.h"
+#include "topicplotter.h"
 #include <QMainWindow>
 
 namespace Ui {
@@ -20,6 +21,7 @@ private:
     Ui::MainWindow* ui;
     LogDisplay _ld;
     MenuDisplay _md;
+    TopicPlotter _tp;
 
 private slots:
     void setup();

@@ -25,8 +25,8 @@ void MenuDisplay::setup()
 
 void MenuDisplay::send_callback()
 {
-    ui->lineEdit_command->clear();
     _mqtt.publish(QString("sam/menu/input"), ui->lineEdit_command->text().toLatin1());
+    ui->lineEdit_command->clear();
 }
 
 void MenuDisplay::mqtt_message_callback(QMqttMessage msg)

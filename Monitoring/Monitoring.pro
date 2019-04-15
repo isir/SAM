@@ -29,18 +29,24 @@ SOURCES += \
         src/main.cpp \
         src/ui/logdisplay.cpp \
         src/ui/mainwindow.cpp \
-        src/ui/menudisplay.cpp
+        src/ui/menudisplay.cpp \
+        src/ui/systemdisplay.cpp \
+        src/ui/topicplotter.cpp
 
 HEADERS += \
         ../src/utils/mqttclient.h \
         src/ui/logdisplay.h \
         src/ui/mainwindow.h \
-        src/ui/menudisplay.h
+        src/ui/menudisplay.h \
+        src/ui/systemdisplay.h \
+        src/ui/topicplotter.h
 
 FORMS += \
         src/ui/logdisplay.ui \
         src/ui/mainwindow.ui \
-        src/ui/menudisplay.ui
+        src/ui/menudisplay.ui \
+        src/ui/systemdisplay.ui \
+        src/ui/topicplotter.ui
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
