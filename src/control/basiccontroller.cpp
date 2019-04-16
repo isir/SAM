@@ -13,6 +13,7 @@ BasicController::BasicController(double period_s)
 
 BasicController::~BasicController()
 {
+    stop();
 }
 
 void BasicController::set_period(double seconds)
@@ -23,8 +24,10 @@ void BasicController::set_period(double seconds)
 
 void BasicController::stop()
 {
-    QMutexLocker locker(&_mutex);
+    _mutex.lock();
     _loop_condition = false;
+    _mutex.unlock();
+    wait();
 }
 
 void BasicController::run()

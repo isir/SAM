@@ -53,7 +53,9 @@ void ConsoleMenu::activate()
     if (_parents.isEmpty() || _parents.last() != this)
         _parents.push_back(this);
 
-    _stream_connections.append(QObject::connect(&ConsoleInput::instance(), &ConsoleInput::new_line, this, &ConsoleMenu::on_user_input));
+    if (_has_tty) {
+        _stream_connections.append(QObject::connect(&ConsoleInput::instance(), &ConsoleInput::new_line, this, &ConsoleMenu::on_user_input));
+    }
     _stream_connections.append(QObject::connect(sub, &QMqttSubscription::messageReceived, this, &ConsoleMenu::on_mqtt_message_received));
     display();
     emit activated();

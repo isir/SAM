@@ -38,7 +38,7 @@ void Logger::async_handle_message(QtMsgType type, const QMessageLogContext& cont
 
 void Logger::handle_message(QByteArray type, const QByteArray& msg)
 {
-    QString mqtt_topic_name = type.toLower();
+    QString mqtt_topic_name = QString("sam/log/") + type.toLower();
     QFile* log_file = &_info_file;
 
     if (type == "Critical" || type == "Fatal") {

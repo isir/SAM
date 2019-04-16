@@ -69,11 +69,12 @@ int main(int argc, char* argv[])
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
 
+    Demo* dm = nullptr;
     try {
-        Demo dm;
-        menu.addItem(dm.menu());
-        dm.menu().activate();
-        dm.start();
+        dm = new Demo();
+        menu.addItem(dm->menu());
+        dm->menu().activate();
+        dm->start();
     } catch (std::exception& e) {
         qCritical() << e.what();
     }
@@ -81,6 +82,6 @@ int main(int argc, char* argv[])
     int ret = a.exec();
 
     ls.set(LedStrip::none, 10);
-
+    delete dm;
     return ret;
 }

@@ -19,6 +19,13 @@ Demo::Demo()
     _menu.set_code("demo");
     _menu.addItem(_pronosup.menu());
     _menu.addItem(_osmer.menu());
+
+    _myoband.start();
+}
+
+Demo::~Demo()
+{
+    _myoband.stop();
 }
 
 bool Demo::setup()
@@ -30,7 +37,7 @@ bool Demo::setup()
         return false;
     }
     _buzzer.makeNoise(BuzzerConfig::DOUBLE_BUZZ);
-    _myoband.start();
+    return false;
 
     _hand.setPosture(TouchBionicsHand::HAND_POSTURE);
     QThread::sleep(1);
@@ -63,9 +70,6 @@ void Demo::loop(double, double)
 
     static const int elbow_speed_up = -35;
     static const int elbow_speed_down = 35;
-    static const int elbow_speed_time = 60;
-    static double elbow_speed_gain = 0;
-    static double elbow_speed_decel = 0;
     static const int wrist_speed = 100;
 
     static const int threshold_emg1_demo_nat = 15;

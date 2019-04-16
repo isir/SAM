@@ -4,12 +4,13 @@
 #include "myoLinux/myoclient.h"
 #include "myoLinux/serial.h"
 #include <QMutex>
+#include <QTimer>
 #include <QVector>
 #include <control/basiccontroller.h>
 #include <eigen3/Eigen/Dense>
 
 class Myoband : public BasicController {
-
+    Q_OBJECT
 public:
     Myoband();
     ~Myoband();
@@ -18,7 +19,7 @@ public:
     void loop(double dt, double time);
     void cleanup();
 
-    bool connected() { return _client.connected(); }
+    bool connected();
 
     QVector<qint8> get_emgs()
     {
@@ -47,14 +48,18 @@ public:
     }
 
 private:
-    myolinux::myo::Client _client;
+    myolinux::myo::Client* _client;
     QMutex _mutex;
+    QTimer _mqtt_timer;
 
     QVector<qint8> _emgs;
     QVector<qint32> _emgs_rms;
-    Eigen::Vector3d _acc;
-    Eigen::Vector3d _gyro;
-    Eigen::Quaterniond _imu;
+    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> _acc;
+    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> _gyro;
+    Eigen::Quaternion<double, Eigen::DontAlign> _imu;
+
+private slots:
+    void mqtt_timer_callback();
 };
 
 #endif // MYOBAND_H

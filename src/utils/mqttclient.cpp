@@ -21,6 +21,7 @@ MqttClient& MqttClient::instance()
     return client;
 }
 
-void MqttClient::on_state_changed(QMqttClient::ClientState)
+void MqttClient::on_state_changed(QMqttClient::ClientState state)
 {
+    qDebug() << "mqtt state : " << state;
 }
