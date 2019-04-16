@@ -1,7 +1,7 @@
 QT -= gui
 QT += network serialport mqtt
 
-CONFIG += c++17 console
+CONFIG += console
 CONFIG -= app_bundle
 
 # The following define makes your compiler emit warnings if you use
@@ -50,10 +50,12 @@ HEADERS += \
         src/ui/consoleinput.h \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
+    src/utils/logger.h \
         src/utils/mqttclient.h \
         src/utils/optilistener.h \
         src/utils/settings.h \
-    src/control/remotecomputercontrol.h
+    src/control/remotecomputercontrol.h \
+    src/utils/systemmonitor.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -81,10 +83,12 @@ SOURCES += \
         src/peripherals/touch_bionics/touch_bionics_hand.cpp \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
+    src/utils/logger.cpp \
         src/utils/mqttclient.cpp \
         src/utils/optilistener.cpp \
         src/utils/settings.cpp \
-    src/control/remotecomputercontrol.cpp
+    src/control/remotecomputercontrol.cpp \
+    src/utils/systemmonitor.cpp
 
 INCLUDEPATH += src/
 

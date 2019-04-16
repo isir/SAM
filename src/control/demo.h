@@ -11,6 +11,7 @@
 class Demo : public BasicController {
 public:
     Demo();
+    ~Demo();
 
     bool setup();
     void loop(double dt, double time);
