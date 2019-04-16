@@ -50,6 +50,7 @@ HEADERS += \
         src/ui/consoleinput.h \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
+    src/utils/logger.h \
         src/utils/mqttclient.h \
         src/utils/optilistener.h \
         src/utils/settings.h \
@@ -82,6 +83,7 @@ SOURCES += \
         src/peripherals/touch_bionics/touch_bionics_hand.cpp \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
+    src/utils/logger.cpp \
         src/utils/mqttclient.cpp \
         src/utils/optilistener.cpp \
         src/utils/settings.cpp \
