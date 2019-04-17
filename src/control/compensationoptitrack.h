@@ -23,6 +23,7 @@ public:
     void zero();
     void display_parameters();
     void display_lengths();
+    void displayArduino();
 
 private:
     SAM::Components _robot;
@@ -40,6 +41,7 @@ private:
     LawOpti _lawopti;
     unsigned int _cnt;
     unsigned int _ind;
+    unsigned int _infoSent;
 
     ConsoleMenu _menu;
 
@@ -50,12 +52,17 @@ private:
     int _lsh;
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;
+    int _pinArduino;
+    int _pin_up;
+    int _pin_down;
 
 private slots:
     void on_activated();
-    void on_new_data(optitrack_data_t data);
+    void on_new_data_compensation(optitrack_data_t data);
+    void on_new_data_vol(optitrack_data_t data);
     void read_optiData(optitrack_data_t data);
     void on_def();
+    void listenArduino();
 };
 
 #endif // COMPENSATIONOPTITRACK_H

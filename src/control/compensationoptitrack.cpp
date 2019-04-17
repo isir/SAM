@@ -18,7 +18,7 @@ CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_
     , _lambdaW(0)
     , _lambda(0)
     , _thresholdW(5.)
-    , _threshold(0.)
+    , _pinArduino(0)
 {
     _settings.beginGroup("CompensationOptitrack");
 
@@ -27,22 +27,35 @@ CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_
         qCritical() << _receiver.errorString();
     }
 
+    QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
+    if (!_receiverArduino.bind(QHostAddress::AnyIPv4, 45455)) {
+        qCritical() << 'Arduino receiver' << _receiverArduino.errorString();
+    }
+
     _abs_time.start();
 
-    _menu.set_title("Compensation control with optitrack");
+    _menu.set_title("Control with optitrack recording");
     _menu.set_code("opti");
-    _menu.addItem(ConsoleMenuItem("Start (+ filename)", "start", [this](QString args) { this->start(args); }));
+    _menu.addItem(ConsoleMenuItem("Start (+ filename [comp for compensation, vol for voluntary control])", "1", [this](QString args) { this->start(args); }));
     _menu.addItem(ConsoleMenuItem("Stop", "s", [this](QString) { this->stop(); }));
     _menu.addItem(ConsoleMenuItem("Back to 0°", "zero", [this](QString) { this->zero(); }));
     _menu.addItem(ConsoleMenuItem("Display law parameters", "disp", [this](QString) { this->display_parameters(); }));
+    _menu.addItem(ConsoleMenuItem("Display Arduino data", "ard", [this](QString) { this->displayArduino(); }));
     _menu.addItem(ConsoleMenuItem("Display anatomical lengths", "al", [this](QString) { this->display_lengths(); }));
+
     _menu.addItem(_robot.elbow->menu());
     _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.hand->menu());
 
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &CompensationOptitrack::stop);
     QObject::connect(&_menu, &ConsoleMenu::activated, this, &CompensationOptitrack::on_activated);
 
     _optitrack.begin(_settings.value("port", 1511).toInt());
+
+    _pin_up = _settings.value("pin_up", 24).toInt();
+    _pin_down = _settings.value("pin_down", 22).toInt();
+    pullUpDnControl(_pin_up, PUD_UP);
+    pullUpDnControl(_pin_down, PUD_UP);
 }
 
 CompensationOptitrack::~CompensationOptitrack()
@@ -150,7 +163,7 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
 void CompensationOptitrack::start(QString filename = QString())
 {
     if (filename.isEmpty())
-        filename = "compensation_optitrack";
+        filename = "test";
 
     int cnt = 0;
     QString extension = QString(".txt");
@@ -170,21 +183,34 @@ void CompensationOptitrack::start(QString filename = QString())
     _previous_elapsed = 0;
 
     _cnt = 0;
+    _infoSent = 0;
     QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
-    QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data);
+    QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
+
+    if (filename == QString("comp")) {
+        QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+    } else if (filename == QString("vol")) {
+        QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+    } else {
+        qDebug("Filename does not correspond to one of the control mode.\n 'opti' for compensation control; 'vol', for voluntary");
+    }
 }
 
 void CompensationOptitrack::stop()
 {
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data);
+    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
     QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+
+    _infoSent = 0;
     _robot.elbow->forward(0);
     _robot.wrist->forward(0);
+
     _file.close();
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
 }
 
-void CompensationOptitrack::on_new_data(optitrack_data_t data)
+void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
 {
     unsigned int init_cnt = _settings.value("init_count", 10).toInt();
     int btn_sync = digitalRead(_settings.value("btn_sync", 29).toInt());
@@ -248,7 +274,8 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
     double beta = _robot.elbow->angle() * M_PI / 180.;
 
     if (_need_to_write_header) {
-        _file.write("delta, time, btn_sync, abs_time, emg1, emg2, timerTask,");
+        _file.write("delta, time, btn_sync, abs_time, emg1, emg2, timerTask, pinArduino,");
+        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z");
         _file.write(" index_acromion, index_EE, index_elbow, initialAcromionPosition.x, initialAcromionPosition.y, initialAcromionPosition.z, AcromionPosition.x, AcromionPosition.y, AcromionPosition.z,");
         _file.write(" positionEE_inHip.x, positionEE_inHip.y, positionEE_inHip.z, delta, beta_new, beta, dBeta, betaDot, lambda, threshold, nbRigidBodies,");
         _file.write(" phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW");
@@ -298,7 +325,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
         _lawopti.bufferingOldValues();
 
         if (_cnt % _settings.value("display_count", 50).toInt() == 0) {
-            _lawopti.displayData(posEE, beta);
+            // _lawopti.displayData(posEE, beta);
             //            qDebug() << "betaDot in deg:" << _lawopti.returnBetaDot_deg();
         }
         // buzzer after 1s, to indicate the start of the task
@@ -315,6 +342,7 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
         ts << _Lua << ' ' << _Lfa << ' ' << _l << endl;
     }
     ts << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _robot.adc->readADC_SingleEnded(0) << ' ' << _robot.adc->readADC_SingleEnded(1) << ' ' << timerTask;
+    ts << ' ' << _pinArduino;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
     ts << ' ' << debugData[3] << ' ' << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
@@ -329,6 +357,69 @@ void CompensationOptitrack::on_new_data(optitrack_data_t data)
     ts << endl;
 
     ++_cnt;
+}
+
+void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
+{
+    static int prev_pin_up_value = 1, prev_pin_down_value = 1;
+    int pin_down_value = digitalRead(_pin_down);
+    int pin_up_value = digitalRead(_pin_up);
+
+    /// ELBOW
+    //    double beta = _osmer.angle() * M_PI / 180.;
+
+    //    if (pin_down_value == 0 && prev_pin_down_value == 1) {
+    //        _osmer.set_velocity(30);
+    //    } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+    //        _osmer.set_velocity(-30);
+    //    } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+    //        _osmer.set_velocity(0);
+    //        //        sleep(2);
+    //        //        _osmer.set_velocity(0);
+    //    }
+
+    /// WRIST
+    double wristAngle = _robot.wrist->read_encoder_position();
+
+    if (pin_down_value == 0 && prev_pin_down_value == 1) {
+        _robot.wrist->move_to(6000, 5000, 6000, 35000);
+    } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+        _robot.wrist->move_to(6000, 5000, 6000, -35000);
+    } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+        _robot.wrist->forward(0);
+    }
+
+    prev_pin_down_value = pin_down_value;
+    prev_pin_up_value = pin_up_value;
+
+    double qBras[4], qTronc[4];
+    _robot.arm_imu->get_quat(qBras);
+    _robot.trunk_imu->get_quat(qTronc);
+    if (_need_to_write_header) {
+        //        _file.write("period, btnUp, btnDown, beta");
+        _file.write("btnUp, btnDown, pinArduino, wristAngle,");
+        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z");
+        _file.write(" nbRigid Bodies");
+        for (int i = 0; i < data.nRigidBodies; i++) {
+            _file.write(", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z");
+        }
+        _file.write("\r\n");
+        _need_to_write_header = false;
+    }
+
+    QTextStream ts(&_file);
+    //ts.setPadChar(' ');
+    //    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
+    ts << pin_up_value << ' ' << pin_down_value << ' ' << _pinArduino << ' ' << wristAngle;
+    ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    ts << ' ' << data.nRigidBodies;
+
+    for (int i = 0; i < data.nRigidBodies; i++) {
+        ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        ts << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    }
+    ts << endl;
 }
 
 void CompensationOptitrack::on_activated()
@@ -365,4 +456,26 @@ void CompensationOptitrack::on_def()
         ts >> tmp;
         _thresholdW = tmp * M_PI / 180; // dead zone limit for wrist angle change, in rad.
     }
+}
+
+void CompensationOptitrack::listenArduino()
+{
+    while (_receiverArduino.hasPendingDatagrams()) {
+        if (_infoSent == 0) {
+            qDebug("Listening Arduino");
+            _infoSent = 1;
+        }
+        QByteArray dataReceivedArduino = _receiverArduino.receiveDatagram().data();
+        QTextStream tsA(&dataReceivedArduino);
+        int tmp;
+
+        tsA >> tmp;
+        _pinArduino = tmp;
+    }
+}
+
+void CompensationOptitrack::displayArduino()
+{
+    QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
+    //qDebug("Pin Arduino: %d", _pinArduino);
 }
