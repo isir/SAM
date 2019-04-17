@@ -1,5 +1,6 @@
 #include "logdisplay.h"
 #include "ui_logdisplay.h"
+#include <QTime>
 
 LogDisplay::LogDisplay(QWidget* parent)
     : QWidget(parent)
@@ -29,7 +30,7 @@ void LogDisplay::setup()
 
 void LogDisplay::display_message(QMqttMessage msg)
 {
-    QString payload = msg.payload();
+    QString payload = QTime::currentTime().toString("[hh:mm:ss] ") + msg.payload();
     if (payload.endsWith('\n')) {
         payload.chop(1);
     }
