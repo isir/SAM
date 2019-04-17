@@ -112,6 +112,7 @@ void VoluntaryControl::loop(double, double)
 
 void VoluntaryControl::cleanup()
 {
-    _robot.elbow->forward(0);
+    //_robot.elbow->forward(0);
+    _robot.wrist->forward(0);
     _file.close();
 }
