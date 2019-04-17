@@ -3,8 +3,9 @@
 #include <QMutexLocker>
 #include <QTime>
 
-BasicController::BasicController(double period_s)
-    : _period_s(period_s)
+BasicController::BasicController(std::shared_ptr<QMqttClient> mqtt, double period_s)
+    : _menu(mqtt)
+    , _period_s(period_s)
 {
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &BasicController::stop);
     _menu.addItem(ConsoleMenuItem("Start loop", "start", [this](QString) { this->start(); }));
@@ -22,12 +23,33 @@ void BasicController::set_period(double seconds)
     _period_s = seconds;
 }
 
+void BasicController::enable_watchdog(int timeout_ms)
+{
+    QObject::disconnect(this, &BasicController::ping, &_watchdog_timer, qOverload<>(&QTimer::start));
+    QObject::disconnect(&_watchdog_timer, &QTimer::timeout, this, &BasicController::unresponsive_callback);
+
+    if (timeout_ms > 0) {
+        _watchdog_timer.setInterval(timeout_ms);
+        _watchdog_timer.setSingleShot(true);
+        QObject::connect(this, &BasicController::ping, &_watchdog_timer, qOverload<>(&QTimer::start));
+        QObject::connect(&_watchdog_timer, &QTimer::timeout, this, &BasicController::unresponsive_callback);
+    }
+}
+
 void BasicController::stop()
 {
-    _mutex.lock();
-    _loop_condition = false;
-    _mutex.unlock();
-    wait();
+    if (isRunning()) {
+        _mutex.lock();
+        _loop_condition = false;
+        _mutex.unlock();
+        wait();
+    }
+}
+
+void BasicController::unresponsive_callback()
+{
+    terminate();
+    qCritical() << "Watchdog timed out, current thread was terminated.";
 }
 
 void BasicController::run()
@@ -38,6 +60,8 @@ void BasicController::run()
     double dt = 0;
     unsigned int cnt = 0;
     double min = std::numeric_limits<double>::max(), max = 0, avg = 0;
+
+    emit ping();
 
     if (!setup()) {
         return;
@@ -59,6 +83,8 @@ void BasicController::run()
 
         loop(dt, current_time);
 
+        emit ping();
+
         ++cnt;
         if (dt < min)
             min = dt;
@@ -70,7 +96,7 @@ void BasicController::run()
         if (!_loop_condition)
             break;
     }
-
     cleanup();
+    enable_watchdog(-1);
     qInfo() << "Thread finished - Avg loop time = " << avg * 1000. << "ms, min = " << min * 1000. << "ms, max = " << max * 1000. << "ms";
 }

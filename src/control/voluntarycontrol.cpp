@@ -6,9 +6,9 @@
 #include <iostream>
 #include <wiringPi.h>
 
-VoluntaryControl::VoluntaryControl()
-    : _osmer(OsmerElbow::instance())
-    , _pronosup(PronoSupination::instance())
+VoluntaryControl::VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
+    : BasicController(mqtt)
+    , _robot(robot)
     , _optilistener(OptiListener::instance())
 {
     _settings.beginGroup("VoluntaryControl");
@@ -18,7 +18,7 @@ VoluntaryControl::VoluntaryControl()
 
     _menu.set_title("Voluntary Control");
     _menu.set_code("vc");
-    _menu.addItem(_osmer.menu());
+    _menu.addItem(_robot.elbow->menu());
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
@@ -27,14 +27,15 @@ VoluntaryControl::VoluntaryControl()
 
 VoluntaryControl::~VoluntaryControl()
 {
-    _osmer.forward(0);
-    _pronosup.forward(0);
+    _robot.elbow->forward(0);
+    _robot.wrist->forward(0);
+    stop();
 }
 
 bool VoluntaryControl::setup()
 {
     //_osmer.calibration();
-    _pronosup.set_encoder_position(0);
+    _robot.wrist->set_encoder_position(0);
     QString filename = QString("voluntary");
 
     int cnt = 0;
@@ -73,14 +74,14 @@ void VoluntaryControl::loop(double, double)
     //    }
 
     /// WRIST
-    double wristAngle = _pronosup.read_encoder_position();
+    double wristAngle = _robot.wrist->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _pronosup.move_to(6000, 5000, 6000, 35000);
+        _robot.wrist->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _pronosup.move_to(6000, 5000, 6000, -35000);
+        _robot.wrist->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _pronosup.forward(0);
+        _robot.wrist->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
@@ -111,6 +112,6 @@ void VoluntaryControl::loop(double, double)
 
 void VoluntaryControl::cleanup()
 {
-    _osmer.forward(0);
+    _robot.elbow->forward(0);
     _file.close();
 }

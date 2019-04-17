@@ -10,12 +10,6 @@ LedStrip::color LedStrip::green(0, led_value, 0, 1);
 LedStrip::color LedStrip::blue(0, 0, led_value, 1);
 LedStrip::color LedStrip::none(0, 0, 0, 0);
 
-LedStrip& LedStrip::instance()
-{
-    static LedStrip ls;
-    return ls;
-}
-
 LedStrip::LedStrip()
     : QObject()
 {

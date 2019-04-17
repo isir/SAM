@@ -8,24 +8,19 @@
 #define IMU_ELBOW 1
 #define FULL_MYO_FINGERS 2
 
-Demo::Demo()
-    : BasicController(.01)
-    , _buzzer(29)
-    , _pronosup(PronoSupination::instance())
-    , _osmer(OsmerElbow::instance())
-    , _hand(TouchBionicsHand::instance())
+Demo::Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
+    : BasicController(mqtt, .01)
+    , _robot(robot)
 {
     _menu.set_title("Demo");
     _menu.set_code("demo");
-    _menu.addItem(_pronosup.menu());
-    _menu.addItem(_osmer.menu());
-
-    _myoband.start();
+    _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.elbow->menu());
 }
 
 Demo::~Demo()
 {
-    _myoband.stop();
+    stop();
 }
 
 bool Demo::setup()
@@ -33,28 +28,17 @@ bool Demo::setup()
     pinMode(28, INPUT);
     pullUpDnControl(28, PUD_UP);
     if (digitalRead(28)) {
-        _buzzer.makeNoise(BuzzerConfig::SHORT_BUZZ);
+        _robot.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
         return false;
     }
-    _buzzer.makeNoise(BuzzerConfig::DOUBLE_BUZZ);
-    return false;
+    _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
 
-    _hand.setPosture(TouchBionicsHand::HAND_POSTURE);
-    QThread::sleep(1);
+    _robot.hand->init_sequence();
+    _robot.elbow->calibration();
 
-    _hand.setSpeed(5);
-    _hand.move(TouchBionicsHand::HAND_CLOSING);
+    _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
     QThread::msleep(500);
-
-    _hand.move(TouchBionicsHand::HAND_OPENING);
-    QThread::sleep(1);
-    _hand.move(TouchBionicsHand::THUMB_INT_CLOSING);
-
-    _osmer.calibration();
-
-    _hand.move(TouchBionicsHand::HAND_CLOSING_ALL);
-    QThread::msleep(500);
-    _hand.move(TouchBionicsHand::HAND_OPENING_ALL);
+    _robot.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
     QThread::msleep(500);
 
     return true;
@@ -94,17 +78,17 @@ void Demo::loop(double, double)
         first = false;
     }
 
-    Eigen::Vector3d acc = _myoband.get_acc();
+    Eigen::Vector3d acc = _robot.myoband->get_acc();
 
-    _pronosup.forward(5);
+    _robot.wrist->forward(5);
 
     emg[0] = 0;
     emg[1] = 0;
 
     if ((acc.squaredNorm() > max_acc_change_mode) && counter_auto_control == 0) {
         control_mode = (control_mode + 1) % 3;
-        _buzzer.makeNoise(BuzzerConfig::TRIPLE_BUZZ);
-        _osmer.set_velocity(0);
+        _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
+        _robot.elbow->set_velocity(0);
         counter_auto_control = 100;
 
         if (control_mode == FULL_MYO) {
@@ -121,7 +105,7 @@ void Demo::loop(double, double)
             myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         }
     } else {
-        QVector<qint32> rms = _myoband.get_emgs_rms();
+        QVector<qint32> rms = _robot.myoband->get_emgs_rms();
         if (rms.size() < 8)
             return;
         emg[0] = rms[3];
@@ -129,15 +113,15 @@ void Demo::loop(double, double)
     }
 
     if (myocontrol.hasChangedMode()) {
-        _buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ);
+        _robot.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_HAND || myocontrol.getOldMode() == MyoControl::MYO_MODE_HAND_CLOSING || myocontrol.getOldMode() == MyoControl::MYO_MODE_HAND_OPENING) {
-            _hand.move(0);
+            _robot.hand->move(0);
         }
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST || myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_FORWARDING || myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_BACKWARDING) {
-            _pronosup.forward(0);
+            _robot.wrist->forward(0);
         }
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_ELBOW) {
-            _osmer.set_velocity(0);
+            _robot.elbow->set_velocity(0);
         }
     }
 
@@ -161,97 +145,97 @@ void Demo::loop(double, double)
 
     switch (action) {
     case MyoControl::ELBOW_DOWN:
-        _osmer.set_velocity(elbow_speed_down);
+        _robot.elbow->set_velocity(elbow_speed_down);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         elbow_mode = 1;
         break;
     case MyoControl::ELBOW_UP:
-        _osmer.set_velocity(elbow_speed_up);
+        _robot.elbow->set_velocity(elbow_speed_up);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         elbow_mode = -1;
         break;
     case MyoControl::ELBOW_STOP:
-        _osmer.set_velocity(0);
+        _robot.elbow->set_velocity(0);
         break;
     case MyoControl::WRIST_BACKWARD:
-        _pronosup.backward(wrist_speed);
+        _robot.wrist->backward(wrist_speed);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         break;
     case MyoControl::WRIST_FORWARD:
-        _pronosup.forward(wrist_speed);
+        _robot.wrist->forward(wrist_speed);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         break;
     case MyoControl::WRIST_STOP:
-        _pronosup.forward(0);
+        _robot.wrist->forward(0);
         break;
     case MyoControl::HAND_STOP:
-        _hand.move(0);
+        _robot.hand->move(0);
         break;
     case MyoControl::THUMB_STOP:
-        _hand.move(0);
+        _robot.hand->move(0);
         break;
     case MyoControl::FOREFINGER_STOP:
-        _hand.move(0);
+        _robot.hand->move(0);
         break;
     case MyoControl::RINGFINGER_STOP:
-        _hand.move(0);
+        _robot.hand->move(0);
         break;
     case MyoControl::MIDDLEFINGER_STOP:
-        _hand.move(0);
+        _robot.hand->move(0);
         break;
     case MyoControl::LITTLEFINGER_STOP:
-        _hand.move(0);
+        _robot.hand->move(0);
         break;
     case MyoControl::HAND_OPEN:
-        _hand.move(TouchBionicsHand::HAND_OPENING_ALL);
+        _robot.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         break;
     case MyoControl::HAND_CLOSE:
-        _hand.move(TouchBionicsHand::HAND_CLOSING_ALL);
+        _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         break;
     case MyoControl::THUMB_OPEN:
-        _hand.move(TouchBionicsHand::THUMB_OPENING);
+        _robot.hand->move(TouchBionicsHand::THUMB_OPENING);
         break;
     case MyoControl::THUMB_CLOSE:
-        _hand.move(TouchBionicsHand::THUMB_CLOSING);
+        _robot.hand->move(TouchBionicsHand::THUMB_CLOSING);
         break;
     case MyoControl::FOREFINGER_OPEN:
-        _hand.move(TouchBionicsHand::FOREFINGER_OPENING);
+        _robot.hand->move(TouchBionicsHand::FOREFINGER_OPENING);
         break;
     case MyoControl::FOREFINGER_CLOSE:
-        _hand.move(TouchBionicsHand::FOREFINGER_CLOSING);
+        _robot.hand->move(TouchBionicsHand::FOREFINGER_CLOSING);
         break;
     case MyoControl::MIDDLEFINGER_OPEN:
-        _hand.move(TouchBionicsHand::MIDDLEFINGER_OPENING);
+        _robot.hand->move(TouchBionicsHand::MIDDLEFINGER_OPENING);
         break;
     case MyoControl::MIDDLEFINGER_CLOSE:
-        _hand.move(TouchBionicsHand::MIDDLEFINGER_CLOSING);
+        _robot.hand->move(TouchBionicsHand::MIDDLEFINGER_CLOSING);
         break;
     case MyoControl::RINGFINGER_OPEN:
-        _hand.move(TouchBionicsHand::RINGFINGER_OPENING);
+        _robot.hand->move(TouchBionicsHand::RINGFINGER_OPENING);
         break;
     case MyoControl::RINGFINGER_CLOSE:
-        _hand.move(TouchBionicsHand::RINGFINGER_CLOSING);
+        _robot.hand->move(TouchBionicsHand::RINGFINGER_CLOSING);
         break;
     case MyoControl::LITTLEFINGER_OPEN:
-        _hand.move(TouchBionicsHand::LITTLEFINGER_OPENING);
+        _robot.hand->move(TouchBionicsHand::LITTLEFINGER_OPENING);
         break;
     case MyoControl::LITTLEFINGER_CLOSE:
-        _hand.move(TouchBionicsHand::LITTLEFINGER_CLOSING);
+        _robot.hand->move(TouchBionicsHand::LITTLEFINGER_CLOSING);
         break;
     default:
         qWarning() << "MYOCONTROL ERROR : Unknown joint to activate...";
         break;
     }
 
-    LedStrip::instance().set(colors);
+    _robot.leds->set(colors);
 
     // Elbow control if not full myo
     if (counter_auto_control > 0) {
@@ -264,17 +248,17 @@ void Demo::loop(double, double)
                     if (acc[1] > 0.2) {
                         // elbow down : -1
                         elbow_mode = -1;
-                        _osmer.set_velocity(elbow_speed_down);
+                        _robot.elbow->set_velocity(elbow_speed_down);
                     } else if (acc[1] < -0.2) {
                         // elbow up : 1
                         elbow_mode = 1;
-                        _osmer.set_velocity(elbow_speed_up);
+                        _robot.elbow->set_velocity(elbow_speed_up);
                     }
                 } else {
                     move_elbow_counter++;
                 }
             } else {
-                _osmer.set_velocity(0);
+                _robot.elbow->set_velocity(0);
             }
         }
     }
@@ -286,8 +270,8 @@ void Demo::loop(double, double)
 
 void Demo::cleanup()
 {
-    _myoband.stop();
-    _pronosup.forward(0);
-    _osmer.move_to_angle(0);
-    LedStrip::instance().set(LedStrip::white, 10);
+    _robot.myoband->stop();
+    _robot.wrist->forward(0);
+    _robot.elbow->move_to_angle(0);
+    _robot.leds->set(LedStrip::white, 10);
 }

@@ -7,8 +7,9 @@
 #include <QTime>
 #include <iostream>
 
-OsmerElbow::OsmerElbow()
+OsmerElbow::OsmerElbow(std::shared_ptr<QMqttClient> mqtt)
     : RoboClaw::Client()
+    , _menu(mqtt)
     , _calibrated(false)
 {
     _settings.beginGroup("Osmer");
@@ -65,12 +66,6 @@ OsmerElbow::OsmerElbow()
 
 OsmerElbow::~OsmerElbow()
 {
-}
-
-OsmerElbow& OsmerElbow::instance()
-{
-    static OsmerElbow _instance;
-    return _instance;
 }
 
 ConsoleMenu& OsmerElbow::menu()

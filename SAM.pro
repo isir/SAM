@@ -51,8 +51,9 @@ HEADERS += \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
     src/utils/logger.h \
-        src/utils/mqttclient.h \
         src/utils/optilistener.h \
+    src/utils/sam.h \
+    src/utils/samanager.h \
         src/utils/settings.h \
     src/control/remotecomputercontrol.h \
     src/utils/systemmonitor.h
@@ -84,8 +85,8 @@ SOURCES += \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
     src/utils/logger.cpp \
-        src/utils/mqttclient.cpp \
         src/utils/optilistener.cpp \
+    src/utils/samanager.cpp \
         src/utils/settings.cpp \
     src/control/remotecomputercontrol.cpp \
     src/utils/systemmonitor.cpp

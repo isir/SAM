@@ -3,15 +3,16 @@
 #include <QDebug>
 #include <QThread>
 
-TouchBionicsHand::TouchBionicsHand()
+TouchBionicsHand::TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt)
     : _settings("TouchBionics")
+    , _menu(mqtt)
 {
-    _sp.setPortName(_settings.value("port_name", "/dev/ttyUSB0").toString());
+    _sp.setPortName(_settings.value("port_name", "/dev/touchbionics").toString());
     _sp.setBaudRate(115200);
     if (_sp.open(QIODevice::ReadWrite)) {
         qDebug() << "### TOUCHBIONICS : Hand port opened";
     } else {
-        qCritical() << "TouchBionics:" << _sp.errorString();
+        throw std::runtime_error("/dev/" + _sp.portName().toStdString() + ": " + _sp.errorString().toStdString());
     }
 
     _speed = _settings.value("speed", 3).toInt();
@@ -36,14 +37,22 @@ TouchBionicsHand::TouchBionicsHand()
     _menu.addItem(ConsoleMenuItem("Open forefinger ", "off", [this](QString) { this->move(FOREFINGER_OPENING); }));
 }
 
-TouchBionicsHand& TouchBionicsHand::instance()
-{
-    static TouchBionicsHand hand;
-    return hand;
-}
-
 TouchBionicsHand::~TouchBionicsHand()
 {
+}
+
+void TouchBionicsHand::init_sequence()
+{
+    setPosture(TouchBionicsHand::HAND_POSTURE);
+    QThread::sleep(1);
+
+    setSpeed(5);
+    move(TouchBionicsHand::HAND_CLOSING);
+    QThread::msleep(500);
+
+    move(TouchBionicsHand::HAND_OPENING);
+    QThread::sleep(1);
+    move(TouchBionicsHand::THUMB_INT_CLOSING);
 }
 
 void TouchBionicsHand::setPosture(POSTURE posture)

@@ -3,7 +3,9 @@
 
 #include "ui/consolemenu.h"
 #include "utils/settings.h"
+#include <QMqttClient>
 #include <QSerialPort>
+#include <memory>
 
 /**
  * @brief The TouchBionicsHand class allows to control the TouchBionics hands.
@@ -48,9 +50,10 @@ public:
         GLOVE_POSTURE = 24,
     };
 
-    static TouchBionicsHand& instance();
-
+    TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt);
     ~TouchBionicsHand();
+
+    void init_sequence();
     void move(int action);
     void setPosture(POSTURE posture);
     int getSpeed() { return _speed; }
@@ -58,8 +61,6 @@ public:
     ConsoleMenu& menu();
 
 private:
-    TouchBionicsHand();
-
     int _speed;
     char _cmd[13];
     int _last_action;

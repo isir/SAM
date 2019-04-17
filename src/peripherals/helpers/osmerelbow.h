@@ -13,7 +13,7 @@ class OsmerElbow : public RoboClaw::Client {
 public:
     ~OsmerElbow();
 
-    static OsmerElbow& instance();
+    OsmerElbow(std::shared_ptr<QMqttClient> mqtt);
     ConsoleMenu& menu();
 
     void calibration();
@@ -22,8 +22,6 @@ public:
     void set_velocity(double value);
 
 private:
-    OsmerElbow();
-
     ConsoleMenu _menu;
     Settings _settings;
 

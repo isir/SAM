@@ -2,19 +2,23 @@
 #define BASICCONTROLLER_H
 
 #include "ui/consolemenu.h"
+#include <QMqttClient>
 #include <QMutex>
 #include <QString>
 #include <QThread>
+#include <QTimer>
+#include <memory>
 
 class BasicController : public QThread {
     Q_OBJECT
 public:
-    BasicController(double period_s = 1);
+    BasicController(std::shared_ptr<QMqttClient> mqtt, double period_s = 1);
     virtual ~BasicController();
 
     void set_period(double seconds);
     double return_period() { return _period_s; }
     ConsoleMenu& menu() { return _menu; }
+    void enable_watchdog(int timeout_ms);
 
 public slots:
     virtual void stop();
@@ -25,13 +29,20 @@ protected:
     virtual void cleanup() = 0;
 
     ConsoleMenu _menu;
+    bool _loop_condition;
+    QMutex _mutex;
+
+protected slots:
+    virtual void unresponsive_callback();
 
 private:
     void run();
 
-    QMutex _mutex;
-    bool _loop_condition;
     double _period_s;
+    QTimer _watchdog_timer;
+
+signals:
+    void ping();
 };
 
 #endif // BASICCONTROLLER_H

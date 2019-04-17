@@ -44,6 +44,7 @@ XIMU::XIMU(const char* filename, int level, int baudrate)
     set_loglevel(level);
 
     if (!open_port(filename, baudrate)) {
+        throw std::runtime_error(std::string(filename) + ": " + std::string(strerror(errno)));
         _hasOpenPort = false;
     } else {
         _hasOpenPort = true;
@@ -225,7 +226,6 @@ bool XIMU::open_port(const char* fn, int baudrate)
 {
     fd = open(fn, O_RDWR | O_NOCTTY);
     if (fd == -1) {
-        qCritical("XIMU ERROR : failed to open port '%s'", fn);
         return false;
     } else {
         //set serial speed
