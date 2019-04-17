@@ -42,7 +42,6 @@ void BasicController::stop()
         _mutex.lock();
         _loop_condition = false;
         _mutex.unlock();
-        wait();
     }
 }
 
