@@ -1,7 +1,7 @@
 #ifndef MENUDISPLAY_H
 #define MENUDISPLAY_H
 
-#include "../src/utils/mqttclient.h"
+#include "utils/mqttclient.h"
 #include <QWidget>
 
 namespace Ui {

@@ -1,6 +1,6 @@
 #include "systemdisplay.h"
-#include "../src/utils/mqttclient.h"
 #include "ui_systemdisplay.h"
+#include "utils/mqttclient.h"
 
 SystemDisplay::SystemDisplay(QWidget* parent)
     : QWidget(parent)

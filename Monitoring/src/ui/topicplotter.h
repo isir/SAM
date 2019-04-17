@@ -1,7 +1,7 @@
 #ifndef TOPICPLOTTER_H
 #define TOPICPLOTTER_H
 
-#include "../src/utils/mqttclient.h"
+#include "utils/mqttclient.h"
 #include <QWidget>
 #include <QtCharts/QChart>
 #include <QtCharts/QChartView>

@@ -1,7 +1,7 @@
 #ifndef LOGDISPLAY_H
 #define LOGDISPLAY_H
 
-#include "../src/utils/mqttclient.h"
+#include "utils/mqttclient.h"
 #include <QList>
 #include <QWidget>
 
