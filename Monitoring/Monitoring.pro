@@ -48,6 +48,8 @@ FORMS += \
         src/ui/systemdisplay.ui \
         src/ui/topicplotter.ui
 
+INCLUDEPATH += "src/"
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
