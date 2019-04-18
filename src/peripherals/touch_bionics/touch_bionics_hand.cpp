@@ -7,13 +7,7 @@ TouchBionicsHand::TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt)
     : _settings("TouchBionics")
     , _menu(mqtt)
 {
-    _sp.setPortName(_settings.value("port_name", "/dev/touchbionics").toString());
-    _sp.setBaudRate(115200);
-    if (_sp.open(QIODevice::ReadWrite)) {
-        qDebug() << "### TOUCHBIONICS : Hand port opened";
-    } else {
-        throw std::runtime_error("/dev/" + _sp.portName().toStdString() + ": " + _sp.errorString().toStdString());
-    }
+    _sp.open(_settings.value("port_name", "/dev/touchbionics").toString(), B115200);
 
     _speed = _settings.value("speed", 3).toInt();
     if (_speed < 0) {
@@ -57,7 +51,11 @@ void TouchBionicsHand::init_sequence()
 
 void TouchBionicsHand::setPosture(POSTURE posture)
 {
-    QByteArray cmd = "QG" + QByteArray::number(posture) + "\r";
+    QByteArray cmd = "QG";
+    if (static_cast<int>(posture) < 10) {
+        cmd += "0";
+    }
+    cmd += QByteArray::number(posture) + "\r";
     _sp.write(cmd);
 
     switch (posture) {
@@ -84,7 +82,6 @@ void TouchBionicsHand::setPosture(POSTURE posture)
 
 void TouchBionicsHand::move(int action)
 {
-
     // If changing direction, send 0 before
     if (((_last_action + action) % 2 == 1) && _last_action != 0) {
         if (_last_action % 2 == 0)

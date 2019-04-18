@@ -16,6 +16,7 @@ Demo::Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
     _menu.set_code("demo");
     _menu.addItem(_robot.wrist->menu());
     _menu.addItem(_robot.elbow->menu());
+    _menu.addItem(_robot.hand->menu());
 }
 
 Demo::~Demo()
@@ -33,6 +34,9 @@ bool Demo::setup()
     }
     _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
 
+    if (!_robot.hand->take_ownership()) {
+        throw std::runtime_error("Demo failed to take ownership of the hand");
+    }
     _robot.hand->init_sequence();
     _robot.elbow->calibration();
 
@@ -274,4 +278,5 @@ void Demo::cleanup()
     _robot.wrist->forward(0);
     _robot.elbow->move_to_angle(0);
     _robot.leds->set(LedStrip::white, 10);
+    _robot.hand->release_ownership();
 }

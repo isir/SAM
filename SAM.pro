@@ -55,6 +55,7 @@ HEADERS += \
         src/utils/optilistener.h \
     src/utils/sam.h \
     src/utils/samanager.h \
+    src/utils/serialport.h \
         src/utils/settings.h \
     src/control/remotecomputercontrol.h \
     src/utils/systemmonitor.h
@@ -89,6 +90,7 @@ SOURCES += \
     src/utils/logger.cpp \
         src/utils/optilistener.cpp \
     src/utils/samanager.cpp \
+    src/utils/serialport.cpp \
         src/utils/settings.cpp \
     src/control/remotecomputercontrol.cpp \
     src/utils/systemmonitor.cpp

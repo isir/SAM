@@ -2,9 +2,9 @@
 #define TOUCHBIONICSHAND_H
 
 #include "ui/consolemenu.h"
+#include "utils/serialport.h"
 #include "utils/settings.h"
 #include <QMqttClient>
-#include <QSerialPort>
 #include <memory>
 
 /**
@@ -60,6 +60,9 @@ public:
     void setSpeed(int newSpeed) { _speed = newSpeed; }
     ConsoleMenu& menu();
 
+    bool take_ownership() { return _sp.take_ownership(); }
+    void release_ownership() { _sp.release_ownership(); }
+
 private:
     int _speed;
     char _cmd[13];
@@ -68,7 +71,7 @@ private:
     const int _NB_OF_CMD_TO_RESEND = 3;
 
     Settings _settings;
-    QSerialPort _sp;
+    SerialPort _sp;
     ConsoleMenu _menu;
 };
 
