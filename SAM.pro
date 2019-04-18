@@ -21,6 +21,7 @@ HEADERS += \
         src/control/basiccontroller.h \
         src/control/compensationoptitrack.h \
         src/control/demo.h \
+    src/control/matlabreceiver.h \
         src/control/voluntarycontrol.h \
         src/peripherals/adafruit_ads1115.h \
         src/peripherals/buzzer.h \
@@ -64,6 +65,7 @@ SOURCES += \
         src/control/basiccontroller.cpp \
         src/control/compensationoptitrack.cpp \
         src/control/demo.cpp \
+    src/control/matlabreceiver.cpp \
         src/control/voluntarycontrol.cpp \
         src/main.cpp \
         src/peripherals/adafruit_ads1115.cpp \

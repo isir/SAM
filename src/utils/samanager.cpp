@@ -89,19 +89,20 @@ void SAManager::mqtt_connected_callback()
 
     if (_robot.elbow && _robot.wrist) {
         _vc = std::make_shared<VoluntaryControl>(_robot, _mqtt);
+        _main_menu->addItem(_vc->menu());
         if (_robot.hand) {
+            _rm = std::make_shared<RemoteComputerControl>(_robot, _mqtt);
+            _main_menu->addItem(_rm->menu());
+            _mr = std::make_shared<MatlabReceiver>(_robot, _mqtt);
+            _main_menu->addItem(_mr->menu());
             if (_robot.arm_imu && _robot.trunk_imu) {
                 _opti = std::make_shared<CompensationOptitrack>(_robot, _mqtt);
+                _main_menu->addItem(_opti->menu());
             }
-            _rm = std::make_shared<RemoteComputerControl>(_robot, _mqtt);
             if (_robot.myoband) {
                 _demo = std::make_shared<Demo>(_robot, _mqtt);
             }
         }
-
-        _main_menu->addItem(_opti->menu());
-        _main_menu->addItem(_vc->menu());
-        _main_menu->addItem(_rm->menu());
     }
 
     _main_menu->activate();

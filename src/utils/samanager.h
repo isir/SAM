@@ -3,6 +3,7 @@
 
 #include "control/compensationoptitrack.h"
 #include "control/demo.h"
+#include "control/matlabreceiver.h"
 #include "control/remotecomputercontrol.h"
 #include "control/voluntarycontrol.h"
 #include "ui/consolemenu.h"
@@ -31,6 +32,7 @@ private:
     std::shared_ptr<VoluntaryControl> _vc;
     std::shared_ptr<CompensationOptitrack> _opti;
     std::shared_ptr<RemoteComputerControl> _rm;
+    std::shared_ptr<MatlabReceiver> _mr;
     std::shared_ptr<Demo> _demo;
 
     std::shared_ptr<ConsoleMenu> _main_menu;
