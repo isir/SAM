@@ -16,7 +16,8 @@ public:
     virtual ~BasicController();
 
     void set_period(double seconds);
-    double return_period() { return _period_s; }
+    void set_prefered_cpu(int cpu);
+    double period() { return _period_s; }
     ConsoleMenu& menu() { return _menu; }
     void enable_watchdog(int timeout_ms);
 
@@ -39,6 +40,7 @@ private:
     void run();
 
     double _period_s;
+    int _pref_cpu;
     QTimer _watchdog_timer;
 
 signals:

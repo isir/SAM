@@ -1,11 +1,25 @@
 #include "basiccontroller.h"
 #include <QDebug>
 #include <QMutexLocker>
-#include <QTime>
+
+static double timespec_diff(struct timespec* start, struct timespec* stop)
+{
+    struct timespec result;
+    if ((stop->tv_nsec - start->tv_nsec) < 0) {
+        result.tv_sec = stop->tv_sec - start->tv_sec - 1;
+        result.tv_nsec = stop->tv_nsec - start->tv_nsec + 1000000000;
+    } else {
+        result.tv_sec = stop->tv_sec - start->tv_sec;
+        result.tv_nsec = stop->tv_nsec - start->tv_nsec;
+    }
+
+    return result.tv_sec + (result.tv_nsec * 1e-9);
+}
 
 BasicController::BasicController(std::shared_ptr<QMqttClient> mqtt, double period_s)
     : _menu(mqtt)
     , _period_s(period_s)
+    , _pref_cpu(0)
 {
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &BasicController::stop);
     _menu.addItem(ConsoleMenuItem("Start loop", "start", [this](QString) { this->start(); }));
@@ -21,6 +35,12 @@ void BasicController::set_period(double seconds)
 {
     QMutexLocker locker(&_mutex);
     _period_s = seconds;
+}
+
+void BasicController::set_prefered_cpu(int cpu)
+{
+    QMutexLocker locker(&_mutex);
+    _pref_cpu = cpu;
 }
 
 void BasicController::enable_watchdog(int timeout_ms)
@@ -53,34 +73,40 @@ void BasicController::unresponsive_callback()
 
 void BasicController::run()
 {
-    QTime t;
-    double old_time = 0, current_time = 0;
-
     double dt = 0;
     unsigned int cnt = 0;
     double min = std::numeric_limits<double>::max(), max = 0, avg = 0;
 
     emit ping();
 
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(_pref_cpu, &set);
+    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
+
+    long period_ns = qRound(_period_s * 1e9);
+    struct timespec prev_period, next_period;
+    clock_gettime(CLOCK_MONOTONIC, &prev_period);
+    next_period = prev_period;
+
     if (!setup()) {
         return;
     }
 
-    t.start();
     _loop_condition = true;
 
     while (true) {
-        while (true) {
-            current_time = t.elapsed() / 1000.;
-            dt = current_time - old_time;
-
-            QMutexLocker locker(&_mutex);
-            if (dt >= _period_s)
-                break;
+        next_period.tv_nsec += period_ns;
+        while (next_period.tv_nsec >= 1e9) {
+            next_period.tv_sec++;
+            next_period.tv_nsec -= 1e9;
         }
-        old_time = current_time;
 
-        loop(dt, current_time);
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_period, NULL);
+        dt = timespec_diff(&prev_period, &next_period);
+        clock_gettime(CLOCK_MONOTONIC, &prev_period);
+
+        loop(dt, prev_period.tv_sec + (prev_period.tv_nsec * 1e-9));
 
         emit ping();
 
