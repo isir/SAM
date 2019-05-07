@@ -46,6 +46,7 @@ private:
     QTime _abs_time;
     QTime _time;
     int _previous_elapsed;
+    double _old_time;
 
     QFile _file;
     bool _need_to_write_header;
@@ -75,6 +76,7 @@ private slots:
     void read_optiData(optitrack_data_t data);
     void on_def();
     void listenArduino();
+    void tareIMU();
 };
 
 #endif // COMPENSATIONOPTITRACK_H
