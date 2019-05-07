@@ -10,6 +10,8 @@ VoluntaryControl::VoluntaryControl()
     : _osmer(OsmerElbow::instance())
     , _pronosup(PronoSupination::instance())
     , _optilistener(OptiListener::instance())
+//    , _imu_bras("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200)
+//    , _imu_tronc("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200)
 {
     _settings.beginGroup("VoluntaryControl");
     _pin_up = _settings.value("pin_up", 24).toInt();
@@ -86,10 +88,15 @@ void VoluntaryControl::loop(double, double)
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
+    double qBras[4], qTronc[4];
+    //    _imu_bras.get_quat(qBras);
+    //    _imu_tronc.get_quat(qTronc);
     optitrack_data_t data = _optilistener.get_last_data();
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
-        _file.write("period, btnUp, btnDown, wristAngle");
+        _file.write("period, btnUp, btnDown, wristAngle,");
+        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z");
+        _file.write(" nbRigid Bodies");
         for (int i = 0; i < data.nRigidBodies; i++) {
             _file.write(", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z");
         }
@@ -101,6 +108,9 @@ void VoluntaryControl::loop(double, double)
     //ts.setPadChar(' ');
     //    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
     ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
+    ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    ts << ' ' << data.nRigidBodies;
+
     for (int i = 0; i < data.nRigidBodies; i++) {
         ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
         ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
