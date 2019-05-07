@@ -22,7 +22,6 @@ private:
     QFile _file;
     bool _need_to_write_header;
     Settings _settings;
-    OptiListener& _optilistener;
 
     int _pin_up;
     int _pin_down;

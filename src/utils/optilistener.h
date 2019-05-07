@@ -115,13 +115,11 @@ Q_DECLARE_METATYPE(optitrack_data_t)
 class OptiListener : public QObject {
     Q_OBJECT
 public:
-    static OptiListener& instance();
+    OptiListener();
     void begin(int port = 1511);
     optitrack_data_t get_last_data() { return _last_data; }
 
 private:
-    OptiListener();
-
     optitrack_data_t unpack(char* pData);
     optitrack_data_t _last_data;
 

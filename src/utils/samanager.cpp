@@ -82,6 +82,11 @@ void SAManager::mqtt_connected_callback()
 
     _robot.adc = std::make_shared<Adafruit_ADS1115>("/dev/i2c-1", 0x48);
 
+    _settings.beginGroup("Optitrack");
+    _robot.optitrack = std::make_shared<OptiListener>();
+    _robot.optitrack->begin(_settings.value("port", 1511).toInt());
+    _settings.endGroup();
+
     _buzzer_submenu->addItem(ConsoleMenuItem("Single Buzz", "sb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ); }));
     _buzzer_submenu->addItem(ConsoleMenuItem("Double Buzz", "db", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ); }));
     _buzzer_submenu->addItem(ConsoleMenuItem("Triple Buzz", "tb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));

@@ -9,7 +9,6 @@
 VoluntaryControl::VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
     : BasicController(mqtt)
     , _robot(robot)
-    , _optilistener(OptiListener::instance())
 {
     _settings.beginGroup("VoluntaryControl");
     _pin_up = _settings.value("pin_up", 24).toInt();
@@ -22,7 +21,6 @@ VoluntaryControl::VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttC
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
-    _optilistener.begin(_settings.value("port", 1511).toInt());
 }
 
 VoluntaryControl::~VoluntaryControl()
@@ -87,7 +85,7 @@ void VoluntaryControl::loop(double, double)
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
-    optitrack_data_t data = _optilistener.get_last_data();
+    optitrack_data_t data = _robot.optitrack->get_last_data();
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
         _file.write("period, btnUp, btnDown, wristAngle");

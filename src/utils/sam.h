@@ -9,6 +9,7 @@
 #include "peripherals/ledstrip.h"
 #include "peripherals/myoband/myoband.h"
 #include "peripherals/touch_bionics/touch_bionics_hand.h"
+#include "utils/optilistener.h"
 #include <memory>
 
 namespace SAM {
@@ -22,6 +23,8 @@ struct Components {
     std::shared_ptr<XIMU> arm_imu;
     std::shared_ptr<XIMU> trunk_imu;
     std::shared_ptr<Adafruit_ADS1115> adc;
+
+    std::shared_ptr<OptiListener> optitrack;
 };
 }
 

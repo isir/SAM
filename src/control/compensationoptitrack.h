@@ -27,7 +27,6 @@ public:
 
 private:
     SAM::Components _robot;
-    OptiListener& _optitrack;
     QUdpSocket _receiver;
     QUdpSocket _receiverArduino;
 

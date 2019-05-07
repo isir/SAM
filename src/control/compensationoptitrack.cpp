@@ -8,7 +8,6 @@
 CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
     : QObject(nullptr)
     , _robot(robot)
-    , _optitrack(OptiListener::instance())
     , _menu(mqtt)
     , _Lt(40)
     , _Lua(0.)
@@ -29,7 +28,7 @@ CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_
 
     QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
     if (!_receiverArduino.bind(QHostAddress::AnyIPv4, 45455)) {
-        qCritical() << 'Arduino receiver' << _receiverArduino.errorString();
+        qCritical() << "Arduino receiver" << _receiverArduino.errorString();
     }
 
     _abs_time.start();
@@ -49,8 +48,6 @@ CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_
 
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &CompensationOptitrack::stop);
     QObject::connect(&_menu, &ConsoleMenu::activated, this, &CompensationOptitrack::on_activated);
-
-    _optitrack.begin(_settings.value("port", 1511).toInt());
 
     _pin_up = _settings.value("pin_up", 24).toInt();
     _pin_down = _settings.value("pin_down", 22).toInt();
@@ -85,7 +82,7 @@ void CompensationOptitrack::display_lengths()
     _ind = 0;
     qInfo("Wait for Optitrack data");
     printf("Wait for Optitrack data");
-    QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 }
 
 void CompensationOptitrack::read_optiData(optitrack_data_t data)
@@ -188,9 +185,9 @@ void CompensationOptitrack::start(QString filename = QString())
     QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
 
     if (filename == QString("comp")) {
-        QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+        QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
     } else if (filename == QString("vol")) {
-        QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+        QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
     } else {
         qDebug("Filename does not correspond to one of the control mode.\n 'opti' for compensation control; 'vol', for voluntary");
     }
@@ -198,9 +195,9 @@ void CompensationOptitrack::start(QString filename = QString())
 
 void CompensationOptitrack::stop()
 {
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 
     _infoSent = 0;
     _robot.elbow->forward(0);
