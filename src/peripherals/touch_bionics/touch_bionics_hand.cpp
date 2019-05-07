@@ -34,6 +34,10 @@ TouchBionicsHand::TouchBionicsHand()
     _menu.addItem(ConsoleMenuItem("Close triple pinch", "ctp", [this](QString) { this->move(TRIPLE_PINCH_CLOSING); }));
     _menu.addItem(ConsoleMenuItem("Open triple pinch ", "otp", [this](QString) { this->move(TRIPLE_PINCH_OPENING); }));
     _menu.addItem(ConsoleMenuItem("Open forefinger ", "off", [this](QString) { this->move(FOREFINGER_OPENING); }));
+    _menu.addItem(ConsoleMenuItem("Close int thumb", "cit", [this](QString) { this->move(THUMB_INT_CLOSING); }));
+    _menu.addItem(ConsoleMenuItem("Open int thumb ", "oit", [this](QString) { this->move(THUMB_INT_OPENING); }));
+    _menu.addItem(ConsoleMenuItem("Close ext thumb", "cet", [this](QString) { this->move(THUMB_EXT_CLOSING); }));
+    _menu.addItem(ConsoleMenuItem("Open ext thumb ", "oet", [this](QString) { this->move(THUMB_EXT_OPENING); }));
 }
 
 TouchBionicsHand& TouchBionicsHand::instance()
