@@ -10,28 +10,63 @@
 #include "peripherals/ledstrip.h"
 #include "peripherals/mcp4728.h"
 #include "ui/consolemenu.h"
-#include "utils/logger.h"
+#include "utils/mqttclient.h"
 #include "utils/settings.h"
 #include "utils/systemmonitor.h"
 
+static QFile info_file("/var/log/sam_info");
+static QFile err_file("/var/log/sam_err");
+
 void message_handler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
-    static Logger l;
-    l.async_handle_message(type, context, msg);
+    static MqttClient& mqtt = MqttClient::instance();
+
+    QByteArray localMsg = msg.toLocal8Bit();
+
+    QFile* log_file = &info_file;
+    QString mqtt_topic_name = "sam/log/";
+    QByteArray line;
+    QByteArray suffix = " (" + QByteArray(context.file ? context.file : "") + ":" + QByteArray::number(context.line) + ")\r\n";
+
+    switch (type) {
+    case QtDebugMsg:
+        line = "Debug: ";
+        mqtt_topic_name += "debug";
+        break;
+    case QtInfoMsg:
+        line = "Info: ";
+        mqtt_topic_name += "info";
+        break;
+    case QtWarningMsg:
+        line = "Warning: ";
+        mqtt_topic_name += "warning";
+        break;
+    case QtCriticalMsg:
+        line = "Critical: ";
+        mqtt_topic_name += "critical";
+        log_file = &err_file;
+        break;
+    case QtFatalMsg:
+        line = "Fatal: ";
+        mqtt_topic_name += "fatal";
+        log_file = &err_file;
+        break;
+    default:
+        break;
+    }
+    line += localMsg + suffix;
+    log_file->write(line);
+    log_file->flush();
+    mqtt.publish(mqtt_topic_name, line);
 }
 
 int main(int argc, char* argv[])
 {
+    info_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+    err_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+
+    qInstallMessageHandler(message_handler);
     QCoreApplication a(argc, argv);
-
-    QEventLoop el;
-    MqttClient& mqtt = MqttClient::instance();
-    qInfo() << "Connecting to MQTT broker...";
-    QObject::connect(&mqtt, &QMqttClient::connected, &el, &QEventLoop::quit);
-    el.exec();
-    qInfo() << "Connected to MQTT broker.";
-
-    qInstallMessageHandler(&message_handler);
 
     SystemMonitor sm;
 
@@ -50,8 +85,8 @@ int main(int argc, char* argv[])
     ConsoleMenu menu("Main menu", "main");
     ConsoleMenu buzzer_submenu("Buzzer submenu", "buzzer");
 
-    LedStrip& ls = LedStrip::instance();
-    ls.set(LedStrip::white, 10);
+    //    LedStrip& ls = LedStrip::instance();
+    //    ls.set(LedStrip::white, 10);
 
     VoluntaryControl vc;
     CompensationOptitrack opti;
@@ -69,19 +104,18 @@ int main(int argc, char* argv[])
     QObject::connect(&menu, &ConsoleMenu::finished, &a, &QCoreApplication::quit);
     menu.activate();
 
-    Demo* dm = nullptr;
-    try {
-        dm = new Demo();
-        menu.addItem(dm->menu());
-        dm->menu().activate();
-        dm->start();
-    } catch (std::exception& e) {
-        qCritical() << e.what();
-    }
+    //    try {
+    //        Demo dm;
+    //        menu.addItem(dm.menu());
+    //        dm.menu().activate();
+    //        dm.start();
+    //    } catch (std::exception& e) {
+    //        qCritical() << e.what();
+    //    }
 
     int ret = a.exec();
 
-    ls.set(LedStrip::none, 10);
-    delete dm;
+    //ls.set(LedStrip::none, 10);
+
     return ret;
 }
