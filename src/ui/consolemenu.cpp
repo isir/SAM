@@ -87,7 +87,7 @@ void ConsoleMenu::display()
     if (_has_tty) {
         std::cout << buffer.toStdString() << std::flush;
     }
-    _mqtt->publish(QString("sam/menu/output"), buffer);
+    _mqtt->publish(QString("sam/menu/output"), buffer, 0, true);
 }
 
 void ConsoleMenu::on_exit()
@@ -96,6 +96,7 @@ void ConsoleMenu::on_exit()
         _parents.takeLast();
         _parents.last()->activate();
     }
+    _mqtt->publish(QString("sam/menu/output"), "Exited.", 0, true);
     emit finished();
 }
 
