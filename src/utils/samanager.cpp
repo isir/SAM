@@ -19,7 +19,7 @@ SAManager::SAManager(QCoreApplication* a, QObject* parent)
     QObject::connect(_mqtt.get(), &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
 
     _settings.beginGroup("MQTT");
-    _mqtt->setHostname(_settings.value("hostname", "192.168.0.130").toString());
+    _mqtt->setHostname(_settings.value("hostname", "127.0.0.1").toString());
     _mqtt->setPort(_settings.value("port", 1883).toInt());
     _mqtt->connectToHost();
     _settings.endGroup();
