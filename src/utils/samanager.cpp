@@ -106,6 +106,7 @@ void SAManager::mqtt_connected_callback()
             }
             if (_robot.myoband) {
                 _demo = std::make_shared<Demo>(_robot, _mqtt);
+                _demo->set_prefered_cpu(1);
             }
         }
     }
