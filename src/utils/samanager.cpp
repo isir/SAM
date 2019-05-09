@@ -15,7 +15,7 @@ SAManager::SAManager(QCoreApplication* a, QObject* parent)
     _main_menu = std::make_shared<ConsoleMenu>(_mqtt, "Main menu", "main");
     _buzzer_submenu = std::make_shared<ConsoleMenu>(_mqtt, "Buzzer submenu", "buzzer");
 
-    QObject::connect(_main_menu.get(), &ConsoleMenu::finished, a, &QCoreApplication::quit);
+    QObject::connect(_main_menu.get(), &ConsoleMenu::finished, a, &QCoreApplication::quit, Qt::QueuedConnection);
     QObject::connect(_mqtt.get(), &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
 
     _settings.beginGroup("MQTT");
