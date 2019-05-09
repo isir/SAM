@@ -6,6 +6,7 @@
 #include "peripherals/buzzer.h"
 #include "peripherals/helpers/osmerelbow.h"
 #include "peripherals/helpers/pronosupination.h"
+#include "peripherals/helpers/wristflexor.h"
 #include "peripherals/ledstrip.h"
 #include "peripherals/myoband/myoband.h"
 #include "peripherals/touch_bionics/touch_bionics_hand.h"
@@ -17,6 +18,7 @@ struct Components {
     std::shared_ptr<Buzzer> buzzer;
     std::shared_ptr<LedStrip> leds;
     std::shared_ptr<PronoSupination> wrist;
+    std::shared_ptr<WristFlexor> flexor;
     std::shared_ptr<OsmerElbow> elbow;
     std::shared_ptr<TouchBionicsHand> hand;
     std::shared_ptr<Myoband> myoband;
