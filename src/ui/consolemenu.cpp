@@ -95,8 +95,9 @@ void ConsoleMenu::on_exit()
     if (_parents.size() > 1) {
         _parents.takeLast();
         _parents.last()->activate();
+    } else {
+        _mqtt->publish(QString("sam/menu/output"), "Exited.", 0, true);
     }
-    _mqtt->publish(QString("sam/menu/output"), "Exited.", 0, true);
     emit finished();
 }
 
