@@ -53,7 +53,7 @@ void Demo::loop(double, double)
     static MyoControl myocontrol;
 
     static int control_mode = 0;
-    static int counter_auto_control = 0, move_elbow_counter = 0, elbow_mode = 0, old_elbow_mode = 0;
+    static int counter_auto_control = 0, move_elbow_counter = 0;
     static const int max_acc_change_mode = 15;
 
     static const int elbow_speed_up = -35;
@@ -83,8 +83,6 @@ void Demo::loop(double, double)
     }
 
     Eigen::Vector3d acc = _robot.myoband->get_acc();
-
-    _robot.wrist->forward(5);
 
     emg[0] = 0;
     emg[1] = 0;
@@ -152,13 +150,11 @@ void Demo::loop(double, double)
         _robot.elbow->set_velocity(elbow_speed_down);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
-        elbow_mode = 1;
         break;
     case MyoControl::ELBOW_UP:
         _robot.elbow->set_velocity(elbow_speed_up);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
-        elbow_mode = -1;
         break;
     case MyoControl::ELBOW_STOP:
         _robot.elbow->set_velocity(0);
@@ -246,16 +242,11 @@ void Demo::loop(double, double)
         counter_auto_control--;
     } else {
         if (control_mode == IMU_ELBOW) {
-            old_elbow_mode = elbow_mode;
             if (acc[1] > 0.2 || acc[1] < -0.2) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
                     if (acc[1] > 0.2) {
-                        // elbow down : -1
-                        elbow_mode = -1;
                         _robot.elbow->set_velocity(elbow_speed_down);
                     } else if (acc[1] < -0.2) {
-                        // elbow up : 1
-                        elbow_mode = 1;
                         _robot.elbow->set_velocity(elbow_speed_up);
                     }
                 } else {
