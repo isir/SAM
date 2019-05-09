@@ -45,7 +45,7 @@ void RoboClaw::Server::on_receive()
 
     Client* c = _pending_messages.first().first;
     Message& msg = _pending_messages.first().second;
-    ;
+
     QRegExp rx(msg._regexp);
 
     int pos = rx.indexIn(QString::fromLatin1(_rcv_buffer.data(), _rcv_buffer.length()));
