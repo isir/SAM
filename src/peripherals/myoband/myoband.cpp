@@ -121,5 +121,12 @@ void Myoband::mqtt_timer_callback()
         }
         mqtt_payload.chop(1);
         _mqtt->publish(QString("sam/myoband/acc"), mqtt_payload);
+
+        mqtt_payload.clear();
+        foreach (qint32 rms, get_emgs_rms()) {
+            mqtt_payload.append(QByteArray::number(rms) + " ");
+        }
+        mqtt_payload.chop(1);
+        _mqtt->publish(QString("sam/myoband/emg_rms"), mqtt_payload);
     }
 }
