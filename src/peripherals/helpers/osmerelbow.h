@@ -11,9 +11,9 @@
 class OsmerElbow : public RoboClaw::Client {
     Q_OBJECT
 public:
+    OsmerElbow(std::shared_ptr<QMqttClient> mqtt);
     ~OsmerElbow();
 
-    OsmerElbow(std::shared_ptr<QMqttClient> mqtt);
     ConsoleMenu& menu();
 
     void calibration();
