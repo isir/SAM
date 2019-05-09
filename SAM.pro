@@ -25,6 +25,7 @@ HEADERS += \
         src/control/voluntarycontrol.h \
         src/peripherals/adafruit_ads1115.h \
         src/peripherals/buzzer.h \
+    src/peripherals/helpers/wristflexor.h \
         src/peripherals/ledstrip.h \
         src/peripherals/mcp4728.h \
         src/peripherals/XIMU.h \
@@ -72,6 +73,7 @@ SOURCES += \
         src/peripherals/adafruit_ads1115.cpp \
         src/peripherals/buzzer.cpp \
         src/peripherals/helpers/osmerelbow.cpp \
+    src/peripherals/helpers/wristflexor.cpp \
         src/peripherals/ledstrip.cpp \
         src/peripherals/mcp4728.cpp \
         src/peripherals/XIMU.cpp \
