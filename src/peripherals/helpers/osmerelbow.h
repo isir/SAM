@@ -35,8 +35,5 @@ private:
 
 private slots:
     void on_exit();
-
-signals:
-    void stop_reached();
 };
 #endif // OSMERELBOW_H
