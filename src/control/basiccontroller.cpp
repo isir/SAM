@@ -37,7 +37,7 @@ void BasicController::set_period(double seconds)
     _period_s = seconds;
 }
 
-void BasicController::set_prefered_cpu(int cpu)
+void BasicController::set_preferred_cpu(int cpu)
 {
     QMutexLocker locker(&_mutex);
     _pref_cpu = cpu;

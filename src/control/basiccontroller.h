@@ -16,7 +16,7 @@ public:
     virtual ~BasicController();
 
     void set_period(double seconds);
-    void set_prefered_cpu(int cpu);
+    void set_preferred_cpu(int cpu);
     double period() { return _period_s; }
     ConsoleMenu& menu() { return _menu; }
     void enable_watchdog(int timeout_ms);
