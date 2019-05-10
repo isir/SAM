@@ -104,10 +104,8 @@ void SAManager::mqtt_connected_callback()
                 _opti = std::make_shared<CompensationOptitrack>(_robot, _mqtt);
                 _main_menu->addItem(_opti->menu());
             }
-            if (_robot.myoband) {
-                _demo = std::make_shared<Demo>(_robot, _mqtt);
-                _demo->set_prefered_cpu(1);
-            }
+            _demo = std::make_shared<Demo>(_robot, _mqtt);
+            _demo->set_prefered_cpu(1);
         }
     }
 
