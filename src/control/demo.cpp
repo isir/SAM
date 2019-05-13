@@ -66,7 +66,7 @@ void Demo::loop(double, double)
 
     static const int elbow_speed_up = -35;
     static const int elbow_speed_down = 35;
-    static const int wrist_speed = 100;
+    static const double wrist_speed = 20;
 
     static const int threshold_emg1_demo_nat = 15;
     static const int threshold_emg2_demo_nat = 15;
@@ -181,12 +181,12 @@ void Demo::loop(double, double)
         _robot.elbow->set_velocity_safe(0);
         break;
     case MyoControl::WRIST_BACKWARD:
-        _robot.wrist_pronosup->backward(wrist_speed);
+        _robot.wrist_pronosup->set_velocity(-wrist_speed);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         break;
     case MyoControl::WRIST_FORWARD:
-        _robot.wrist_pronosup->forward(wrist_speed);
+        _robot.wrist_pronosup->set_velocity(wrist_speed);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         break;
