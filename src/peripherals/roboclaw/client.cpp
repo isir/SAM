@@ -64,6 +64,12 @@ qint32 RoboClaw::Client::read_encoder_speed()
     return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}", false), true));
 }
 
+void RoboClaw::Client::set_velocity(qint32 value)
+{
+    quint8 function_code = _channel == Channel::M1 ? 35 : 36;
+    send(Message(_address, function_code, CastHelper::from(static_cast<quint32>(value)), "(\\xff)"), true);
+}
+
 QString RoboClaw::Client::read_firmware_version()
 {
     return QString::fromLatin1(send(Message(_address, 21, QByteArray(), "(.{,48})\\n\\x00.{2}", false), true));

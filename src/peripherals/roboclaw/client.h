@@ -31,6 +31,7 @@ public:
     void backward(quint8 value);
     qint32 read_encoder_position();
     qint32 read_encoder_speed();
+    void set_velocity(qint32 value);
     QString read_firmware_version();
     void set_encoder_position(qint32 value);
     double read_main_battery_voltage();
