@@ -18,7 +18,7 @@ MatlabReceiver::MatlabReceiver(SAM::Components robot, std::shared_ptr<QMqttClien
 
     _menu.addItem(ConsoleMenuItem("Start", "start", [this](QString) { this->start(); }));
     _menu.addItem(ConsoleMenuItem("Stop", "stop", [this](QString) { this->stop(); }));
-    _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.elbow->menu());
     _menu.addItem(_robot.hand->menu());
 }
@@ -47,7 +47,7 @@ void MatlabReceiver::stop()
 {
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     _robot.hand->release_ownership();
-    _robot.wrist->forward(0);
+    _robot.wrist_pronosup->forward(0);
     _robot.elbow->set_velocity_safe(0);
 }
 
@@ -128,7 +128,7 @@ void MatlabReceiver::handle_command(Command c)
     case WRIST_UP:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot.wrist->forward(60);
+        _robot.wrist_pronosup->forward(60);
         break;
     case WRIST_DOWN:
         is_wrist_command = true;
@@ -154,9 +154,9 @@ void MatlabReceiver::handle_command(Command c)
         _robot.hand->move(TouchBionicsHand::STOP);
     }
     if (!is_wrist_command) {
-        _robot.wrist->forward(0);
+        _robot.wrist_pronosup->forward(0);
     }
     if (!is_elbow_command) {
-        _robot.elbow->set_velocity(0);
+        _robot.elbow->set_velocity_safe(0);
     }
 }

@@ -14,7 +14,7 @@ Demo::Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
 {
     _menu.set_title("Demo");
     _menu.set_code("demo");
-    _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.elbow->menu());
     _menu.addItem(_robot.hand->menu());
 
@@ -141,10 +141,10 @@ void Demo::loop(double, double)
             _robot.hand->move(0);
         }
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST || myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_FORWARDING || myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_BACKWARDING) {
-            _robot.wrist->forward(0);
+            _robot.wrist_pronosup->forward(0);
         }
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_ELBOW) {
-            _robot.elbow->set_velocity(0);
+            _robot.elbow->set_velocity_safe(0);
         }
     }
 
