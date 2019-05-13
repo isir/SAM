@@ -6,7 +6,7 @@
 #include <QMutex>
 #include <QTimer>
 #include <QVector>
-#include <control/basiccontroller.h>
+#include <control/basic_controller.h>
 #include <eigen3/Eigen/Dense>
 
 class Myoband : public BasicController {

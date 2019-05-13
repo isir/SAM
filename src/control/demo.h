@@ -1,8 +1,9 @@
 #ifndef DEMO_H
 #define DEMO_H
 
-#include "basiccontroller.h"
+#include "basic_controller.h"
 #include "utils/sam.h"
+#include "utils/settings.h"
 
 class Demo : public BasicController {
 public:
@@ -15,6 +16,10 @@ public:
 
 private:
     SAM::Components _robot;
+
+    Settings _settings;
+    int _pin_up;
+    int _pin_down;
 };
 
 #endif // DEMO_H

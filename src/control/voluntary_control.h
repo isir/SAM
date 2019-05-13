@@ -1,8 +1,8 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-#include "basiccontroller.h"
-#include "utils/optilistener.h"
+#include "basic_controller.h"
+#include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QFile>

@@ -1,4 +1,4 @@
-#include "voluntarycontrol.h"
+#include "voluntary_control.h"
 #include "peripherals/roboclaw/factory.h"
 
 #include "qmath.h"
@@ -26,14 +26,14 @@ VoluntaryControl::VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttC
 VoluntaryControl::~VoluntaryControl()
 {
     _robot.elbow->forward(0);
-    _robot.wrist->forward(0);
+    _robot.wrist_pronosup->forward(0);
     stop();
 }
 
 bool VoluntaryControl::setup()
 {
     //_osmer.calibration();
-    _robot.wrist->set_encoder_position(0);
+    _robot.wrist_pronosup->set_encoder_position(0);
     QString filename = QString("voluntary");
 
     int cnt = 0;
@@ -72,14 +72,14 @@ void VoluntaryControl::loop(double, double)
     //    }
 
     /// WRIST
-    double wristAngle = _robot.wrist->read_encoder_position();
+    double wristAngle = _robot.wrist_pronosup->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _robot.wrist->move_to(6000, 5000, 6000, 35000);
+        _robot.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _robot.wrist->move_to(6000, 5000, 6000, -35000);
+        _robot.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _robot.wrist->forward(0);
+        _robot.wrist_pronosup->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
@@ -119,6 +119,6 @@ void VoluntaryControl::loop(double, double)
 void VoluntaryControl::cleanup()
 {
     //_robot.elbow->forward(0);
-    _robot.wrist->forward(0);
+    _robot.wrist_pronosup->forward(0);
     _file.close();
 }

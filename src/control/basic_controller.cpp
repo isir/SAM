@@ -1,4 +1,4 @@
-#include "basiccontroller.h"
+#include "basic_controller.h"
 #include <QDebug>
 #include <QMutexLocker>
 
@@ -37,7 +37,7 @@ void BasicController::set_period(double seconds)
     _period_s = seconds;
 }
 
-void BasicController::set_prefered_cpu(int cpu)
+void BasicController::set_preferred_cpu(int cpu)
 {
     QMutexLocker locker(&_mutex);
     _pref_cpu = cpu;
@@ -84,14 +84,14 @@ void BasicController::run()
     CPU_SET(_pref_cpu, &set);
     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
 
+    if (!setup()) {
+        return;
+    }
+
     long period_ns = qRound(_period_s * 1e9);
     struct timespec prev_period, next_period;
     clock_gettime(CLOCK_MONOTONIC, &prev_period);
     next_period = prev_period;
-
-    if (!setup()) {
-        return;
-    }
 
     _loop_condition = true;
 

@@ -1,15 +1,14 @@
 #ifndef ROBOCLAWCLIENT_H
 #define ROBOCLAWCLIENT_H
 
-#include <QObject>
-#include <QList>
-#include <QThread>
 #include "message.h"
 #include "types.h"
+#include <QList>
+#include <QObject>
+#include <QThread>
 
 namespace RoboClaw {
-class Client : public QObject
-{
+class Client : public QObject {
     Q_OBJECT
 public:
     typedef enum {
@@ -32,6 +31,7 @@ public:
     void backward(quint8 value);
     qint32 read_encoder_position();
     qint32 read_encoder_speed();
+    void set_velocity(qint32 value);
     QString read_firmware_version();
     void set_encoder_position(qint32 value);
     double read_main_battery_voltage();
@@ -54,6 +54,7 @@ private:
 signals:
     void answer_received_internal(QByteArray data);
     void send_msg(Client* client, Message msg);
+    void timed_out();
 };
 }
 

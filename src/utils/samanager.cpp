@@ -1,6 +1,12 @@
 #include "samanager.h"
 #include <wiringPi.h>
 
+#include "peripherals/actuators/custom_elbow.h"
+#include "peripherals/actuators/osmer_elbow.h"
+
+#include "peripherals/actuators/pronosupination.h"
+#include "peripherals/actuators/wrist_rotator.h"
+
 std::shared_ptr<QMqttClient> SAManager::_mqtt(std::make_shared<QMqttClient>());
 std::shared_ptr<Logger> SAManager::_log(std::make_shared<Logger>(SAManager::_mqtt));
 
@@ -15,11 +21,11 @@ SAManager::SAManager(QCoreApplication* a, QObject* parent)
     _main_menu = std::make_shared<ConsoleMenu>(_mqtt, "Main menu", "main");
     _buzzer_submenu = std::make_shared<ConsoleMenu>(_mqtt, "Buzzer submenu", "buzzer");
 
-    QObject::connect(_main_menu.get(), &ConsoleMenu::finished, a, &QCoreApplication::quit);
+    QObject::connect(_main_menu.get(), &ConsoleMenu::finished, a, &QCoreApplication::quit, Qt::QueuedConnection);
     QObject::connect(_mqtt.get(), &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
 
     _settings.beginGroup("MQTT");
-    _mqtt->setHostname(_settings.value("hostname", "192.168.0.130").toString());
+    _mqtt->setHostname(_settings.value("hostname", "127.0.0.1").toString());
     _mqtt->setPort(_settings.value("port", 1883).toInt());
     _mqtt->connectToHost();
     _settings.endGroup();
@@ -44,19 +50,47 @@ void SAManager::mqtt_connected_callback()
     _robot.leds = std::make_shared<LedStrip>();
 
     try {
-        _robot.wrist = std::make_shared<PronoSupination>(_mqtt);
+        _robot.wrist_flex = std::make_shared<WristFlexor>(_mqtt);
+        _main_menu->addItem(_robot.wrist_flex->menu());
     } catch (std::exception& e) {
-        qCritical() << "Couldn't access the wrist -" << e.what();
+        qCritical() << "Couldn't access the wrist flexor -" << e.what();
     }
 
     try {
-        _robot.elbow = std::make_shared<OsmerElbow>(_mqtt);
+        _robot.wrist_pronosup = std::make_shared<WristRotator>(_mqtt);
+        _main_menu->addItem(_robot.wrist_pronosup->menu());
     } catch (std::exception& e) {
-        qCritical() << "Couldn't access the elbow -" << e.what();
+        qCritical() << "Couldn't access the wrist rotator -" << e.what();
+    }
+
+    if (!_robot.wrist_pronosup) {
+        try {
+            _robot.wrist_pronosup = std::make_shared<PronoSupination>(_mqtt);
+            _main_menu->addItem(_robot.wrist_pronosup->menu());
+        } catch (std::exception& e) {
+            qCritical() << "Couldn't access the wrist -" << e.what();
+        }
+    }
+
+    try {
+        _robot.elbow = std::make_shared<CustomElbow>(_mqtt);
+        _main_menu->addItem(_robot.elbow->menu());
+    } catch (std::exception& e) {
+        qCritical() << "Couldn't access the custom elbow -" << e.what();
+    }
+
+    if (!_robot.elbow) {
+        try {
+            _robot.elbow = std::make_shared<OsmerElbow>(_mqtt);
+            _main_menu->addItem(_robot.elbow->menu());
+        } catch (std::exception& e) {
+            qCritical() << "Couldn't access the elbow -" << e.what();
+        }
     }
 
     try {
         _robot.hand = std::make_shared<TouchBionicsHand>(_mqtt);
+        _main_menu->addItem(_robot.hand->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the hand -" << e.what();
     }
@@ -92,7 +126,7 @@ void SAManager::mqtt_connected_callback()
     _buzzer_submenu->addItem(ConsoleMenuItem("Triple Buzz", "tb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
     _main_menu->addItem(*_buzzer_submenu);
 
-    if (_robot.elbow && _robot.wrist) {
+    if (_robot.elbow && _robot.wrist_pronosup) {
         _vc = std::make_shared<VoluntaryControl>(_robot, _mqtt);
         _main_menu->addItem(_vc->menu());
         if (_robot.hand) {
@@ -104,9 +138,8 @@ void SAManager::mqtt_connected_callback()
                 _opti = std::make_shared<CompensationOptitrack>(_robot, _mqtt);
                 _main_menu->addItem(_opti->menu());
             }
-            if (_robot.myoband) {
-                _demo = std::make_shared<Demo>(_robot, _mqtt);
-            }
+            _demo = std::make_shared<Demo>(_robot, _mqtt);
+            _demo->set_preferred_cpu(1);
         }
     }
 

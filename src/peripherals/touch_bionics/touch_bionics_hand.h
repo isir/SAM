@@ -1,8 +1,8 @@
 #ifndef TOUCHBIONICSHAND_H
 #define TOUCHBIONICSHAND_H
 
-#include "ui/consolemenu.h"
-#include "utils/serialport.h"
+#include "ui/console_menu.h"
+#include "utils/serial_port.h"
 #include "utils/settings.h"
 #include <QMqttClient>
 #include <memory>

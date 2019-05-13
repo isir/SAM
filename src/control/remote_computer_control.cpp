@@ -1,4 +1,4 @@
-#include "remotecomputercontrol.h"
+#include "remote_computer_control.h"
 
 RemoteComputerControl::RemoteComputerControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
     : BasicController(mqtt, .01)
@@ -6,7 +6,7 @@ RemoteComputerControl::RemoteComputerControl(SAM::Components robot, std::shared_
 {
     _menu.set_title("Remote control with keyboard");
     _menu.set_code("key");
-    _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.elbow->menu());
     _menu.addItem(_robot.hand->menu());
 }
@@ -31,8 +31,8 @@ bool RemoteComputerControl::setup()
     QThread::sleep(1);
     _robot.hand->move(TouchBionicsHand::THUMB_INT_CLOSING);
 
-    _robot.elbow->calibration();
-    _robot.wrist->set_encoder_position(0);
+    _robot.elbow->calibrate();
+    _robot.wrist_pronosup->set_encoder_position(0);
 
     _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
     QThread::msleep(500);
@@ -48,6 +48,6 @@ void RemoteComputerControl::loop(double, double)
 void RemoteComputerControl::cleanup()
 {
     _robot.elbow->forward(0);
-    _robot.wrist->forward(0);
+    _robot.wrist_pronosup->forward(0);
     _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
 }

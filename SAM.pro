@@ -18,18 +18,23 @@ DEFINES += QT_DEPRECATED_WARNINGS
 HEADERS += \
         src/control/algorithms/lawopti.h \
         src/control/algorithms/myocontrol.h \
-        src/control/basiccontroller.h \
-        src/control/compensationoptitrack.h \
+    src/control/basic_controller.h \
+    src/control/compensation_optitrack.h \
         src/control/demo.h \
-    src/control/matlabreceiver.h \
-        src/control/voluntarycontrol.h \
+    src/control/matlab_receiver.h \
+    src/control/remote_computer_control.h \
+    src/control/voluntary_control.h \
+    src/peripherals/actuators/actuator.h \
         src/peripherals/adafruit_ads1115.h \
         src/peripherals/buzzer.h \
+    src/peripherals/actuators/custom_elbow.h \
+    src/peripherals/actuators/osmer_elbow.h \
+    src/peripherals/actuators/wrist_flexor.h \
+    src/peripherals/actuators/wrist_rotator.h \
         src/peripherals/ledstrip.h \
         src/peripherals/mcp4728.h \
         src/peripherals/XIMU.h \
-        src/peripherals/helpers/osmerelbow.h \
-        src/peripherals/helpers/pronosupination.h \
+        src/peripherals/actuators/pronosupination.h \
         src/peripherals/myoband/myoLinux/bleapi.h \
         src/peripherals/myoband/myoLinux/bled112client.h \
         src/peripherals/myoband/myoLinux/buffer.h \
@@ -41,41 +46,45 @@ HEADERS += \
         src/peripherals/myoband/myoLinux/myolinux.h \
         src/peripherals/myoband/myoLinux/serial.h \
         src/peripherals/myoband/myoband.h \
-        src/peripherals/roboclaw/casthelper.h \
+    src/peripherals/roboclaw/cast_helper.h \
         src/peripherals/roboclaw/client.h \
         src/peripherals/roboclaw/factory.h \
         src/peripherals/roboclaw/message.h \
         src/peripherals/roboclaw/server.h \
         src/peripherals/roboclaw/types.h \
         src/peripherals/touch_bionics/touch_bionics_hand.h \
-        src/ui/consoleinput.h \
-        src/ui/consolemenu.h \
-        src/ui/consolemenuitem.h \
+    src/ui/console_input.h \
+    src/ui/console_menu.h \
+    src/ui/console_menu_item.h \
     src/utils/logger.h \
-        src/utils/optilistener.h \
+    src/utils/opti_listener.h \
     src/utils/sam.h \
     src/utils/samanager.h \
-    src/utils/serialport.h \
+    src/utils/serial_port.h \
         src/utils/settings.h \
-    src/control/remotecomputercontrol.h \
-    src/utils/systemmonitor.h
+    src/utils/system_monitor.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
         src/control/algorithms/myocontrol.cpp \
-        src/control/basiccontroller.cpp \
-        src/control/compensationoptitrack.cpp \
+    src/control/basic_controller.cpp \
+    src/control/compensation_optitrack.cpp \
         src/control/demo.cpp \
-    src/control/matlabreceiver.cpp \
-        src/control/voluntarycontrol.cpp \
+    src/control/matlab_receiver.cpp \
+    src/control/remote_computer_control.cpp \
+    src/control/voluntary_control.cpp \
         src/main.cpp \
+    src/peripherals/actuators/actuator.cpp \
         src/peripherals/adafruit_ads1115.cpp \
         src/peripherals/buzzer.cpp \
-        src/peripherals/helpers/osmerelbow.cpp \
+    src/peripherals/actuators/custom_elbow.cpp \
+    src/peripherals/actuators/osmer_elbow.cpp \
+    src/peripherals/actuators/wrist_flexor.cpp \
+    src/peripherals/actuators/wrist_rotator.cpp \
         src/peripherals/ledstrip.cpp \
         src/peripherals/mcp4728.cpp \
         src/peripherals/XIMU.cpp \
-        src/peripherals/helpers/pronosupination.cpp \
+        src/peripherals/actuators/pronosupination.cpp \
         src/peripherals/myoband/myoLinux/gattclient.cpp \
         src/peripherals/myoband/myoLinux/myoclient.cpp \
         src/peripherals/myoband/myoLinux/serial.cpp \
@@ -85,15 +94,14 @@ SOURCES += \
         src/peripherals/roboclaw/message.cpp \
         src/peripherals/roboclaw/server.cpp \
         src/peripherals/touch_bionics/touch_bionics_hand.cpp \
-        src/ui/consoleinput.cpp \
-        src/ui/consolemenu.cpp \
+    src/ui/console_input.cpp \
+    src/ui/console_menu.cpp \
     src/utils/logger.cpp \
-        src/utils/optilistener.cpp \
+    src/utils/opti_listener.cpp \
     src/utils/samanager.cpp \
-    src/utils/serialport.cpp \
+    src/utils/serial_port.cpp \
         src/utils/settings.cpp \
-    src/control/remotecomputercontrol.cpp \
-    src/utils/systemmonitor.cpp
+    src/utils/system_monitor.cpp
 
 INCLUDEPATH += src/
 

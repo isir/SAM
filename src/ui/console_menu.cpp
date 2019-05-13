@@ -1,5 +1,5 @@
-#include "consolemenu.h"
-#include "consoleinput.h"
+#include "console_menu.h"
+#include "console_input.h"
 #include <QDebug>
 #include <iostream>
 #include <unistd.h>
@@ -87,7 +87,7 @@ void ConsoleMenu::display()
     if (_has_tty) {
         std::cout << buffer.toStdString() << std::flush;
     }
-    _mqtt->publish(QString("sam/menu/output"), buffer);
+    _mqtt->publish(QString("sam/menu/output"), buffer, 0, true);
 }
 
 void ConsoleMenu::on_exit()
@@ -95,6 +95,8 @@ void ConsoleMenu::on_exit()
     if (_parents.size() > 1) {
         _parents.takeLast();
         _parents.last()->activate();
+    } else {
+        _mqtt->publish(QString("sam/menu/output"), "Exited.", 0, true);
     }
     emit finished();
 }

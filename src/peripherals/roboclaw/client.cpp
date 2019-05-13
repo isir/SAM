@@ -1,5 +1,5 @@
 #include "client.h"
-#include "casthelper.h"
+#include "cast_helper.h"
 #include "factory.h"
 
 #include <QDebug>
@@ -55,18 +55,24 @@ void RoboClaw::Client::backward(quint8 value)
 qint32 RoboClaw::Client::read_encoder_position()
 {
     quint8 function_code = _channel == Channel::M1 ? 16 : 17;
-    return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}"), true));
+    return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}", false), true));
 }
 
 qint32 RoboClaw::Client::read_encoder_speed()
 {
     quint8 function_code = _channel == Channel::M1 ? 30 : 31;
-    return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}"), true));
+    return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}", false), true));
+}
+
+void RoboClaw::Client::set_velocity(qint32 value)
+{
+    quint8 function_code = _channel == Channel::M1 ? 35 : 36;
+    send(Message(_address, function_code, CastHelper::from(static_cast<quint32>(value)), "(\\xff)"), true);
 }
 
 QString RoboClaw::Client::read_firmware_version()
 {
-    return QString::fromLatin1(send(Message(_address, 21, QByteArray(), "(.{,48})\\n\\x00.{2}"), true));
+    return QString::fromLatin1(send(Message(_address, 21, QByteArray(), "(.{,48})\\n\\x00.{2}", false), true));
 }
 
 void RoboClaw::Client::set_encoder_position(qint32 value)
@@ -82,7 +88,7 @@ double RoboClaw::Client::read_main_battery_voltage()
 
 double RoboClaw::Client::read_current()
 {
-    QByteArray buf = send(Message(_address, 49, QByteArray(), "(.{4}).{2}"), true);
+    QByteArray buf = send(Message(_address, 49, QByteArray(), "(.{4}).{2}", false), true);
     if (_channel == M1)
         return CastHelper::to<qint16>(buf) / 100.;
     else {
@@ -100,7 +106,7 @@ RoboClaw::velocity_pid_params_t RoboClaw::Client::read_velocity_pid()
 {
     quint8 function_code = _channel == Channel::M1 ? 55 : 56;
     RoboClaw::velocity_pid_params_t ret;
-    QByteArray buf = send(Message(_address, function_code, QByteArray(), "(.{16}).{2}"), true);
+    QByteArray buf = send(Message(_address, function_code, QByteArray(), "(.{16}).{2}", false), true);
     ret.p = static_cast<float>(CastHelper::to<quint32>(buf) / 65536.);
     buf.remove(0, 4);
     ret.i = static_cast<float>(CastHelper::to<quint32>(buf) / 65536.);
@@ -121,7 +127,7 @@ RoboClaw::position_pid_params_t RoboClaw::Client::read_position_pid()
 {
     quint8 function_code = _channel == Channel::M1 ? 63 : 64;
     RoboClaw::position_pid_params_t ret;
-    QByteArray buf = send(Message(_address, function_code, QByteArray(), "(.{28}).{2}"), true);
+    QByteArray buf = send(Message(_address, function_code, QByteArray(), "(.{28}).{2}", false), true);
     ret.p = static_cast<float>(CastHelper::to<quint32>(buf) / 1024.);
     buf.remove(0, 4);
     ret.i = static_cast<float>(CastHelper::to<quint32>(buf) / 1024.);
@@ -157,15 +163,15 @@ QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer)
 
     if (wait_for_answer) {
         QEventLoop el;
-        bool timed_out = false;
+        bool to = false;
 
         QTimer timer;
-        timer.setInterval(200);
+        timer.setInterval(20);
         timer.setSingleShot(true);
 
         QList<QMetaObject::Connection> conns;
         conns.push_back(QObject::connect(this, &Client::answer_received_internal, [&ret, &el](QByteArray data) { ret = data; el.quit(); }));
-        conns.push_back(QObject::connect(&timer, &QTimer::timeout, [&timed_out, &el]() { timed_out = true; el.quit(); }));
+        conns.push_back(QObject::connect(&timer, &QTimer::timeout, [&to, &el]() { to = true; el.quit(); }));
 
         timer.start();
 
@@ -173,7 +179,8 @@ QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer)
 
         el.exec();
 
-        if (timed_out) {
+        if (to) {
+            emit timed_out();
             throw std::runtime_error(std::string("Request timed out: ") + msg.toString().toStdString());
         }
 

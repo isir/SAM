@@ -1,4 +1,4 @@
-#include "matlabreceiver.h"
+#include "matlab_receiver.h"
 #include <QNetworkDatagram>
 
 MatlabReceiver::MatlabReceiver(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt, QObject* parent)
@@ -18,7 +18,7 @@ MatlabReceiver::MatlabReceiver(SAM::Components robot, std::shared_ptr<QMqttClien
 
     _menu.addItem(ConsoleMenuItem("Start", "start", [this](QString) { this->start(); }));
     _menu.addItem(ConsoleMenuItem("Stop", "stop", [this](QString) { this->stop(); }));
-    _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.elbow->menu());
     _menu.addItem(_robot.hand->menu());
 }
@@ -37,7 +37,7 @@ void MatlabReceiver::start()
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     QObject::connect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
 
-    _robot.elbow->calibration();
+    _robot.elbow->calibrate();
     _robot.hand->init_sequence();
 
     qInfo() << "MatlabReceiver: Starting";
@@ -47,8 +47,8 @@ void MatlabReceiver::stop()
 {
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     _robot.hand->release_ownership();
-    _robot.wrist->forward(0);
-    _robot.elbow->set_velocity(0);
+    _robot.wrist_pronosup->forward(0);
+    _robot.elbow->set_velocity_safe(0);
 }
 
 void MatlabReceiver::socket_callback()
@@ -128,22 +128,22 @@ void MatlabReceiver::handle_command(Command c)
     case WRIST_UP:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot.wrist->forward(60);
+        _robot.wrist_pronosup->forward(60);
         break;
     case WRIST_DOWN:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot.wrist->backward(60);
+        _robot.wrist_pronosup->backward(60);
         break;
     case ELBOW_UP:
         is_elbow_command = true;
         is_hand_command = false;
-        _robot.elbow->set_velocity(-30);
+        _robot.elbow->set_velocity_safe(-30);
         break;
     case ELBOW_DOWN:
         is_elbow_command = true;
         is_hand_command = false;
-        _robot.elbow->set_velocity(30);
+        _robot.elbow->set_velocity_safe(30);
         break;
     default:
         is_hand_command = false;
@@ -154,9 +154,9 @@ void MatlabReceiver::handle_command(Command c)
         _robot.hand->move(TouchBionicsHand::STOP);
     }
     if (!is_wrist_command) {
-        _robot.wrist->forward(0);
+        _robot.wrist_pronosup->forward(0);
     }
     if (!is_elbow_command) {
-        _robot.elbow->set_velocity(0);
+        _robot.elbow->set_velocity_safe(0);
     }
 }

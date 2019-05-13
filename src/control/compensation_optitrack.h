@@ -2,8 +2,8 @@
 #define COMPENSATIONOPTITRACK_H
 
 #include "algorithms/lawopti.h"
-#include "ui/consolemenu.h"
-#include "utils/optilistener.h"
+#include "ui/console_menu.h"
+#include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QFile>
