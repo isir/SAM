@@ -103,13 +103,13 @@ void SAManager::mqtt_connected_callback()
     }
 
     try {
-        _robot.arm_imu = std::make_shared<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+        _robot.arm_imu = std::make_shared<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the red IMU -" << e.what();
     }
 
     try {
-        _robot.trunk_imu = std::make_shared<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+        _robot.trunk_imu = std::make_shared<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the white IMU -" << e.what();
     }
