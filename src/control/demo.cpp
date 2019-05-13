@@ -66,7 +66,7 @@ void Demo::loop(double, double)
 
     static const int elbow_speed_up = -35;
     static const int elbow_speed_down = 35;
-    static const double wrist_speed = 20;
+    static const double wrist_speed = 30;
 
     static const int threshold_emg1_demo_nat = 15;
     static const int threshold_emg2_demo_nat = 15;

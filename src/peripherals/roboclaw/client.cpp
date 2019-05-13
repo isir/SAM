@@ -67,7 +67,7 @@ qint32 RoboClaw::Client::read_encoder_speed()
 void RoboClaw::Client::set_velocity(qint32 value)
 {
     quint8 function_code = _channel == Channel::M1 ? 35 : 36;
-    send(Message(_address, function_code, CastHelper::from(static_cast<quint32>(value)), "(\\xff)"), true);
+    send(Message(_address, function_code, CastHelper::from(value), "(\\xff)"), true);
 }
 
 QString RoboClaw::Client::read_firmware_version()
