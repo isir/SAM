@@ -3,8 +3,9 @@
 #include "peripherals/roboclaw/server.h"
 #include <iostream>
 
-PronoSupination::PronoSupination()
+PronoSupination::PronoSupination(std::shared_ptr<QMqttClient> mqtt)
     : RoboClaw::Client()
+    , _menu(mqtt)
 {
     _settings.beginGroup("Pronosupination");
     int address = _settings.value("address", 0x80).toInt();
@@ -53,12 +54,6 @@ PronoSupination::PronoSupination()
 
 PronoSupination::~PronoSupination()
 {
-}
-
-PronoSupination& PronoSupination::instance()
-{
-    static PronoSupination _instance;
-    return _instance;
 }
 
 ConsoleMenu& PronoSupination::menu()

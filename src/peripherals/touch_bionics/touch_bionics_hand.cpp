@@ -3,16 +3,11 @@
 #include <QDebug>
 #include <QThread>
 
-TouchBionicsHand::TouchBionicsHand()
+TouchBionicsHand::TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt)
     : _settings("TouchBionics")
+    , _menu(mqtt)
 {
-    _sp.setPortName(_settings.value("port_name", "/dev/ttyUSB0").toString());
-    _sp.setBaudRate(115200);
-    if (_sp.open(QIODevice::ReadWrite)) {
-        qDebug() << "### TOUCHBIONICS : Hand port opened";
-    } else {
-        qCritical() << "TouchBionics:" << _sp.errorString();
-    }
+    _sp.open(_settings.value("port_name", "/dev/touchbionics").toString(), B115200);
 
     _speed = _settings.value("speed", 3).toInt();
     if (_speed < 0) {
@@ -40,19 +35,31 @@ TouchBionicsHand::TouchBionicsHand()
     _menu.addItem(ConsoleMenuItem("Open ext thumb ", "oet", [this](QString) { this->move(THUMB_EXT_OPENING); }));
 }
 
-TouchBionicsHand& TouchBionicsHand::instance()
-{
-    static TouchBionicsHand hand;
-    return hand;
-}
-
 TouchBionicsHand::~TouchBionicsHand()
 {
 }
 
+void TouchBionicsHand::init_sequence()
+{
+    setPosture(TouchBionicsHand::HAND_POSTURE);
+    QThread::sleep(1);
+
+    setSpeed(5);
+    move(TouchBionicsHand::HAND_CLOSING);
+    QThread::msleep(500);
+
+    move(TouchBionicsHand::HAND_OPENING);
+    QThread::sleep(1);
+    move(TouchBionicsHand::THUMB_INT_CLOSING);
+}
+
 void TouchBionicsHand::setPosture(POSTURE posture)
 {
-    QByteArray cmd = "QG" + QByteArray::number(posture) + "\r";
+    QByteArray cmd = "QG";
+    if (static_cast<int>(posture) < 10) {
+        cmd += "0";
+    }
+    cmd += QByteArray::number(posture) + "\r";
     _sp.write(cmd);
 
     switch (posture) {
@@ -79,7 +86,6 @@ void TouchBionicsHand::setPosture(POSTURE posture)
 
 void TouchBionicsHand::move(int action)
 {
-
     // If changing direction, send 0 before
     if (((_last_action + action) % 2 == 1) && _last_action != 0) {
         if (_last_action % 2 == 0)

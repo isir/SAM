@@ -1,8 +1,9 @@
 #include "systemmonitor.h"
 #include <QDebug>
 
-SystemMonitor::SystemMonitor(QObject* parent)
+SystemMonitor::SystemMonitor(std::shared_ptr<QMqttClient> mqtt, QObject* parent)
     : QObject(parent)
+    , _mqtt(mqtt)
 {
     _stat_file.setFileName("/proc/stat");
     _stat_file.open(QIODevice::ReadOnly);
@@ -11,6 +12,10 @@ SystemMonitor::SystemMonitor(QObject* parent)
 
     QObject::connect(&_timer, &QTimer::timeout, this, &SystemMonitor::timer_callback);
     _timer.setInterval(1000);
+}
+
+void SystemMonitor::start()
+{
     _timer.start();
 }
 
@@ -37,8 +42,10 @@ void SystemMonitor::timer_callback()
         }
         msg.append(QByteArray::number(cpu_load[i], 'f', 2) + " ");
     }
-    MqttClient::instance().publish(QString("system/cpu_load"), msg);
-
     _temp_file.reset();
-    MqttClient::instance().publish(QString("system/cpu_temp"), _temp_file.readLine());
+
+    if (_mqtt->state() == QMqttClient::Connected) {
+        _mqtt->publish(QString("system/cpu_load"), msg);
+        _mqtt->publish(QString("system/cpu_temp"), _temp_file.readLine());
+    }
 }

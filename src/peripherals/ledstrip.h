@@ -33,7 +33,7 @@ public:
 
     static color white, red, green, blue, none;
 
-    static LedStrip& instance();
+    LedStrip();
     ~LedStrip();
     void set(QVector<color> colors);
     void set(color c, unsigned int n);
@@ -42,8 +42,6 @@ public:
     void stop_sequence();
 
 private:
-    LedStrip();
-
     void send_opening_bytes();
     void send_closing_bytes();
     void send_color_bytes(color c);

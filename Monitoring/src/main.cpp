@@ -1,5 +1,5 @@
-#include "../src/utils/mqttclient.h"
 #include "ui/mainwindow.h"
+#include "utils/mqttclient.h"
 #include <QApplication>
 
 int main(int argc, char* argv[])

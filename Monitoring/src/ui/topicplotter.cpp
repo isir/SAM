@@ -61,6 +61,7 @@ void TopicPlotter::mqtt_callback(QMqttMessage msg)
         for (int i = 0; i < payload.size(); ++i) {
             _series.push_back(new QtCharts::QLineSeries());
             _series.last()->setName(_topic_name + "/" + QString::number(i));
+            _series.last()->setUseOpenGL(true);
             _chart->addSeries(_series.last());
             _series.last()->attachAxis(&_x_axis);
             _series.last()->attachAxis(&_y_axis);

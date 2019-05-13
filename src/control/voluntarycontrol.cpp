@@ -6,12 +6,9 @@
 #include <iostream>
 #include <wiringPi.h>
 
-VoluntaryControl::VoluntaryControl()
-    : _osmer(OsmerElbow::instance())
-    , _pronosup(PronoSupination::instance())
-    , _optilistener(OptiListener::instance())
-//    , _imu_bras("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200)
-//    , _imu_tronc("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200)
+VoluntaryControl::VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
+    : BasicController(mqtt)
+    , _robot(robot)
 {
     _settings.beginGroup("VoluntaryControl");
     _pin_up = _settings.value("pin_up", 24).toInt();
@@ -20,23 +17,23 @@ VoluntaryControl::VoluntaryControl()
 
     _menu.set_title("Voluntary Control");
     _menu.set_code("vc");
-    _menu.addItem(_osmer.menu());
+    _menu.addItem(_robot.elbow->menu());
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
-    _optilistener.begin(_settings.value("port", 1511).toInt());
 }
 
 VoluntaryControl::~VoluntaryControl()
 {
-    _osmer.forward(0);
-    _pronosup.forward(0);
+    _robot.elbow->forward(0);
+    _robot.wrist->forward(0);
+    stop();
 }
 
 bool VoluntaryControl::setup()
 {
     //_osmer.calibration();
-    _pronosup.set_encoder_position(0);
+    _robot.wrist->set_encoder_position(0);
     QString filename = QString("voluntary");
 
     int cnt = 0;
@@ -75,23 +72,24 @@ void VoluntaryControl::loop(double, double)
     //    }
 
     /// WRIST
-    double wristAngle = _pronosup.read_encoder_position();
+    double wristAngle = _robot.wrist->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _pronosup.move_to(6000, 5000, 6000, 35000);
+        _robot.wrist->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _pronosup.move_to(6000, 5000, 6000, -35000);
+        _robot.wrist->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _pronosup.forward(0);
+        _robot.wrist->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
     double qBras[4], qTronc[4];
-    //    _imu_bras.get_quat(qBras);
-    //    _imu_tronc.get_quat(qTronc);
-    optitrack_data_t data = _optilistener.get_last_data();
+    _robot.arm_imu->get_quat(qBras);
+    _robot.trunk_imu->get_quat(qTronc);
+
+    optitrack_data_t data = _robot.optitrack->get_last_data();
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
         _file.write("period, btnUp, btnDown, wristAngle,");
@@ -110,7 +108,6 @@ void VoluntaryControl::loop(double, double)
     ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << data.nRigidBodies;
-
     for (int i = 0; i < data.nRigidBodies; i++) {
         ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
         ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
@@ -121,6 +118,7 @@ void VoluntaryControl::loop(double, double)
 
 void VoluntaryControl::cleanup()
 {
-    _osmer.forward(0);
+    //_robot.elbow->forward(0);
+    _robot.wrist->forward(0);
     _file.close();
 }

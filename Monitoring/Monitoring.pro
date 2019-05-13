@@ -25,21 +25,21 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
-        ../src/utils/mqttclient.cpp \
         src/main.cpp \
         src/ui/logdisplay.cpp \
         src/ui/mainwindow.cpp \
         src/ui/menudisplay.cpp \
         src/ui/systemdisplay.cpp \
-        src/ui/topicplotter.cpp
+        src/ui/topicplotter.cpp \
+        src/utils/mqttclient.cpp
 
 HEADERS += \
-        ../src/utils/mqttclient.h \
         src/ui/logdisplay.h \
         src/ui/mainwindow.h \
         src/ui/menudisplay.h \
         src/ui/systemdisplay.h \
-        src/ui/topicplotter.h
+        src/ui/topicplotter.h \
+        src/utils/mqttclient.h
 
 FORMS += \
         src/ui/logdisplay.ui \
@@ -47,6 +47,8 @@ FORMS += \
         src/ui/menudisplay.ui \
         src/ui/systemdisplay.ui \
         src/ui/topicplotter.ui
+
+INCLUDEPATH += "src/"
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

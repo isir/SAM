@@ -2,15 +2,16 @@
 #define CONSOLEMENU_H
 
 #include "consolemenuitem.h"
-#include "utils/mqttclient.h"
 #include <QList>
 #include <QMap>
+#include <QMqttClient>
 #include <QObject>
+#include <memory>
 
 class ConsoleMenu : public QObject, public ConsoleMenuItem {
     Q_OBJECT
 public:
-    explicit ConsoleMenu(QString title = QString(), QString code = QString());
+    explicit ConsoleMenu(std::shared_ptr<QMqttClient> mqtt, QString title = QString(), QString code = QString());
     ~ConsoleMenu();
 
     void addItem(ConsoleMenuItem item);
@@ -26,7 +27,7 @@ protected:
     static QList<ConsoleMenu*> _parents;
     QMap<QString, ConsoleMenuItem> _menu;
     int _max_key_length;
-    MqttClient& _mqtt;
+    std::shared_ptr<QMqttClient> _mqtt;
 
 protected slots:
     void display();

@@ -1,14 +1,15 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "utils/mqttclient.h"
 #include <QFile>
+#include <QMqttClient>
 #include <QObject>
+#include <memory>
 
 class Logger : public QObject {
     Q_OBJECT
 public:
-    explicit Logger(QObject* parent = nullptr);
+    explicit Logger(std::shared_ptr<QMqttClient> mqtt, QObject* parent = nullptr);
     void async_handle_message(QtMsgType type, const QMessageLogContext& context, const QString& msg);
 
 public slots:
@@ -17,7 +18,7 @@ public slots:
 private:
     QFile _info_file;
     QFile _err_file;
-    MqttClient& _mqtt;
+    std::shared_ptr<QMqttClient> _mqtt;
 
 signals:
     void message(QByteArray type, const QByteArray& msg);

@@ -21,6 +21,7 @@ HEADERS += \
         src/control/basiccontroller.h \
         src/control/compensationoptitrack.h \
         src/control/demo.h \
+    src/control/matlabreceiver.h \
         src/control/voluntarycontrol.h \
         src/peripherals/adafruit_ads1115.h \
         src/peripherals/buzzer.h \
@@ -51,8 +52,10 @@ HEADERS += \
         src/ui/consolemenu.h \
         src/ui/consolemenuitem.h \
     src/utils/logger.h \
-        src/utils/mqttclient.h \
         src/utils/optilistener.h \
+    src/utils/sam.h \
+    src/utils/samanager.h \
+    src/utils/serialport.h \
         src/utils/settings.h \
     src/control/remotecomputercontrol.h \
     src/utils/systemmonitor.h
@@ -63,6 +66,7 @@ SOURCES += \
         src/control/basiccontroller.cpp \
         src/control/compensationoptitrack.cpp \
         src/control/demo.cpp \
+    src/control/matlabreceiver.cpp \
         src/control/voluntarycontrol.cpp \
         src/main.cpp \
         src/peripherals/adafruit_ads1115.cpp \
@@ -84,8 +88,9 @@ SOURCES += \
         src/ui/consoleinput.cpp \
         src/ui/consolemenu.cpp \
     src/utils/logger.cpp \
-        src/utils/mqttclient.cpp \
         src/utils/optilistener.cpp \
+    src/utils/samanager.cpp \
+    src/utils/serialport.cpp \
         src/utils/settings.cpp \
     src/control/remotecomputercontrol.cpp \
     src/utils/systemmonitor.cpp

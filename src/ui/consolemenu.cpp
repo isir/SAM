@@ -7,12 +7,12 @@
 QList<ConsoleMenu*> ConsoleMenu::_parents;
 QList<QMetaObject::Connection> ConsoleMenu::_stream_connections;
 
-ConsoleMenu::ConsoleMenu(QString title, QString code)
+ConsoleMenu::ConsoleMenu(std::shared_ptr<QMqttClient> mqtt, QString title, QString code)
     : QObject(nullptr)
     , ConsoleMenuItem(
           title, code, [this](QString) { this->activate(); }, ConsoleMenuItem::SUBMENU)
     , _max_key_length(0)
-    , _mqtt(MqttClient::instance())
+    , _mqtt(mqtt)
     , _has_tty(isatty(fileno(stdin)))
 {
     if (_has_tty) {
@@ -44,7 +44,7 @@ void ConsoleMenu::addItem(ConsoleMenuItem item)
 
 void ConsoleMenu::activate()
 {
-    static QMqttSubscription* sub = _mqtt.subscribe(QString("sam/menu/input"));
+    static QMqttSubscription* sub = _mqtt->subscribe(QString("sam/menu/input"));
 
     foreach (QMetaObject::Connection con, _stream_connections) {
         QObject::disconnect(con);
@@ -87,7 +87,7 @@ void ConsoleMenu::display()
     if (_has_tty) {
         std::cout << buffer.toStdString() << std::flush;
     }
-    _mqtt.publish(QString("sam/menu/output"), buffer);
+    _mqtt->publish(QString("sam/menu/output"), buffer);
 }
 
 void ConsoleMenu::on_exit()

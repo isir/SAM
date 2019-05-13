@@ -2,14 +2,9 @@
 #define COMPENSATIONOPTITRACK_H
 
 #include "algorithms/lawopti.h"
-#include "peripherals/XIMU.h"
-#include "peripherals/adafruit_ads1115.h"
-#include "peripherals/buzzer.h"
-#include "peripherals/helpers/osmerelbow.h"
-#include "peripherals/helpers/pronosupination.h"
-#include "peripherals/touch_bionics/touch_bionics_hand.h"
 #include "ui/consolemenu.h"
 #include "utils/optilistener.h"
+#include "utils/sam.h"
 #include "utils/settings.h"
 #include <QFile>
 #include <QTime>
@@ -18,7 +13,7 @@
 class CompensationOptitrack : public QObject {
     Q_OBJECT
 public:
-    explicit CompensationOptitrack(QObject* parent = nullptr);
+    explicit CompensationOptitrack(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
     ~CompensationOptitrack();
 
     ConsoleMenu& menu() { return _menu; }
@@ -31,17 +26,9 @@ public:
     void displayArduino();
 
 private:
-    OsmerElbow& _osmer;
-    PronoSupination& _pronosup;
-    OptiListener& _optitrack;
-    TouchBionicsHand& _hand;
+    SAM::Components _robot;
     QUdpSocket _receiver;
     QUdpSocket _receiverArduino;
-    Adafruit_ADS1115 _adc;
-    Buzzer _buzzer;
-
-    XIMU _imu_bras;
-    XIMU _imu_tronc;
 
     QTime _abs_time;
     QTime _time;

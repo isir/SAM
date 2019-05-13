@@ -4,18 +4,18 @@
 #include "peripherals/roboclaw/client.h"
 #include "ui/consolemenu.h"
 #include "utils/settings.h"
+#include <QMqttClient>
+#include <memory>
 
 class PronoSupination : public RoboClaw::Client {
     Q_OBJECT
 public:
+    PronoSupination(std::shared_ptr<QMqttClient> mqtt);
     ~PronoSupination();
 
-    static PronoSupination& instance();
     ConsoleMenu& menu();
 
 private:
-    PronoSupination();
-
     ConsoleMenu _menu;
     Settings _settings;
 

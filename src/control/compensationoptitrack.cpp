@@ -5,27 +5,18 @@
 #include <iostream>
 #include <qmath.h>
 
-CompensationOptitrack::CompensationOptitrack(QObject* parent)
-    : QObject(parent)
-    , _osmer(OsmerElbow::instance())
-    , _pronosup(PronoSupination::instance())
-    , _hand(TouchBionicsHand::instance())
-    , _optitrack(OptiListener::instance())
-    , _adc("/dev/i2c-1", 0x48)
-    //    , _imu_bras("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200)
-    //    , _imu_tronc("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200)
-    , _imu_bras("/dev/ttyUSB1", XIMU::XIMU_LOGLEVEL_NONE, 115200)
-    , _imu_tronc("/dev/ttyUSB2", XIMU::XIMU_LOGLEVEL_NONE, 115200)
+CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
+    : QObject(nullptr)
+    , _robot(robot)
+    , _menu(mqtt)
     , _Lt(40)
     , _Lua(0.)
     , _Lfa(0.)
     , _l(0.)
     , _lsh(-35)
-    , _lambda(0)
-    , _threshold(0.)
     , _lambdaW(0)
+    , _lambda(0)
     , _thresholdW(5.)
-    , _buzzer(29)
     , _pinArduino(0)
 {
     _settings.beginGroup("CompensationOptitrack");
@@ -37,7 +28,7 @@ CompensationOptitrack::CompensationOptitrack(QObject* parent)
 
     QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
     if (!_receiverArduino.bind(QHostAddress::AnyIPv4, 45455)) {
-        qCritical() << 'Arduino receiver' << _receiverArduino.errorString();
+        qCritical() << "Arduino receiver" << _receiverArduino.errorString();
     }
 
     _abs_time.start();
@@ -50,15 +41,13 @@ CompensationOptitrack::CompensationOptitrack(QObject* parent)
     _menu.addItem(ConsoleMenuItem("Display law parameters", "disp", [this](QString) { this->display_parameters(); }));
     _menu.addItem(ConsoleMenuItem("Display Arduino data", "ard", [this](QString) { this->displayArduino(); }));
     _menu.addItem(ConsoleMenuItem("Display anatomical lengths", "al", [this](QString) { this->display_lengths(); }));
-    _menu.addItem(ConsoleMenuItem("Tare IMU", "tare", [this](QString) { this->tareIMU(); }));
-    _menu.addItem(_osmer.menu());
-    _menu.addItem(_pronosup.menu());
-    _menu.addItem(_hand.menu());
+
+    _menu.addItem(_robot.elbow->menu());
+    _menu.addItem(_robot.wrist->menu());
+    _menu.addItem(_robot.hand->menu());
 
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &CompensationOptitrack::stop);
     QObject::connect(&_menu, &ConsoleMenu::activated, this, &CompensationOptitrack::on_activated);
-
-    _optitrack.begin(_settings.value("port", 1511).toInt());
 
     _pin_up = _settings.value("pin_up", 24).toInt();
     _pin_down = _settings.value("pin_down", 22).toInt();
@@ -73,13 +62,13 @@ CompensationOptitrack::~CompensationOptitrack()
 
 void CompensationOptitrack::zero()
 {
-    _osmer.move_to_angle(0, 10, true);
+    _robot.elbow->move_to_angle(0, 10, true);
 }
 
 void CompensationOptitrack::tareIMU()
 {
-    _imu_bras.send_command_algorithm_init_then_tare();
-    _imu_tronc.send_command_algorithm_init_then_tare();
+    _robot.arm_imu->send_command_algorithm_init_then_tare();
+    _robot.trunk_imu->send_command_algorithm_init_then_tare();
     qDebug("Wait for triple bip");
 
     usleep(6 * 1000000);
@@ -109,7 +98,7 @@ void CompensationOptitrack::display_lengths()
     _ind = 0;
     qInfo("Wait for Optitrack data");
     printf("Wait for Optitrack data");
-    QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 }
 
 void CompensationOptitrack::read_optiData(optitrack_data_t data)
@@ -213,9 +202,9 @@ void CompensationOptitrack::start(QString filename = QString())
     QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
 
     if ((filename == QString("comp")) || (filename == QString("n")) || (filename == QString("b"))) {
-        QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+        QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
     } else if (filename == QString("vol")) {
-        QObject::connect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+        QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
     } else {
         qDebug("Filename does not correspond to one of the control mode.\n 'n' for natural; 'b' for blocked; 'opti' for compensation control; 'vol', for voluntary");
     }
@@ -223,13 +212,14 @@ void CompensationOptitrack::start(QString filename = QString())
 
 void CompensationOptitrack::stop()
 {
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
-    QObject::disconnect(&_optitrack, &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
-    _infoSent = 0;
+    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 
-    _osmer.forward(0);
-    _pronosup.forward(0);
+    _infoSent = 0;
+    _robot.elbow->forward(0);
+    _robot.wrist->forward(0);
+
     _file.close();
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
 }
@@ -257,8 +247,8 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
     int timerTask = 1;
 
     double qBras[4], qTronc[4];
-    _imu_bras.get_quat(qBras);
-    _imu_tronc.get_quat(qTronc);
+    _robot.arm_imu->get_quat(qBras);
+    _robot.trunk_imu->get_quat(qTronc);
     //    qDebug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
     //    qDebug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
 
@@ -304,7 +294,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         }
     }
 
-    double beta = _osmer.angle() * M_PI / 180.;
+    double beta = _robot.elbow->angle() * M_PI / 180.;
 
     if (_need_to_write_header) {
         _file.write("delta, time, btn_sync, abs_time, emg1, emg2, timerTask, pinArduino,");
@@ -346,14 +336,14 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _l, _lambda, _threshold);
         _lawopti.controlLawWrist(_lambdaW, _thresholdW);
-        _osmer.set_velocity(_lawopti.returnBetaDot_deg());
+        _robot.elbow->set_velocity(_lawopti.returnBetaDot_deg());
 
         if (_lawopti.returnWristVel_deg() > 0)
-            _pronosup.move_to(6000, _lawopti.returnWristVel_deg() * 100, 6000, 35000);
+            _robot.wrist->move_to(6000, _lawopti.returnWristVel_deg() * 100, 6000, 35000);
         else if (_lawopti.returnWristVel_deg() < 0)
-            _pronosup.move_to(6000, -_lawopti.returnWristVel_deg() * 100, 6000, -35000);
+            _robot.wrist->move_to(6000, -_lawopti.returnWristVel_deg() * 100, 6000, -35000);
         else if (_lawopti.returnWristVel_deg() == 0)
-            _pronosup.forward(0);
+            _robot.wrist->forward(0);
 
         _lawopti.bufferingOldValues();
 
@@ -363,7 +353,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         }
         // buzzer after 1s, to indicate the start of the task
         if (_cnt == 100) {
-            _buzzer.makeNoise(BuzzerConfig::STANDARD_BUZZ);
+            _robot.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
         }
     }
 
@@ -374,7 +364,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
     if (_cnt == 0) {
         ts << _Lua << ' ' << _Lfa << ' ' << _l << endl;
     }
-    ts << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _adc.readADC_SingleEnded(0) << ' ' << _adc.readADC_SingleEnded(1) << ' ' << timerTask;
+    ts << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _robot.adc->readADC_SingleEnded(0) << ' ' << _robot.adc->readADC_SingleEnded(1) << ' ' << timerTask;
     ts << ' ' << _pinArduino;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
@@ -421,22 +411,22 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
     //    }
 
     /// WRIST
-    double wristAngle = _pronosup.read_encoder_position();
+    double wristAngle = _robot.wrist->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _pronosup.move_to(6000, 5000, 6000, 35000);
+        _robot.wrist->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _pronosup.move_to(6000, 5000, 6000, -35000);
+        _robot.wrist->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _pronosup.forward(0);
+        _robot.wrist->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
     double qBras[4], qTronc[4];
-    _imu_bras.get_quat(qBras);
-    _imu_tronc.get_quat(qTronc);
+    _robot.arm_imu->get_quat(qBras);
+    _robot.trunk_imu->get_quat(qTronc);
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
         _file.write("time, btnUp, btnDown, pinArduino, wristAngle,");
@@ -466,8 +456,8 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
 
 void CompensationOptitrack::on_activated()
 {
-    _osmer.calibration();
-    _pronosup.set_encoder_position(0);
+    _robot.elbow->calibration();
+    _robot.wrist->set_encoder_position(0);
 }
 
 void CompensationOptitrack::on_def()

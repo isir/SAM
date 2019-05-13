@@ -2,8 +2,10 @@
 #define TOUCHBIONICSHAND_H
 
 #include "ui/consolemenu.h"
+#include "utils/serialport.h"
 #include "utils/settings.h"
-#include <QSerialPort>
+#include <QMqttClient>
+#include <memory>
 
 /**
  * @brief The TouchBionicsHand class allows to control the TouchBionics hands.
@@ -48,18 +50,20 @@ public:
         GLOVE_POSTURE = 24,
     };
 
-    static TouchBionicsHand& instance();
-
+    TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt);
     ~TouchBionicsHand();
+
+    void init_sequence();
     void move(int action);
     void setPosture(POSTURE posture);
     int getSpeed() { return _speed; }
     void setSpeed(int newSpeed) { _speed = newSpeed; }
     ConsoleMenu& menu();
 
-private:
-    TouchBionicsHand();
+    bool take_ownership() { return _sp.take_ownership(); }
+    void release_ownership() { _sp.release_ownership(); }
 
+private:
     int _speed;
     char _cmd[13];
     int _last_action;
@@ -67,7 +71,7 @@ private:
     const int _NB_OF_CMD_TO_RESEND = 3;
 
     Settings _settings;
-    QSerialPort _sp;
+    SerialPort _sp;
     ConsoleMenu _menu;
 };
 

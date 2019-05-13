@@ -11,12 +11,6 @@ OptiListener::OptiListener()
     QObject::connect(&_udpSocket, &QUdpSocket::readyRead, this, &OptiListener::on_new_packet);
 }
 
-OptiListener& OptiListener::instance()
-{
-    static OptiListener listener;
-    return listener;
-}
-
 void OptiListener::begin(int port)
 {
     if (!_udpSocket.bind(QHostAddress::AnyIPv4, port)) {
