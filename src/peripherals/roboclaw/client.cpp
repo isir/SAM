@@ -157,15 +157,15 @@ QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer)
 
     if (wait_for_answer) {
         QEventLoop el;
-        bool timed_out = false;
+        bool to = false;
 
         QTimer timer;
-        timer.setInterval(20);
+        timer.setInterval(100);
         timer.setSingleShot(true);
 
         QList<QMetaObject::Connection> conns;
         conns.push_back(QObject::connect(this, &Client::answer_received_internal, [&ret, &el](QByteArray data) { ret = data; el.quit(); }));
-        conns.push_back(QObject::connect(&timer, &QTimer::timeout, [&timed_out, &el]() { timed_out = true; el.quit(); }));
+        conns.push_back(QObject::connect(&timer, &QTimer::timeout, [&to, &el]() { to = true; el.quit(); }));
 
         timer.start();
 
@@ -173,7 +173,8 @@ QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer)
 
         el.exec();
 
-        if (timed_out) {
+        if (to) {
+            emit timed_out();
             throw std::runtime_error(std::string("Request timed out: ") + msg.toString().toStdString());
         }
 

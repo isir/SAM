@@ -1,15 +1,14 @@
 #ifndef ROBOCLAWCLIENT_H
 #define ROBOCLAWCLIENT_H
 
-#include <QObject>
-#include <QList>
-#include <QThread>
 #include "message.h"
 #include "types.h"
+#include <QList>
+#include <QObject>
+#include <QThread>
 
 namespace RoboClaw {
-class Client : public QObject
-{
+class Client : public QObject {
     Q_OBJECT
 public:
     typedef enum {
@@ -54,6 +53,7 @@ private:
 signals:
     void answer_received_internal(QByteArray data);
     void send_msg(Client* client, Message msg);
+    void timed_out();
 };
 }
 

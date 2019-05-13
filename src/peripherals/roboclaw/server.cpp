@@ -27,6 +27,9 @@ void RoboClaw::Server::register_client(Client* client, Qt::ConnectionType connec
 {
     QObject::disconnect(client, &Client::send_msg, this, &Server::write_msg);
     QObject::connect(client, &Client::send_msg, this, &Server::write_msg, connection);
+
+    QObject::disconnect(client, &Client::timed_out, this, &Server::on_client_timeout);
+    QObject::connect(client, &Client::timed_out, this, &Server::on_client_timeout, connection);
 }
 
 void RoboClaw::Server::write_msg(Client* client, Message msg)
@@ -37,11 +40,12 @@ void RoboClaw::Server::write_msg(Client* client, Message msg)
 
 void RoboClaw::Server::on_receive()
 {
-    if (_pending_messages.size() == 0)
+    if (_pending_messages.size() == 0) {
+        _sp.readAll(); // Discard any unwanted data
         return;
+    }
 
-    if (_sp.bytesAvailable() > 0)
-        _rcv_buffer.append(_sp.readAll());
+    _rcv_buffer.append(_sp.readAll());
 
     Client* c = _pending_messages.first().first;
     Message& msg = _pending_messages.first().second;
@@ -60,4 +64,9 @@ void RoboClaw::Server::on_receive()
         if (_pending_messages.size() > 0)
             on_receive();
     }
+}
+
+void RoboClaw::Server::on_client_timeout()
+{
+    _pending_messages.removeFirst();
 }
