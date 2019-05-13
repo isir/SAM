@@ -24,10 +24,13 @@ HEADERS += \
     src/control/matlab_receiver.h \
     src/control/remote_computer_control.h \
     src/control/voluntary_control.h \
+    src/peripherals/actuators/actuator.h \
         src/peripherals/adafruit_ads1115.h \
         src/peripherals/buzzer.h \
-    src/peripherals/helpers/wristflexor.h \
+    src/peripherals/actuators/custom_elbow.h \
     src/peripherals/actuators/osmer_elbow.h \
+    src/peripherals/actuators/wrist_flexor.h \
+    src/peripherals/actuators/wrist_rotator.h \
         src/peripherals/ledstrip.h \
         src/peripherals/mcp4728.h \
         src/peripherals/XIMU.h \
@@ -71,10 +74,13 @@ SOURCES += \
     src/control/remote_computer_control.cpp \
     src/control/voluntary_control.cpp \
         src/main.cpp \
+    src/peripherals/actuators/actuator.cpp \
         src/peripherals/adafruit_ads1115.cpp \
         src/peripherals/buzzer.cpp \
-    src/peripherals/helpers/custom_elbow.cpp \
+    src/peripherals/actuators/custom_elbow.cpp \
     src/peripherals/actuators/osmer_elbow.cpp \
+    src/peripherals/actuators/wrist_flexor.cpp \
+    src/peripherals/actuators/wrist_rotator.cpp \
         src/peripherals/ledstrip.cpp \
         src/peripherals/mcp4728.cpp \
         src/peripherals/XIMU.cpp \
