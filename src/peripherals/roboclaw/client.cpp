@@ -166,7 +166,7 @@ QByteArray RoboClaw::Client::send(const Message& msg, bool wait_for_answer)
         bool to = false;
 
         QTimer timer;
-        timer.setInterval(100);
+        timer.setInterval(20);
         timer.setSingleShot(true);
 
         QList<QMetaObject::Connection> conns;
