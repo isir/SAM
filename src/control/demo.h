@@ -1,7 +1,7 @@
 #ifndef DEMO_H
 #define DEMO_H
 
-#include "basiccontroller.h"
+#include "basic_controller.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 

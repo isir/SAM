@@ -46,7 +46,7 @@ bool Demo::setup()
         throw std::runtime_error("Demo failed to take ownership of the hand");
     }
     _robot.hand->init_sequence();
-    _robot.elbow->calibration();
+    _robot.elbow->calibrate();
 
     _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
     QThread::msleep(500);
@@ -164,30 +164,30 @@ void Demo::loop(double, double)
 
     switch (action) {
     case MyoControl::ELBOW_DOWN:
-        _robot.elbow->set_velocity(elbow_speed_down);
+        _robot.elbow->set_velocity_safe(elbow_speed_down);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         break;
     case MyoControl::ELBOW_UP:
-        _robot.elbow->set_velocity(elbow_speed_up);
+        _robot.elbow->set_velocity_safe(elbow_speed_up);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         break;
     case MyoControl::ELBOW_STOP:
-        _robot.elbow->set_velocity(0);
+        _robot.elbow->set_velocity_safe(0);
         break;
     case MyoControl::WRIST_BACKWARD:
-        _robot.wrist->backward(wrist_speed);
+        _robot.wrist_pronosup->backward(wrist_speed);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         break;
     case MyoControl::WRIST_FORWARD:
-        _robot.wrist->forward(wrist_speed);
+        _robot.wrist_pronosup->forward(wrist_speed);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         break;
     case MyoControl::WRIST_STOP:
-        _robot.wrist->forward(0);
+        _robot.wrist_pronosup->forward(0);
         break;
     case MyoControl::HAND_STOP:
         _robot.hand->move(0);
@@ -262,15 +262,15 @@ void Demo::loop(double, double)
             if (acc[1] > 0.2 || acc[1] < -0.2) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
                     if (acc[1] > 0.2) {
-                        _robot.elbow->set_velocity(elbow_speed_down);
+                        _robot.elbow->set_velocity_safe(elbow_speed_down);
                     } else if (acc[1] < -0.2) {
-                        _robot.elbow->set_velocity(elbow_speed_up);
+                        _robot.elbow->set_velocity_safe(elbow_speed_up);
                     }
                 } else {
                     move_elbow_counter++;
                 }
             } else {
-                _robot.elbow->set_velocity(0);
+                _robot.elbow->set_velocity_safe(0);
             }
         }
     }

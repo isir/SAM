@@ -1,5 +1,5 @@
-#include "consolemenu.h"
-#include "consoleinput.h"
+#include "console_menu.h"
+#include "console_input.h"
 #include <QDebug>
 #include <iostream>
 #include <unistd.h>

@@ -1,7 +1,7 @@
 #ifndef CONSOLEMENU_H
 #define CONSOLEMENU_H
 
-#include "consolemenuitem.h"
+#include "console_menu_item.h"
 #include <QList>
 #include <QMap>
 #include <QMqttClient>

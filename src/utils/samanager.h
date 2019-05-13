@@ -1,16 +1,16 @@
 #ifndef SAMANAGER_H
 #define SAMANAGER_H
 
-#include "control/compensationoptitrack.h"
+#include "control/compensation_optitrack.h"
 #include "control/demo.h"
-#include "control/matlabreceiver.h"
-#include "control/remotecomputercontrol.h"
-#include "control/voluntarycontrol.h"
-#include "ui/consolemenu.h"
+#include "control/matlab_receiver.h"
+#include "control/remote_computer_control.h"
+#include "control/voluntary_control.h"
+#include "ui/console_menu.h"
 #include "utils/logger.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
-#include "utils/systemmonitor.h"
+#include "utils/system_monitor.h"
 #include <QCoreApplication>
 #include <QMqttClient>
 #include <QObject>

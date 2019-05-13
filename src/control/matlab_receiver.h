@@ -1,7 +1,7 @@
 #ifndef MATLABRECEIVER_H
 #define MATLABRECEIVER_H
 
-#include "ui/consolemenu.h"
+#include "ui/console_menu.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QObject>

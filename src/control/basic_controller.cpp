@@ -1,4 +1,4 @@
-#include "basiccontroller.h"
+#include "basic_controller.h"
 #include <QDebug>
 #include <QMutexLocker>
 

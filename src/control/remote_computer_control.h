@@ -1,8 +1,8 @@
 #ifndef REMOTECOMPUTERCONTROL_H
 #define REMOTECOMPUTERCONTROL_H
 
-#include "basiccontroller.h"
-#include "ui/consolemenu.h"
+#include "basic_controller.h"
+#include "ui/console_menu.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 

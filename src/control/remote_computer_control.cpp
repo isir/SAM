@@ -1,4 +1,4 @@
-#include "remotecomputercontrol.h"
+#include "remote_computer_control.h"
 
 RemoteComputerControl::RemoteComputerControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
     : BasicController(mqtt, .01)
@@ -31,7 +31,7 @@ bool RemoteComputerControl::setup()
     QThread::sleep(1);
     _robot.hand->move(TouchBionicsHand::THUMB_INT_CLOSING);
 
-    _robot.elbow->calibration();
+    _robot.elbow->calibrate();
     _robot.wrist->set_encoder_position(0);
 
     _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);

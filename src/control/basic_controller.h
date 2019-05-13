@@ -1,7 +1,7 @@
 #ifndef BASICCONTROLLER_H
 #define BASICCONTROLLER_H
 
-#include "ui/consolemenu.h"
+#include "ui/console_menu.h"
 #include <QMqttClient>
 #include <QMutex>
 #include <QString>

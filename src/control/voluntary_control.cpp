@@ -1,4 +1,4 @@
-#include "voluntarycontrol.h"
+#include "voluntary_control.h"
 #include "peripherals/roboclaw/factory.h"
 
 #include "qmath.h"

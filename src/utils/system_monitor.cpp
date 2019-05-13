@@ -1,4 +1,4 @@
-#include "systemmonitor.h"
+#include "system_monitor.h"
 #include <QDebug>
 
 SystemMonitor::SystemMonitor(std::shared_ptr<QMqttClient> mqtt, QObject* parent)
