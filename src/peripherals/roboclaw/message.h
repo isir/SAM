@@ -1,19 +1,28 @@
 #ifndef ROBOCLAWMESSAGE_H
 #define ROBOCLAWMESSAGE_H
 
-#include <QString>
 #include <QByteArray>
 #include <QMetaType>
+#include <QString>
 
-namespace RoboClaw {
+namespace RC {
 class Message {
-    friend class Server;
+    friend class Client;
 
 public:
     explicit Message();
     explicit Message(uint8_t address, uint8_t command, QByteArray payload = QByteArray(), QString regexp = QString(), bool append_crc = true);
-    Message(const Message &other) { _data = other._data; _answer = other._answer; _regexp = other._regexp; }
+    Message(const Message& other)
+    {
+        _data = other._data;
+        _answer = other._answer;
+        _regexp = other._regexp;
+    }
+
     ~Message() {}
+
+    QByteArray data() const { return _data; }
+    QString regexp() const { return _regexp; }
 
     QString toString() const;
 
@@ -26,6 +35,6 @@ private:
 };
 }
 
-Q_DECLARE_METATYPE(RoboClaw::Message)
+Q_DECLARE_METATYPE(RC::Message)
 
 #endif // ROBOCLAWMESSAGE_H

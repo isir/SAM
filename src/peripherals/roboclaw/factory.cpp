@@ -1,25 +1,19 @@
 #include "factory.h"
 
-QMap<QString,RoboClaw::Server*> RoboClaw::Factory::_map;
+QMap<QString, std::shared_ptr<SerialPort>> RC::Factory::_map;
 
-RoboClaw::Factory::Factory()
+RC::Factory::Factory()
 {
-
 }
 
-RoboClaw::Server* RoboClaw::Factory::get(QString port_name, int baudrate) {
-    if(!_map.contains(port_name)) {
-        return _map.insert(port_name,new Server(port_name,baudrate)).value();
+std::shared_ptr<SerialPort> RC::Factory::get(QString port_name, unsigned int baudrate)
+{
+    if (!_map.contains(port_name)) {
+        return _map.insert(port_name, std::make_shared<SerialPort>(port_name, baudrate)).value();
     }
-    if(_map.value(port_name)->baudrate() != baudrate) {
+    if (_map.value(port_name)->baudrate() != baudrate) {
+        throw std::runtime_error("Requested port is already in use with a different baudrate.");
         return nullptr;
     }
     return _map.value(port_name);
-}
-
-void RoboClaw::Factory::cleanup() {
-    foreach (Server* s, _map) {
-        delete s;
-    }
-    _map.clear();
 }

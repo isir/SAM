@@ -3,7 +3,7 @@
 OsmerElbow::OsmerElbow(std::shared_ptr<QMqttClient> mqtt)
     : Actuator("Osmer", mqtt)
 {
-    connect("/dev/ttyAMA0", 0x80, 230400, RoboClaw::Client::M1);
+    connect("/dev/ttyAMA0", 0x80, 230400, RoboClaw::RoboClaw::M1);
     read_params_limits(-100., 0.);
     read_params_technical(23422, 100);
     read_params_velocity(0.0387, 0.0029, 0, 1295000);

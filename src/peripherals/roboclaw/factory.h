@@ -4,19 +4,17 @@
 #include <QMap>
 #include <QString>
 
-#include "server.h"
+#include "utils/serial_port.h"
 
-namespace RoboClaw {
-class Factory
-{
+namespace RC {
+class Factory {
 public:
-     static Server* get(QString port_name, int baudrate);
-     static void cleanup();
+    static std::shared_ptr<SerialPort> get(QString port_name, unsigned int baudrate);
 
 private:
     Factory();
 
-    static QMap<QString,Server*> _map;
+    static QMap<QString, std::shared_ptr<SerialPort>> _map;
 };
 }
 

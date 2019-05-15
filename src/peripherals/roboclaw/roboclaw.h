@@ -3,12 +3,13 @@
 
 #include "message.h"
 #include "types.h"
+#include "utils/serial_port.h"
 #include <QList>
 #include <QObject>
 #include <QThread>
 
-namespace RoboClaw {
-class Client : public QObject {
+namespace RC {
+class RoboClaw : public QObject {
     Q_OBJECT
 public:
     typedef enum {
@@ -16,16 +17,13 @@ public:
         M2 = 2
     } Channel;
 
-    Client(quint8 address = 0x80, Channel channel = M1);
-    virtual ~Client();
+    RoboClaw();
+    virtual ~RoboClaw();
 
-    void connect_to_server(QString port_name, int baudrate, Qt::ConnectionType connection = Qt::AutoConnection);
+    void init(QString port_name, unsigned int baudrate, quint8 address = 0x80, Channel channel = M1);
 
     inline quint8 address() { return _address; }
     inline Channel chan() { return _channel; }
-
-    void set_address(quint8 address, Channel channel);
-    void on_answer_received(QByteArray data);
 
     void forward(quint8 value);
     void backward(quint8 value);
@@ -43,18 +41,11 @@ public:
     void move_to(quint32 accel, quint32 speed, quint32 decel, qint32 pos);
 
 private:
-    QByteArray send(const Message& msg, bool wait_for_answer = false);
+    QByteArray send(const Message& msg);
 
-    QList<QThread*> _callers;
-    QString _server_port_name;
-    int _server_baudrate;
+    std::shared_ptr<SerialPort> _serial_port;
     quint8 _address;
     Channel _channel;
-
-signals:
-    void answer_received_internal(QByteArray data);
-    void send_msg(Client* client, Message msg);
-    void timed_out();
 };
 }
 

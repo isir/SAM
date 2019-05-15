@@ -42,9 +42,7 @@ bool Demo::setup()
     }
     _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
 
-    if (!_robot.hand->take_ownership()) {
-        throw std::runtime_error("Demo failed to take ownership of the hand");
-    }
+    _robot.hand->take_ownership();
     _robot.hand->init_sequence();
     _robot.elbow->calibrate();
 
