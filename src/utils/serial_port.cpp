@@ -53,12 +53,16 @@ bool SerialPort::take_ownership()
 
 void SerialPort::release_ownership()
 {
-    _owner = nullptr;
-    _mutex.unlock();
+    if (check_ownership()) {
+        _owner = nullptr;
+        _mutex.unlock();
+    }
 }
 
 QByteArray SerialPort::read(int n)
 {
+    QMutexLocker lock(&_mutex);
+
     QByteArray res;
     if (!check_ownership()) {
         qWarning() << QThread::currentThread() << "is not the current owner of this SerialPort -" << _owner;
