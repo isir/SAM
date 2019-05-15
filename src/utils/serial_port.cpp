@@ -45,7 +45,9 @@ void SerialPort::close()
 bool SerialPort::take_ownership()
 {
     bool ret = _mutex.tryLock();
-    _owner = QThread::currentThread();
+    if (ret) {
+        _owner = QThread::currentThread();
+    }
     return ret;
 }
 
