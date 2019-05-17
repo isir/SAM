@@ -20,6 +20,7 @@ BasicController::BasicController(std::shared_ptr<QMqttClient> mqtt, double perio
     : _menu(mqtt)
     , _period_s(period_s)
     , _pref_cpu(0)
+    , _prio(20)
 {
     QObject::connect(&_menu, &ConsoleMenu::finished, this, &BasicController::stop);
     _menu.addItem(ConsoleMenuItem("Start loop", "start", [this](QString) { this->start(); }));
@@ -41,6 +42,12 @@ void BasicController::set_preferred_cpu(int cpu)
 {
     QMutexLocker locker(&_mutex);
     _pref_cpu = cpu;
+}
+
+void BasicController::set_prio(int prio)
+{
+    QMutexLocker locker(&_mutex);
+    _prio = prio;
 }
 
 void BasicController::enable_watchdog(int timeout_ms)
@@ -79,10 +86,18 @@ void BasicController::run()
 
     emit ping();
 
+    _mutex.lock();
+
     cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(_pref_cpu, &set);
     pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
+
+    struct sched_param sp = {};
+    sp.sched_priority = _prio;
+    sched_setscheduler(0, SCHED_RR, &sp);
+
+    _mutex.unlock();
 
     if (!setup()) {
         return;
