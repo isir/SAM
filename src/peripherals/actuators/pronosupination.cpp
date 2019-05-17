@@ -15,3 +15,8 @@ PronoSupination::PronoSupination(std::shared_ptr<QMqttClient> mqtt)
     _menu.set_title(QString("Pronosupination - ") + read_firmware_version());
     _menu.set_code(QString("pronosup"));
 }
+
+void PronoSupination::set_velocity_safe(double deg_s)
+{
+    set_velocity(deg_s);
+}
