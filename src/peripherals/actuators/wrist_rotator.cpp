@@ -7,7 +7,7 @@ WristRotator::WristRotator(std::shared_ptr<QMqttClient> mqtt)
     : Actuator("Wrist Rotator", mqtt)
 {
     Actuator::connect("/dev/ttyAMA0", 0x81, 230400, RoboClaw::Client::M1);
-    read_params_limits(-35., 35.);
+    read_params_limits(-60., 35.);
     read_params_technical(1000, 100);
     read_params_velocity(0.23, 0.015, 0, 221000);
     read_params_position(27., 0., 0., 0., 0., -180., 180.);
