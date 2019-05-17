@@ -19,5 +19,5 @@ CustomElbow::CustomElbow(std::shared_ptr<QMqttClient> mqtt)
 void CustomElbow::calibrate()
 {
     Actuator::calibrate(15, 2, 0.5, false);
-    move_to(0, 30);
+    move_to(0, 30, true);
 }

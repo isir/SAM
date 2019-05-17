@@ -20,5 +20,5 @@ WristFlexor::WristFlexor(std::shared_ptr<QMqttClient> mqtt)
 void WristFlexor::calibrate()
 {
     Actuator::calibrate(-15, -45, 0.5);
-    move_to(0, 20);
+    move_to(0, 20, true);
 }

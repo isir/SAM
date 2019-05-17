@@ -19,5 +19,5 @@ WristRotator::WristRotator(std::shared_ptr<QMqttClient> mqtt)
 void WristRotator::calibrate()
 {
     Actuator::calibrate(-15, -100, 0.5);
-    move_to(0, 40);
+    move_to(0, 40, true);
 }
