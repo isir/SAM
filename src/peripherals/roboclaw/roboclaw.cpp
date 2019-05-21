@@ -134,6 +134,7 @@ void RC::RoboClaw::move_to(quint32 accel, quint32 speed, quint32 decel, qint32 p
 
 QByteArray RC::RoboClaw::send(const Message& msg)
 {
+    static const int to = 20;
     QByteArray ret;
     QTime t;
     QRegExp rx(msg.regexp());
@@ -145,16 +146,19 @@ QByteArray RC::RoboClaw::send(const Message& msg)
 
     _serial_port->write(msg.data());
 
-    do {
+    while (true) {
         ret.append(_serial_port->read_all());
         int pos = rx.indexIn(QString::fromLatin1(ret, ret.length()));
         if (pos > -1 && rx.captureCount() > 0) {
             ret = ret.mid(rx.pos(1), rx.cap(1).length());
             break;
         }
-    } while (t.elapsed() < 20);
+
+        if (t.elapsed() >= to) {
+            throw std::runtime_error(std::string("Request timed out: ") + msg.toString().toStdString() + " - Pattern is [" + msg.regexp().toStdString() + "] - Rx buffer contains [" + ret.toHex().toStdString() + "]");
+        }
+    }
 
     _serial_port->release_ownership();
-
     return ret;
 }
