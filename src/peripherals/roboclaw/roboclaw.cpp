@@ -25,13 +25,13 @@ void RC::RoboClaw::init(QString port_name, unsigned int baudrate, quint8 address
 void RC::RoboClaw::forward(quint8 value)
 {
     quint8 function_code = _channel == Channel::M1 ? 0 : 4;
-    send(Message(_address, function_code, CastHelper::from(value), "\\xff"));
+    send(Message(_address, function_code, CastHelper::from(value), "(\\xff)"));
 }
 
 void RC::RoboClaw::backward(quint8 value)
 {
     quint8 function_code = _channel == Channel::M1 ? 1 : 5;
-    send(Message(_address, function_code, CastHelper::from(value), "\\xff"));
+    send(Message(_address, function_code, CastHelper::from(value), "(\\xff)"));
 }
 
 qint32 RC::RoboClaw::read_encoder_position()
@@ -129,7 +129,7 @@ RC::position_pid_params_t RC::RoboClaw::read_position_pid()
 void RC::RoboClaw::move_to(quint32 accel, quint32 speed, quint32 decel, qint32 pos)
 {
     quint8 function_code = _channel == Channel::M1 ? 65 : 66;
-    send(Message(_address, function_code, CastHelper::from(accel) + CastHelper::from(speed) + CastHelper::from(decel) + CastHelper::from(pos) + CastHelper::from<quint8>(1), "\\xff"));
+    send(Message(_address, function_code, CastHelper::from(accel) + CastHelper::from(speed) + CastHelper::from(decel) + CastHelper::from(pos) + CastHelper::from<quint8>(1), "(\\xff)"));
 }
 
 QByteArray RC::RoboClaw::send(const Message& msg)
