@@ -137,7 +137,10 @@ void SerialPort::write(const char* data, int n)
         qWarning() << QThread::currentThread() << "is not the current owner of this SerialPort -" << _owner;
         return;
     }
-    ::write(_fd, data, n);
+    int w = ::write(_fd, data, n);
+    if (w < n) {
+        throw std::runtime_error(port_name().toStdString() + "::write: " + strerror(errno));
+    }
 }
 
 bool SerialPort::check_ownership()
