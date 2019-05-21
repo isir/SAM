@@ -6,7 +6,7 @@
 CustomElbow::CustomElbow(std::shared_ptr<QMqttClient> mqtt)
     : Actuator("Custom Elbow", mqtt)
 {
-    connect("/dev/ttyAMA0", 0x82, 230400, RoboClaw::Client::M1);
+    connect("/dev/ttyAMA0", 0x82, 230400, RoboClaw::RoboClaw::M1);
     read_params_limits(-100., 0.);
     read_params_technical(4065, 100);
     read_params_velocity(0.199, 0.014, 0, 268700);

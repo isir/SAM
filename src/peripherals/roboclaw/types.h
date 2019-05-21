@@ -3,8 +3,7 @@
 
 #include <QtGlobal>
 
-namespace RoboClaw
-{
+namespace RC {
 typedef struct {
     float p;
     float i;
