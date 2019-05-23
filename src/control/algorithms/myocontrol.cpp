@@ -152,6 +152,44 @@ MyoControl::JOINT_ACTION MyoControl::_cocontractionStateMachine(int emg1, int em
             } else
                 _counter_after_modes++;
             break;
+
+        case MYO_MODE_WRIST_FLEXION:
+            jointAction = WRIST_NOFLEXION;
+            if (_counter_after_modes > _counts_after_modes) {
+                // Wait for signal to go down before starting again a new mode
+                if (_emg1 < _threshold_emg1 && _emg2 < _threshold_emg2) {
+                    _smoothly_changed_mode = true;
+                }
+                if (_smoothly_changed_mode) {
+                    // Check coco
+                    if (_emg1 > _cocontraction_threshold_emg1 && _emg2 > _cocontraction_threshold_emg2) {
+                        jointAction = WRIST_NOFLEXION;
+                        if (_counter_cocontraction > _counts_cocontraction) {
+                            _counter_cocontraction = 0;
+                            _counter_after_modes = 0;
+                            _smoothly_changed_mode = false;
+                            _sequence_modes_index = (_sequence_modes_index + 1) % _sequence_modes_size;
+                            _current_mode = _sequence_modes[_sequence_modes_index];
+                        } else {
+                            _counter_cocontraction++;
+                        }
+                    }
+                    // Potentielly active function
+                    else {
+                        if (_emg1 > _threshold_emg1) {
+                            jointAction = WRIST_FLEXION;
+                        } else if (_emg2 > _threshold_emg2) {
+                            jointAction = WRIST_EXTENSION;
+                        } else {
+                            jointAction = WRIST_NOFLEXION;
+                        }
+                        _counter_cocontraction = 0;
+                    }
+                }
+            } else
+                _counter_after_modes++;
+            break;
+
         case MYO_MODE_HAND:
             jointAction = HAND_STOP;
             if (_counter_after_modes > _counts_after_modes) {
@@ -851,6 +889,76 @@ MyoControl::JOINT_ACTION MyoControl::_bubbleCocontractionStateMachine(int emg1, 
                         } else {
                             _counter_after_bubble++;
                             jointAction = WRIST_STOP;
+                        }
+
+                        if (_counter_after_bubble > _counts_after_bubble) {
+                            _current_bubble_mode = HAS_TO_CHECK_COCO;
+                        }
+                        break;
+                    }
+                }
+            } else
+                _counter_after_modes++;
+
+            break;
+
+        case MYO_MODE_WRIST_FLEXION:
+            jointAction = WRIST_NOFLEXION;
+            if (_counter_after_modes > _counts_after_modes) {
+                // Wait for signal to go down before starting again a new mode
+                if (_emg1 < _threshold_low_emg1 && _emg2 < _threshold_low_emg2) {
+                    _smoothly_changed_mode = true;
+                }
+                if (_smoothly_changed_mode) {
+                    switch (_current_bubble_mode) {
+                    case HAS_TO_CHECK_COCO:
+                        // Check coco
+                        if (_emg1 > _cocontraction_threshold_emg1 && _emg2 > _cocontraction_threshold_emg2) {
+                            jointAction = WRIST_NOFLEXION;
+                            if (_counter_cocontraction > _counts_cocontraction) {
+                                _counter_cocontraction = 0;
+                                _counter_after_modes = 0;
+                                _smoothly_changed_mode = false;
+                                _sequence_modes_index = (_sequence_modes_index + 1) % _sequence_modes_size;
+                                _current_mode = _sequence_modes[_sequence_modes_index];
+                            } else {
+                                _counter_cocontraction++;
+                            }
+                        }
+                        // Potentielly active function
+                        else {
+                            _counter_cocontraction = 0;
+                            if (_emg1 > _threshold_high_emg1) {
+                                _counter_before_bubble++;
+                                _activated_emg = 1;
+                                jointAction = WRIST_EXTENSION;
+                            } else if (_emg2 > _threshold_high_emg2) {
+                                _counter_before_bubble++;
+                                _activated_emg = 2;
+                                jointAction = WRIST_FLEXION;
+                            } else {
+                                _counter_before_bubble = 0;
+                                jointAction = WRIST_NOFLEXION;
+                            }
+
+                            if (_counter_before_bubble > _counts_before_bubble) {
+                                _current_bubble_mode = IS_ACTIVATED;
+                                _counter_after_bubble = 0;
+                            }
+                        }
+
+                        break;
+
+                    case IS_ACTIVATED:
+                        if (_emg1 > _threshold_low_emg1 && _activated_emg == 1) {
+                            _counter_after_bubble = 0;
+                            jointAction = WRIST_EXTENSION;
+                        } else if (_emg2 > _threshold_low_emg2 && _activated_emg == 2) {
+                            _counter_after_bubble = 0;
+                            jointAction = WRIST_FLEXION;
+                        } else {
+                            _counter_after_bubble++;
+                            jointAction = WRIST_NOFLEXION;
                         }
 
                         if (_counter_after_bubble > _counts_after_bubble) {

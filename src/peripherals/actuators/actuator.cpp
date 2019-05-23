@@ -91,7 +91,7 @@ void Actuator::calibrate(double velocity_deg_s, double final_pos, double velocit
     QTime t;
 
     if (use_velocity_control) {
-        set_velocity(qRound(velocity_deg_s * _incs_per_deg));
+        set_velocity(velocity_deg_s);
     } else {
         if (velocity_deg_s < 0) {
             backward(qAbs(velocity_deg_s));

@@ -147,8 +147,16 @@ void SAManager::mqtt_connected_callback()
 
     if (_demo) {
         _main_menu->addItem(_demo->menu());
-        _demo->menu().activate();
-        _demo->start();
+
+        pinMode(28, INPUT);
+        pullUpDnControl(28, PUD_UP);
+        if (digitalRead(28)) {
+            _robot.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
+        } else {
+            _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
+            _demo->menu().activate();
+            _demo->start();
+        }
     }
 
     _sm = std::make_shared<SystemMonitor>(_mqtt);
