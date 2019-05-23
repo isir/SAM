@@ -34,14 +34,6 @@ Demo::~Demo()
 
 bool Demo::setup()
 {
-    pinMode(28, INPUT);
-    pullUpDnControl(28, PUD_UP);
-    if (digitalRead(28)) {
-        _robot.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
-        return false;
-    }
-    _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
-
     _robot.hand->take_ownership();
     _robot.hand->init_sequence();
     _robot.elbow->calibrate();
@@ -294,10 +286,6 @@ void Demo::loop(double, double)
                 _robot.elbow->set_velocity_safe(0);
             }
         }
-    }
-
-    if (digitalRead(28)) {
-        stop();
     }
 }
 
