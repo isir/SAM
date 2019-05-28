@@ -8,7 +8,6 @@ SerialPort::SerialPort(QString port_name, unsigned int baudrate)
     : _fd(-1)
     , _port_name(port_name)
     , _baudrate(baudrate)
-    , _mutex(QMutex::Recursive)
     , _owner(nullptr)
     , _timeout(-1)
 {
@@ -46,9 +45,7 @@ void SerialPort::open(QString port_name, unsigned int baudrate)
 
 void SerialPort::open()
 {
-    QMutexLocker lock(&_mutex);
-
-    if (!_port_name.isEmpty() && _baudrate > 0) {
+    if (!_port_name.isEmpty() && _baudrate > 0 && _fd < 0) {
         open(_port_name, _baudrate);
     }
 }
@@ -61,28 +58,33 @@ void SerialPort::close()
         ::close(_fd);
         _fd = -1;
     }
+    _owner = nullptr;
 }
 
 void SerialPort::take_ownership()
 {
-    _mutex.lock();
+    QMutexLocker lock(&_mutex);
+
     _owner = QThread::currentThread();
 }
 
 bool SerialPort::try_take_ownership()
 {
     bool ret = _mutex.tryLock();
+
     if (ret) {
         _owner = QThread::currentThread();
+        _mutex.unlock();
     }
     return ret;
 }
 
 void SerialPort::release_ownership()
 {
+    QMutexLocker lock(&_mutex);
+
     if (check_ownership()) {
         _owner = nullptr;
-        _mutex.unlock();
     }
 }
 
@@ -126,8 +128,7 @@ QByteArray SerialPort::read_all()
 
 void SerialPort::write(QByteArray data)
 {
-    QMutexLocker lock(&_mutex);
-
+    qDebug() << "SerialPort::write" << data.toHex() << "(" << data.size() << ")";
     write(data.data(), data.size());
 }
 
@@ -147,7 +148,5 @@ void SerialPort::write(const char* data, int n)
 
 bool SerialPort::check_ownership()
 {
-    QMutexLocker lock(&_mutex);
-
     return _owner == nullptr || QThread::currentThread() == _owner;
 }
