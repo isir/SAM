@@ -66,9 +66,8 @@ void BasicController::enable_watchdog(int timeout_ms)
 void BasicController::stop()
 {
     if (isRunning()) {
-        _mutex.lock();
+        QMutexLocker locker(&_mutex);
         _loop_condition = false;
-        _mutex.unlock();
     }
 }
 
