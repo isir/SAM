@@ -84,6 +84,8 @@ void BasicController::run()
     unsigned int cnt = 0;
     double min = std::numeric_limits<double>::max(), max = 0, avg = 0;
 
+    _loop_condition = true;
+
     emit ping();
 
     _mutex.lock();
@@ -107,8 +109,6 @@ void BasicController::run()
     struct timespec prev_period, next_period;
     clock_gettime(CLOCK_MONOTONIC, &prev_period);
     next_period = prev_period;
-
-    _loop_condition = true;
 
     while (true) {
         next_period.tv_nsec += period_ns;
