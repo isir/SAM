@@ -128,7 +128,6 @@ QByteArray SerialPort::read_all()
 
 void SerialPort::write(QByteArray data)
 {
-    qDebug() << "SerialPort::write" << data.toHex() << "(" << data.size() << ")";
     write(data.data(), data.size());
 }
 
