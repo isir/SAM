@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "systemdisplay.h"
 #include "topicplotter.h"
+#include "ui/mqttconnect.h"
 #include "ui_mainwindow.h"
 
 MainWindow::MainWindow(QWidget* parent)
@@ -9,6 +10,7 @@ MainWindow::MainWindow(QWidget* parent)
     , _tp("sam/myoband/acc")
 {
     ui->setupUi(this);
+    ui->verticalLayout->insertWidget(0, new MqttConnect());
     ui->verticalLayout->addWidget(&_ld);
     ui->horizontalLayout->addWidget(&_md);
     ui->horizontalLayout->addWidget(&_tp);

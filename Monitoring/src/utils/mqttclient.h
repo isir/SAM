@@ -10,6 +10,8 @@ public:
     static MqttClient& instance();
     ~MqttClient();
 
+    void connect_to_host(QString hostname, int port);
+
 private:
     MqttClient();
 

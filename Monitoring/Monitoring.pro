@@ -25,6 +25,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 CONFIG += c++11
 
 SOURCES += \
+        src/ui/mqttconnect.cpp \
         src/main.cpp \
         src/ui/logdisplay.cpp \
         src/ui/mainwindow.cpp \
@@ -34,6 +35,7 @@ SOURCES += \
         src/utils/mqttclient.cpp
 
 HEADERS += \
+        src/ui/mqttconnect.h \
         src/ui/logdisplay.h \
         src/ui/mainwindow.h \
         src/ui/menudisplay.h \
@@ -42,6 +44,7 @@ HEADERS += \
         src/utils/mqttclient.h
 
 FORMS += \
+        src/ui/mqttconnect.ui \
         src/ui/logdisplay.ui \
         src/ui/mainwindow.ui \
         src/ui/menudisplay.ui \
