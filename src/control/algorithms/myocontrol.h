@@ -19,6 +19,7 @@ public:
      */
     enum MODE {
         MYO_MODE_NONE,
+        MYO_MODE_SHOULDER,
         MYO_MODE_ELBOW,
         MYO_MODE_WRIST,
         MYO_MODE_WRIST_FLEXION,
@@ -41,6 +42,9 @@ public:
      */
     enum JOINT_ACTION {
         NONE,
+        SHOULDER_INT,
+        SHOULDER_OUT,
+        SHOULDER_STOP,
         ELBOW_UP,
         ELBOW_DOWN,
         ELBOW_STOP,

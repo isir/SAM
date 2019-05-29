@@ -61,7 +61,8 @@ HEADERS += \
     src/utils/samanager.h \
     src/utils/serial_port.h \
         src/utils/settings.h \
-    src/utils/system_monitor.h
+    src/utils/system_monitor.h \
+    src/peripherals/actuators/shoulder_rotator.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -99,7 +100,8 @@ SOURCES += \
     src/utils/samanager.cpp \
     src/utils/serial_port.cpp \
         src/utils/settings.cpp \
-    src/utils/system_monitor.cpp
+    src/utils/system_monitor.cpp \
+    src/peripherals/actuators/shoulder_rotator.cpp
 
 INCLUDEPATH += src/
 
