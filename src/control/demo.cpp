@@ -14,8 +14,9 @@ Demo::Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
 {
     _menu.set_title("Demo");
     _menu.set_code("demo");
-    _menu.addItem(_robot.wrist_pronosup->menu());
+    _menu.addItem(_robot.shoulder->menu());
     _menu.addItem(_robot.elbow->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.hand->menu());
 
     _settings.beginGroup("Demo");
@@ -53,6 +54,8 @@ void Demo::loop(double, double)
     static int counter_auto_control = 0, move_elbow_counter = 0;
     static const int max_acc_change_mode = 15;
 
+    static const int shoulder_speed_int = -35;
+    static const int shoulder_speed_out = 35;
     static const int elbow_speed_up = -35;
     static const int elbow_speed_down = 35;
     static const double wrist_speed = 40;
@@ -139,6 +142,9 @@ void Demo::loop(double, double)
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_ELBOW) {
             _robot.elbow->set_velocity_safe(0);
         }
+        if (myocontrol.getOldMode() == MyoControl::MYO_MODE_SHOULDER) {
+            _robot.shoulder->set_velocity_safe(0);
+        }
     }
 
     MyoControl::JOINT_ACTION action = myocontrol.getJointAction(emg[0], emg[1]);
@@ -163,10 +169,18 @@ void Demo::loop(double, double)
     }
 
     switch (action) {
-    case MyoControl::ELBOW_DOWN:
-        _robot.elbow->set_velocity_safe(elbow_speed_down);
+    case MyoControl::SHOULDER_INT:
+        _robot.shoulder->set_velocity_safe(shoulder_speed_int);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
+        break;
+    case MyoControl::SHOULDER_OUT:
+        _robot.shoulder->set_velocity_safe(shoulder_speed_out);
+        colors[2] = LedStrip::white;
+        colors[3] = LedStrip::white;
+        break;
+    case MyoControl::SHOULDER_STOP:
+        _robot.shoulder->set_velocity_safe(0);
         break;
     case MyoControl::ELBOW_UP:
         _robot.elbow->set_velocity_safe(elbow_speed_up);

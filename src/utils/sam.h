@@ -19,6 +19,7 @@ struct Components {
     std::shared_ptr<Actuator> wrist_pronosup;
     std::shared_ptr<WristFlexor> wrist_flex;
     std::shared_ptr<Actuator> elbow;
+    std::shared_ptr<Actuator> shoulder;
     std::shared_ptr<TouchBionicsHand> hand;
     std::shared_ptr<Myoband> myoband;
     std::shared_ptr<XIMU> arm_imu;

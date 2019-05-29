@@ -5,6 +5,7 @@
 #include "peripherals/actuators/osmer_elbow.h"
 
 #include "peripherals/actuators/pronosupination.h"
+#include "peripherals/actuators/shoulder_rotator.h"
 #include "peripherals/actuators/wrist_rotator.h"
 
 std::shared_ptr<QMqttClient> SAManager::_mqtt(std::make_shared<QMqttClient>());
@@ -54,6 +55,13 @@ void SAManager::mqtt_connected_callback()
         _main_menu->addItem(_robot.wrist_flex->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the wrist flexor -" << e.what();
+    }
+
+    try {
+        _robot.shoulder = std::make_shared<ShoulderRotator>(_mqtt);
+        _main_menu->addItem(_robot.shoulder->menu());
+    } catch (std::exception& e) {
+        qCritical() << "Couldn't access the Shoulder rotator -" << e.what();
     }
 
     try {
