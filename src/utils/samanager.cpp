@@ -151,10 +151,9 @@ void SAManager::mqtt_connected_callback()
         }
     }
 
-    _main_menu->activate();
-
     if (_demo) {
         _main_menu->addItem(_demo->menu());
+        _main_menu->activate();
 
         pinMode(28, INPUT);
         pullUpDnControl(28, PUD_UP);
@@ -165,6 +164,8 @@ void SAManager::mqtt_connected_callback()
             _demo->menu().activate();
             _demo->start();
         }
+    } else {
+        _main_menu->activate();
     }
 
     _sm = std::make_shared<SystemMonitor>(_mqtt);
