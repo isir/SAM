@@ -7,7 +7,7 @@
 ShoulderRotator::ShoulderRotator(std::shared_ptr<QMqttClient> mqtt)
     : Actuator("Shoulder Rotator", mqtt)
 {
-    connect("/dev/ttyAMA0", B230400, 0x80, RoboClaw::M2);
+    connect("/dev/ttyAMA0", B230400, 0x82, RoboClaw::M2);
 
     _menu.set_title(QString("Shoulder Rotator - ") + read_firmware_version());
     _menu.set_code(QString("shoulder"));
