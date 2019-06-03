@@ -66,9 +66,9 @@ void Demo::loop(double, double)
     static const int threshold_emg1_coco_demo_nat = 15;
     static const int threshold_emg2_coco_demo_nat = 15;
 
-    static const MyoControl::MODE demoCocoSequence1[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW, MyoControl::MYO_MODE_WRIST_FLEXION };
-    static const MyoControl::MODE demoCocoSequence2[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
-    static const MyoControl::MODE demoCocoSequence3[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
+    std::vector<MyoControl::MODE> demoCocoSequence1 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW, MyoControl::MYO_MODE_WRIST_FLEXION };
+    std::vector<MyoControl::MODE> demoCocoSequence2 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
+    std::vector<MyoControl::MODE> demoCocoSequence3 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
 
     static LedStrip::color current_color = LedStrip::none;
 
@@ -79,7 +79,7 @@ void Demo::loop(double, double)
         control_mode = FULL_MYO;
         current_color = LedStrip::green;
         myocontrol.setControlType(MyoControl::BUBBLE_COCO_CONTROL);
-        myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 4, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+        myocontrol.initBubbleCocontractionControl(demoCocoSequence1.data(), demoCocoSequence1.size(), 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         first = false;
     }
 
@@ -101,15 +101,15 @@ void Demo::loop(double, double)
                 if (control_mode == FULL_MYO) {
                     qInfo() << "Full myo";
                     current_color = LedStrip::green;
-                    myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 4, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+                    myocontrol.initBubbleCocontractionControl(demoCocoSequence1.data(), demoCocoSequence1.size(), 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
                 } else if (control_mode == IMU_ELBOW) {
                     qInfo() << "IMU Elbow";
                     current_color = LedStrip::red;
-                    myocontrol.initBubbleCocontractionControl(demoCocoSequence2, 2, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+                    myocontrol.initBubbleCocontractionControl(demoCocoSequence2.data(), demoCocoSequence2.size(), 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
                 } else if (control_mode == FULL_MYO_FINGERS) {
                     qInfo() << "Full myo + fingers";
                     current_color = LedStrip::blue;
-                    myocontrol.initBubbleCocontractionControl(demoCocoSequence3, 8, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+                    myocontrol.initBubbleCocontractionControl(demoCocoSequence3.data(), demoCocoSequence3.size(), 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
                 }
             } else {
                 QVector<qint32> rms = _robot.myoband->get_emgs_rms();
