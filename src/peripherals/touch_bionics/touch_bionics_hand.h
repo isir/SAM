@@ -65,7 +65,7 @@ public:
 
 private:
     int _speed;
-    char _cmd[13];
+    char _cmd[32];
     int _last_action;
     int _count;
     const int _NB_OF_CMD_TO_RESEND = 3;
