@@ -105,9 +105,11 @@ SOURCES += \
 
 INCLUDEPATH += src/
 
+QMAKE_CXXFLAGS += -O2
+
+LIBS += -lwiringPi -li2c -lboost_thread -lboost_system
+
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
-
-LIBS += -lwiringPi -li2c -lboost_thread -lboost_system
