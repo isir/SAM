@@ -10,6 +10,7 @@ class Actuator : public RC::RoboClaw {
     Q_OBJECT
 public:
     Actuator(QString name, std::shared_ptr<QMqttClient> mqtt);
+    virtual ~Actuator() {}
 
     const ConsoleMenu& menu() { return _menu; }
 
@@ -21,7 +22,7 @@ public:
     using RoboClaw::RoboClaw::move_to;
     void move_to(double deg, double speed, bool block = false);
     void set_velocity(double deg_s);
-    void set_velocity_safe(double deg_s);
+    virtual void set_velocity_safe(double deg_s);
 
 protected:
     void calibrate(double velocity_deg_s, double final_pos, double velocity_threshold_deg_s, bool use_velocity_control = true);
