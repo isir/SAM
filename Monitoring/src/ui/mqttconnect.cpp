@@ -24,10 +24,15 @@ void MqttConnect::mqtt_state_callback(QMqttClient::ClientState state)
 {
     switch (state) {
     case QMqttClient::Connected:
+        ui->pushButton_connect->setText("Connected");
+        ui->pushButton_connect->setEnabled(false);
+        break;
     case QMqttClient::Connecting:
+        ui->pushButton_connect->setText("Connecting");
         ui->pushButton_connect->setEnabled(false);
         break;
     default:
+        ui->pushButton_connect->setText("Connect");
         ui->pushButton_connect->setEnabled(true);
         break;
     }
