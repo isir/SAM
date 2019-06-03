@@ -66,7 +66,7 @@ void Demo::loop(double, double)
     static const int threshold_emg1_coco_demo_nat = 15;
     static const int threshold_emg2_coco_demo_nat = 15;
 
-    std::vector<MyoControl::MODE> demoCocoSequence1 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW, MyoControl::MYO_MODE_WRIST_FLEXION };
+    std::vector<MyoControl::MODE> demoCocoSequence1 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW, MyoControl::MYO_MODE_WRIST_FLEXION, MyoControl::MYO_MODE_SHOULDER };
     std::vector<MyoControl::MODE> demoCocoSequence2 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
     std::vector<MyoControl::MODE> demoCocoSequence3 { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
 
