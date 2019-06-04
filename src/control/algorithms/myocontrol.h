@@ -52,7 +52,7 @@ public:
 class Classifier {
 public:
     Classifier(std::vector<Action> actions, EMGThresholds thresholds, unsigned int counts_after_mode_change, unsigned int counts_cocontraction);
-    virtual ~Classifier() {}
+    virtual ~Classifier();
 
     virtual void process(int forward_emg, int backward_emg) = 0;
 

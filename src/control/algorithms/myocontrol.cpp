@@ -1,7 +1,5 @@
 #include "myocontrol.h"
 
-#include <utility>
-
 namespace MyoControl {
 
 Classifier::Classifier(std::vector<Action> actions, EMGThresholds thresholds, unsigned int counts_after_mode_change, unsigned int counts_cocontraction)
@@ -12,6 +10,14 @@ Classifier::Classifier(std::vector<Action> actions, EMGThresholds thresholds, un
     , _counts_cocontraction(counts_cocontraction)
     , _mode_changed(false)
 {
+    if (_actions.size() == 0) {
+        throw std::runtime_error("Empty action list");
+    }
+}
+
+Classifier::~Classifier()
+{
+    _it->on_none();
 }
 
 void Classifier::previous()
