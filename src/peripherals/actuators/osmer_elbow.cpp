@@ -1,7 +1,7 @@
 #include "osmer_elbow.h"
 
-OsmerElbow::OsmerElbow(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Osmer", mqtt)
+OsmerElbow::OsmerElbow()
+    : Actuator("Osmer")
 {
     connect("/dev/ttyAMA0", B230400, 0x80, RoboClaw::M1);
 

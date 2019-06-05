@@ -2,7 +2,6 @@
 #define BASICCONTROLLER_H
 
 #include "ui/console_menu.h"
-#include <QMqttClient>
 #include <QMutex>
 #include <QString>
 #include <QThread>
@@ -12,7 +11,7 @@
 class BasicController : public QThread {
     Q_OBJECT
 public:
-    BasicController(std::shared_ptr<QMqttClient> mqtt, double period_s = 1);
+    BasicController(double period_s = 1);
     virtual ~BasicController();
 
     void set_period(double seconds);

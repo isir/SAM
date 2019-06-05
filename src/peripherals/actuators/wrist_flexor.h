@@ -6,7 +6,7 @@
 class WristFlexor : public Actuator {
     Q_OBJECT
 public:
-    WristFlexor(std::shared_ptr<QMqttClient> mqtt);
+    WristFlexor();
 
     void calibrate();
 };

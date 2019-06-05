@@ -1,10 +1,9 @@
 #include "matlab_receiver.h"
 #include <QNetworkDatagram>
 
-MatlabReceiver::MatlabReceiver(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt, QObject* parent)
+MatlabReceiver::MatlabReceiver(SAM::Components robot, QObject* parent)
     : QObject(parent)
     , _robot(robot)
-    , _menu(mqtt)
 {
     _menu.set_title("Matlab receiver");
     _menu.set_code("mr");

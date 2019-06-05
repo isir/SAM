@@ -1,4 +1,5 @@
 #include "basic_controller.h"
+#include "utils/mqtt_wrapper.h"
 #include <QDebug>
 #include <QMutexLocker>
 
@@ -16,9 +17,8 @@ static double timespec_diff(struct timespec* start, struct timespec* stop)
     return result.tv_sec + (result.tv_nsec * 1e-9);
 }
 
-BasicController::BasicController(std::shared_ptr<QMqttClient> mqtt, double period_s)
-    : _menu(mqtt)
-    , _period_s(period_s)
+BasicController::BasicController(double period_s)
+    : _period_s(period_s)
     , _pref_cpu(0)
     , _prio(20)
 {

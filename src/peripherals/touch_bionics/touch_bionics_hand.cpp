@@ -3,9 +3,8 @@
 #include <QDebug>
 #include <QThread>
 
-TouchBionicsHand::TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt)
+TouchBionicsHand::TouchBionicsHand()
     : _settings("TouchBionics")
-    , _menu(mqtt)
 {
     _sp.open(_settings.value("port_name", "/dev/touchbionics").toString(), B115200);
 

@@ -1,11 +1,7 @@
 #include "wrist_flexor.h"
-#include <QCoreApplication>
-#include <QDebug>
-#include <QTime>
-#include <iostream>
 
-WristFlexor::WristFlexor(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Wrist Flexor", mqtt)
+WristFlexor::WristFlexor()
+    : Actuator("Wrist Flexor")
 {
     connect("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M2);
 

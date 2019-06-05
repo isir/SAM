@@ -6,8 +6,8 @@
 #include <iostream>
 #include <wiringPi.h>
 
-VoluntaryControl::VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
-    : BasicController(mqtt)
+VoluntaryControl::VoluntaryControl(SAM::Components robot)
+    : BasicController()
     , _robot(robot)
 {
     _settings.beginGroup("VoluntaryControl");

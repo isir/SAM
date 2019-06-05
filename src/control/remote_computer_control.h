@@ -8,7 +8,7 @@
 
 class RemoteComputerControl : public BasicController {
 public:
-    explicit RemoteComputerControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    explicit RemoteComputerControl(SAM::Components robot);
     ~RemoteComputerControl();
 
 private:

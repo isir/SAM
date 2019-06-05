@@ -8,8 +8,8 @@
 #define IMU_ELBOW 1
 #define FULL_MYO_FINGERS 2
 
-Demo::Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
-    : BasicController(mqtt, .01)
+Demo::Demo(SAM::Components robot)
+    : BasicController(.01)
     , _robot(robot)
 {
     _menu.set_title("Demo");

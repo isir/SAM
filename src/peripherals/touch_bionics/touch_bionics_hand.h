@@ -4,7 +4,6 @@
 #include "ui/console_menu.h"
 #include "utils/serial_port.h"
 #include "utils/settings.h"
-#include <QMqttClient>
 #include <memory>
 
 /**
@@ -50,7 +49,7 @@ public:
         GLOVE_POSTURE = 24,
     };
 
-    TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt);
+    TouchBionicsHand();
     ~TouchBionicsHand();
 
     void init_sequence();

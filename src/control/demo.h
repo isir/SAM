@@ -7,7 +7,7 @@
 
 class Demo : public BasicController {
 public:
-    Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    Demo(SAM::Components robot);
     ~Demo();
 
     bool setup();

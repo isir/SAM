@@ -6,7 +6,7 @@
 class OsmerElbow : public Actuator {
     Q_OBJECT
 public:
-    OsmerElbow(std::shared_ptr<QMqttClient> mqtt);
+    OsmerElbow();
 
     void calibrate();
 };

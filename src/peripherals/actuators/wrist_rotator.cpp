@@ -1,10 +1,7 @@
 #include "wrist_rotator.h"
-#include <QCoreApplication>
-#include <QTime>
-#include <iostream>
 
-WristRotator::WristRotator(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Wrist Rotator", mqtt)
+WristRotator::WristRotator()
+    : Actuator("Wrist Rotator")
 {
     Actuator::connect("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M1);
 

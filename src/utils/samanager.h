@@ -12,7 +12,6 @@
 #include "utils/settings.h"
 #include "utils/system_monitor.h"
 #include <QCoreApplication>
-#include <QMqttClient>
 #include <QObject>
 
 class SAManager : public QObject {
@@ -24,7 +23,6 @@ public:
     static std::shared_ptr<Logger> log() { return _log; }
 
 private:
-    static std::shared_ptr<QMqttClient> _mqtt;
     static std::shared_ptr<Logger> _log;
 
     std::shared_ptr<SystemMonitor> _sm;

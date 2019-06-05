@@ -1,11 +1,7 @@
 #include "shoulder_rotator.h"
-#include <QCoreApplication>
-#include <QDebug>
-#include <QTime>
-#include <iostream>
 
-ShoulderRotator::ShoulderRotator(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Shoulder Rotator", mqtt)
+ShoulderRotator::ShoulderRotator()
+    : Actuator("Shoulder Rotator")
 {
     connect("/dev/ttyAMA0", B230400, 0x82, RoboClaw::M2);
 

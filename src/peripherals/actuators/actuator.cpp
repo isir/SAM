@@ -3,9 +3,8 @@
 #include <QDebug>
 #include <QTime>
 
-Actuator::Actuator(QString name, std::shared_ptr<QMqttClient> mqtt)
+Actuator::Actuator(QString name)
     : RoboClaw::RoboClaw()
-    , _menu(mqtt)
     , _name(name)
     , _connected(false)
     , _incs_per_deg(0)

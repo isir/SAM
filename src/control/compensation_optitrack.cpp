@@ -5,10 +5,9 @@
 #include <iostream>
 #include <qmath.h>
 
-CompensationOptitrack::CompensationOptitrack(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
+CompensationOptitrack::CompensationOptitrack(SAM::Components robot)
     : QObject(nullptr)
     , _robot(robot)
-    , _menu(mqtt)
     , _Lt(40)
     , _Lua(0.)
     , _Lfa(0.)

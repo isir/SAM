@@ -36,7 +36,7 @@ public:
         REINITIALIZE_HAND_POSITION = 42
     };
 
-    explicit MatlabReceiver(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt, QObject* parent = nullptr);
+    explicit MatlabReceiver(SAM::Components robot, QObject* parent = nullptr);
     ~MatlabReceiver();
 
     ConsoleMenu& menu() { return _menu; }

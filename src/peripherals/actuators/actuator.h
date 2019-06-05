@@ -9,7 +9,7 @@
 class Actuator : public RC::RoboClaw {
     Q_OBJECT
 public:
-    Actuator(QString name, std::shared_ptr<QMqttClient> mqtt);
+    Actuator(QString name);
     virtual ~Actuator() {}
 
     const ConsoleMenu& menu() { return _menu; }

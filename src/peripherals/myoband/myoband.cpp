@@ -1,13 +1,12 @@
 #include "myoband.h"
+#include "utils/mqtt_wrapper.h"
 #include <QDebug>
-#include <QMqttClient>
 #include <QMutexLocker>
 
-Myoband::Myoband(std::shared_ptr<QMqttClient> mqtt)
-    : BasicController(mqtt, 0.0025)
+Myoband::Myoband()
+    : BasicController(0.0025)
     , _serial("/dev/myoband", 115200)
     , _client(nullptr)
-    , _mqtt(mqtt)
     , _acc(Eigen::Vector3d::Zero())
     , _gyro(Eigen::Vector3d::Zero())
 {
@@ -121,14 +120,14 @@ void Myoband::mqtt_timer_callback()
             mqtt_payload.append(QByteArray::number(acc[i]) + " ");
         }
         mqtt_payload.chop(1);
-        _mqtt->publish(QString("sam/myoband/acc"), mqtt_payload);
+        mqtt_pub(QString("sam/myoband/acc"), mqtt_payload);
 
         mqtt_payload.clear();
         foreach (qint32 rms, get_emgs_rms()) {
             mqtt_payload.append(QByteArray::number(rms) + " ");
         }
         mqtt_payload.chop(1);
-        _mqtt->publish(QString("sam/myoband/emg_rms"), mqtt_payload);
+        mqtt_pub(QString("sam/myoband/emg_rms"), mqtt_payload);
     } else {
         _mqtt_timer.stop();
     }

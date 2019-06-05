@@ -13,7 +13,7 @@
 class CompensationOptitrack : public QObject {
     Q_OBJECT
 public:
-    explicit CompensationOptitrack(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    explicit CompensationOptitrack(SAM::Components robot);
     ~CompensationOptitrack();
 
     ConsoleMenu& menu() { return _menu; }

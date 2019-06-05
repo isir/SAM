@@ -1,10 +1,10 @@
 #include "logger.h"
+#include "mqtt_wrapper.h"
 
-Logger::Logger(std::shared_ptr<QMqttClient> mqtt, QObject* parent)
+Logger::Logger(QObject* parent)
     : QObject(parent)
     , _info_file("/var/log/sam_info")
     , _err_file("/var/log/sam_err")
-    , _mqtt(mqtt)
 {
     _info_file.open(QIODevice::ReadWrite);
     _err_file.open(QIODevice::ReadWrite);
@@ -48,5 +48,5 @@ void Logger::handle_message(QByteArray type, const QByteArray& msg)
     QByteArray line = type + ": " + msg;
     log_file->write(line);
     log_file->flush();
-    _mqtt->publish(mqtt_topic_name, line);
+    mqtt_pub(mqtt_topic_name, line);
 }

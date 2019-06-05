@@ -10,7 +10,7 @@
 class VoluntaryControl : public BasicController {
     Q_OBJECT
 public:
-    explicit VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    explicit VoluntaryControl(SAM::Components robot);
     ~VoluntaryControl();
 
 private:

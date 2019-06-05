@@ -48,6 +48,7 @@ HEADERS += \
     src/ui/console_menu.h \
     src/ui/console_menu_item.h \
     src/utils/logger.h \
+    src/utils/mqtt_wrapper.h \
     src/utils/opti_listener.h \
     src/utils/sam.h \
     src/utils/samanager.h \
@@ -88,6 +89,7 @@ SOURCES += \
     src/ui/console_input.cpp \
     src/ui/console_menu.cpp \
     src/utils/logger.cpp \
+    src/utils/mqtt_wrapper.cpp \
     src/utils/opti_listener.cpp \
     src/utils/samanager.cpp \
     src/utils/serial_port.cpp \

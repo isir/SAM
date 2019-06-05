@@ -1,10 +1,7 @@
 #include "custom_elbow.h"
-#include <QCoreApplication>
-#include <QTime>
-#include <iostream>
 
-CustomElbow::CustomElbow(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Custom Elbow", mqtt)
+CustomElbow::CustomElbow()
+    : Actuator("Custom Elbow")
 {
     connect("/dev/ttyAMA0", B230400, 0x82, RoboClaw::M1);
 

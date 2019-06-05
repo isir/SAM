@@ -12,7 +12,7 @@
 class Myoband : public BasicController {
     Q_OBJECT
 public:
-    Myoband(std::shared_ptr<QMqttClient> mqtt);
+    Myoband();
     ~Myoband();
 
     bool setup();
@@ -51,7 +51,6 @@ private:
     myolinux::Serial _serial;
     myolinux::myo::Client* _client;
     QMutex _mutex;
-    std::shared_ptr<QMqttClient> _mqtt;
     QTimer _mqtt_timer;
 
     QVector<qint8> _emgs;

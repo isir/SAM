@@ -1,7 +1,7 @@
 #include "remote_computer_control.h"
 
-RemoteComputerControl::RemoteComputerControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
-    : BasicController(mqtt, .01)
+RemoteComputerControl::RemoteComputerControl(SAM::Components robot)
+    : BasicController(.01)
     , _robot(robot)
 {
     _menu.set_title("Remote control with keyboard");

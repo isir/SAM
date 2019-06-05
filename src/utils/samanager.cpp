@@ -1,6 +1,8 @@
 #include "samanager.h"
 #include <wiringPi.h>
 
+#include "utils/mqtt_wrapper.h"
+
 #include "peripherals/actuators/custom_elbow.h"
 #include "peripherals/actuators/osmer_elbow.h"
 
@@ -8,8 +10,7 @@
 #include "peripherals/actuators/shoulder_rotator.h"
 #include "peripherals/actuators/wrist_rotator.h"
 
-std::shared_ptr<QMqttClient> SAManager::_mqtt(std::make_shared<QMqttClient>());
-std::shared_ptr<Logger> SAManager::_log(std::make_shared<Logger>(SAManager::_mqtt));
+std::shared_ptr<Logger> SAManager::_log(std::make_shared<Logger>());
 
 static void message_handler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
@@ -19,16 +20,16 @@ static void message_handler(QtMsgType type, const QMessageLogContext& context, c
 SAManager::SAManager(QCoreApplication* a, QObject* parent)
     : QObject(parent)
 {
-    _main_menu = std::make_shared<ConsoleMenu>(_mqtt, "Main menu", "main");
-    _buzzer_submenu = std::make_shared<ConsoleMenu>(_mqtt, "Buzzer submenu", "buzzer");
+    _main_menu = std::make_shared<ConsoleMenu>("Main menu", "main");
+    _buzzer_submenu = std::make_shared<ConsoleMenu>("Buzzer submenu", "buzzer");
 
     QObject::connect(_main_menu.get(), &ConsoleMenu::finished, a, &QCoreApplication::quit, Qt::QueuedConnection);
-    QObject::connect(_mqtt.get(), &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
+    QObject::connect(&mqtt(), &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
 
     _settings.beginGroup("MQTT");
-    _mqtt->setHostname(_settings.value("hostname", "127.0.0.1").toString());
-    _mqtt->setPort(_settings.value("port", 1883).toInt());
-    _mqtt->connectToHost();
+    mqtt().setHostname(_settings.value("hostname", "127.0.0.1").toString());
+    mqtt().setPort(_settings.value("port", 1883).toInt());
+    mqtt().connectToHost();
     _settings.endGroup();
 }
 
@@ -51,21 +52,21 @@ void SAManager::mqtt_connected_callback()
     _robot.leds = std::make_shared<LedStrip>();
 
     try {
-        _robot.wrist_flex = std::make_shared<WristFlexor>(_mqtt);
+        _robot.wrist_flex = std::make_shared<WristFlexor>();
         _main_menu->addItem(_robot.wrist_flex->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the wrist flexor -" << e.what();
     }
 
     try {
-        _robot.shoulder = std::make_shared<ShoulderRotator>(_mqtt);
+        _robot.shoulder = std::make_shared<ShoulderRotator>();
         _main_menu->addItem(_robot.shoulder->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the Shoulder rotator -" << e.what();
     }
 
     try {
-        _robot.wrist_pronosup = std::make_shared<WristRotator>(_mqtt);
+        _robot.wrist_pronosup = std::make_shared<WristRotator>();
         _main_menu->addItem(_robot.wrist_pronosup->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the wrist rotator -" << e.what();
@@ -73,7 +74,7 @@ void SAManager::mqtt_connected_callback()
 
     if (!_robot.wrist_pronosup) {
         try {
-            _robot.wrist_pronosup = std::make_shared<PronoSupination>(_mqtt);
+            _robot.wrist_pronosup = std::make_shared<PronoSupination>();
             _main_menu->addItem(_robot.wrist_pronosup->menu());
         } catch (std::exception& e) {
             qCritical() << "Couldn't access the wrist -" << e.what();
@@ -81,7 +82,7 @@ void SAManager::mqtt_connected_callback()
     }
 
     try {
-        _robot.elbow = std::make_shared<CustomElbow>(_mqtt);
+        _robot.elbow = std::make_shared<CustomElbow>();
         _main_menu->addItem(_robot.elbow->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the custom elbow -" << e.what();
@@ -89,7 +90,7 @@ void SAManager::mqtt_connected_callback()
 
     if (!_robot.elbow) {
         try {
-            _robot.elbow = std::make_shared<OsmerElbow>(_mqtt);
+            _robot.elbow = std::make_shared<OsmerElbow>();
             _main_menu->addItem(_robot.elbow->menu());
         } catch (std::exception& e) {
             qCritical() << "Couldn't access the elbow -" << e.what();
@@ -97,14 +98,14 @@ void SAManager::mqtt_connected_callback()
     }
 
     try {
-        _robot.hand = std::make_shared<TouchBionicsHand>(_mqtt);
+        _robot.hand = std::make_shared<TouchBionicsHand>();
         _main_menu->addItem(_robot.hand->menu());
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the hand -" << e.what();
     }
 
     try {
-        _robot.myoband = std::make_shared<Myoband>(_mqtt);
+        _robot.myoband = std::make_shared<Myoband>();
         _robot.myoband->start();
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the Myoband dongle -" << e.what();
@@ -135,18 +136,18 @@ void SAManager::mqtt_connected_callback()
     _main_menu->addItem(*_buzzer_submenu);
 
     if (_robot.elbow && _robot.wrist_pronosup) {
-        _vc = std::make_shared<VoluntaryControl>(_robot, _mqtt);
+        _vc = std::make_shared<VoluntaryControl>(_robot);
         _main_menu->addItem(_vc->menu());
         if (_robot.hand) {
-            _rm = std::make_shared<RemoteComputerControl>(_robot, _mqtt);
+            _rm = std::make_shared<RemoteComputerControl>(_robot);
             _main_menu->addItem(_rm->menu());
-            _mr = std::make_shared<MatlabReceiver>(_robot, _mqtt);
+            _mr = std::make_shared<MatlabReceiver>(_robot);
             _main_menu->addItem(_mr->menu());
             if (_robot.arm_imu && _robot.trunk_imu) {
-                _opti = std::make_shared<CompensationOptitrack>(_robot, _mqtt);
+                _opti = std::make_shared<CompensationOptitrack>(_robot);
                 _main_menu->addItem(_opti->menu());
             }
-            _demo = std::make_shared<Demo>(_robot, _mqtt);
+            _demo = std::make_shared<Demo>(_robot);
             _demo->set_preferred_cpu(1);
         }
     }
@@ -168,7 +169,7 @@ void SAManager::mqtt_connected_callback()
         _main_menu->activate();
     }
 
-    _sm = std::make_shared<SystemMonitor>(_mqtt);
+    _sm = std::make_shared<SystemMonitor>();
     _sm->start();
 
     _robot.leds->set(LedStrip::white, 10);
