@@ -12,19 +12,19 @@ Actuator::Actuator(QString name)
 {
     _settings.beginGroup(_name);
 
-    QObject::connect(&_menu, &ConsoleMenu::finished, this, &Actuator::on_exit);
+    QObject::connect(_menu.get(), &MenuBackend::finished, this, &Actuator::on_exit);
 
-    _menu.addItem(ConsoleMenuItem("Forward (0-127)", "f", [this](QString args) { if(args.isEmpty()) args = "20"; forward(args.toUInt()); }));
-    _menu.addItem(ConsoleMenuItem("Backward (0-127)", "b", [this](QString args) { if(args.isEmpty()) args = "20"; backward(args.toUInt()); }));
-    _menu.addItem(ConsoleMenuItem("Print current", "pc", [this](QString) { qInfo() << "Current:" << read_current() << "A"; }));
-    _menu.addItem(ConsoleMenuItem("Print firmware version", "fw", [this](QString) { qInfo() << read_firmware_version(); }));
-    _menu.addItem(ConsoleMenuItem("Print encoder speed", "es", [this](QString) { qInfo() << "Speed:" << read_encoder_speed() << "steps/s"; }));
-    _menu.addItem(ConsoleMenuItem("Stop", "s", [this](QString) { forward(0); }));
-    _menu.addItem(ConsoleMenuItem("Calibrate", "calib", [this](QString) { calibrate(); }));
-    _menu.addItem(ConsoleMenuItem("Read encoder", "e", [this](QString) { qInfo() << "Position:" << read_encoder_position() << "steps"; }));
-    _menu.addItem(ConsoleMenuItem("Go to", "g", [this](QString args) { if(!args.isEmpty()) move_to(args.toDouble(), 10); }));
-    _menu.addItem(ConsoleMenuItem("Set velocity (deg/s)", "v", [this](QString args) { if(args.isEmpty()) args = "0"; set_velocity_safe(args.toInt()); }));
-    _menu.addItem(ConsoleMenuItem("Set encoder zero", "z", [this](QString) { set_encoder_position(0); }));
+    _menu->add_item("Forward (0-127)", "f", [this](QString args) { if(args.isEmpty()) args = "20"; forward(args.toUInt()); });
+    _menu->add_item("Backward (0-127)", "b", [this](QString args) { if (args.isEmpty()) args = "20";backward(args.toUInt()); });
+    _menu->add_item("Print current", "pc", [this](QString) { qInfo() << "Current:" << read_current() << "A"; });
+    _menu->add_item("Print firmware version", "fw", [this](QString) { qInfo() << read_firmware_version(); });
+    _menu->add_item("Print encoder speed", "es", [this](QString) { qInfo() << "Speed:" << read_encoder_speed() << "steps/s"; });
+    _menu->add_item("Stop", "s", [this](QString) { forward(0); });
+    _menu->add_item("Calibrate", "calib", [this](QString) { calibrate(); });
+    _menu->add_item("Read encoder", "e", [this](QString) { qInfo() << "Position:" << read_encoder_position() << "steps"; });
+    _menu->add_item("Go to", "g", [this](QString args) {if (!args.isEmpty()) move_to(args.toDouble(), 10); });
+    _menu->add_item("Set velocity (deg/s)", "v", [this](QString args) { if (args.isEmpty()) args = "0"; set_velocity_safe(args.toInt()); });
+    _menu->add_item("Set encoder zero", "z", [this](QString) { set_encoder_position(0); });
 }
 
 void Actuator::connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel)

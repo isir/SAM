@@ -1,7 +1,6 @@
 #include "samanager.h"
+#include <unistd.h>
 #include <wiringPi.h>
-
-#include "utils/mqtt_wrapper.h"
 
 #include "peripherals/actuators/custom_elbow.h"
 #include "peripherals/actuators/osmer_elbow.h"
@@ -10,7 +9,7 @@
 #include "peripherals/actuators/shoulder_rotator.h"
 #include "peripherals/actuators/wrist_rotator.h"
 
-std::shared_ptr<Logger> SAManager::_log(std::make_shared<Logger>());
+std::shared_ptr<Logger> SAManager::_log;
 
 static void message_handler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
@@ -19,158 +18,124 @@ static void message_handler(QtMsgType type, const QMessageLogContext& context, c
 
 SAManager::SAManager(QCoreApplication* a, QObject* parent)
     : QObject(parent)
+    , MqttUser("SAManager", AUTOCONNECT)
+    , _main_menu(std::make_unique<MenuBackend>("main", "Main menu"))
 {
-    _main_menu = std::make_shared<ConsoleMenu>("Main menu", "main");
-    _buzzer_submenu = std::make_shared<ConsoleMenu>("Buzzer submenu", "buzzer");
 
-    QObject::connect(_main_menu.get(), &ConsoleMenu::finished, a, &QCoreApplication::quit, Qt::QueuedConnection);
-    QObject::connect(&mqtt(), &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
+    QObject::connect(_main_menu.get(), &MenuBackend::finished, a, &QCoreApplication::quit, Qt::QueuedConnection);
+    QObject::connect(&_mqtt, &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
 
-    _settings.beginGroup("MQTT");
-    mqtt().setHostname(_settings.value("hostname", "127.0.0.1").toString());
-    mqtt().setPort(_settings.value("port", 1883).toInt());
-    mqtt().connectToHost();
-    _settings.endGroup();
+    wiringPiSetup();
+
+    pinMode(SAM::Components::pin_demo, INPUT);
+    pullUpDnControl(SAM::Components::pin_demo, PUD_UP);
+
+    if (isatty(fileno(stdin))) {
+        _menu_console_binding = std::make_unique<MenuConsole>();
+    } else {
+        qInfo() << "No TTY detected, console UI disabled.";
+    }
+    _menu_mqtt_binding = std::make_unique<MenuMQTT>();
 }
 
 SAManager::~SAManager()
 {
-    _robot.leds->set(LedStrip::none, 10);
+    _menu_mqtt_binding->show_message("Exited gracefully.");
+    if (_robot->user_feedback.leds)
+        _robot->user_feedback.leds->set(LedStrip::none, 10);
+}
+
+void SAManager::internal_init()
+{
+    _robot = std::make_shared<SAM::Components>();
+    _robot->user_feedback.leds->set(LedStrip::blue, 10);
+
+    instanciate_controllers();
+    fill_menus();
+    autostart_demo();
+}
+
+void SAManager::fill_menus()
+{
+    std::shared_ptr<MenuBackend> buzzer_submenu = std::make_shared<MenuBackend>("buzzer", "Buzzer submenu");
+    buzzer_submenu->add_item("sb", "Single Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ); });
+    buzzer_submenu->add_item("db", "Double Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ); });
+    buzzer_submenu->add_item("tb", "Triple Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); });
+    _main_menu->add_item(buzzer_submenu);
+
+    if (_robot->joints.wrist_flex)
+        _main_menu->add_item(_robot->joints.wrist_flex->menu());
+
+    if (_robot->joints.shoulder)
+        _main_menu->add_item(_robot->joints.shoulder->menu());
+
+    if (_robot->joints.wrist_pronosup)
+        _main_menu->add_item(_robot->joints.wrist_pronosup->menu());
+
+    if (_robot->joints.elbow)
+        _main_menu->add_item(_robot->joints.elbow->menu());
+
+    if (_robot->joints.hand)
+        _main_menu->add_item(_robot->joints.hand->menu());
+
+    if (_vc)
+        _main_menu->add_item(_vc->menu());
+
+    if (_rm)
+        _main_menu->add_item(_rm->menu());
+
+    if (_mr)
+        _main_menu->add_item(_mr->menu());
+
+    if (_opti)
+        _main_menu->add_item(_opti->menu());
+
+    if (_demo)
+        _main_menu->add_item(_demo->menu());
+
+    _main_menu->activate();
+}
+
+void SAManager::instanciate_controllers()
+{
+    if (_robot->joints.elbow && _robot->joints.wrist_pronosup) {
+        _vc = std::make_unique<VoluntaryControl>(_robot);
+        if (_robot->joints.hand) {
+            _rm = std::make_unique<RemoteComputerControl>(_robot);
+            _mr = std::make_unique<MatlabReceiver>(_robot);
+            if (_robot->sensors.arm_imu && _robot->sensors.trunk_imu) {
+                _opti = std::make_unique<CompensationOptitrack>(_robot);
+            }
+            _demo = std::make_unique<Demo>(_robot);
+        }
+    }
+}
+
+void SAManager::autostart_demo()
+{
+    if (_demo) {
+        if (digitalRead(SAM::Components::pin_demo)) {
+            _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
+            _demo->menu()->activate();
+            _demo->start();
+        }
+    }
 }
 
 void SAManager::mqtt_connected_callback()
 {
-    qDebug() << "Connected to broker";
+    qInfo() << "Connected to broker";
+    if (!_log) {
+        _log = std::make_shared<Logger>();
+    }
     qInstallMessageHandler(&message_handler);
 
-    wiringPiSetup();
+    internal_init();
 
-    _settings.beginGroup("Buzzer");
-    _robot.buzzer = std::make_shared<Buzzer>(_settings.value("pin", 29).toInt());
-    _settings.endGroup();
-
-    _robot.leds = std::make_shared<LedStrip>();
-
-    try {
-        _robot.wrist_flex = std::make_shared<WristFlexor>();
-        _main_menu->addItem(_robot.wrist_flex->menu());
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the wrist flexor -" << e.what();
-    }
-
-    try {
-        _robot.shoulder = std::make_shared<ShoulderRotator>();
-        _main_menu->addItem(_robot.shoulder->menu());
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the Shoulder rotator -" << e.what();
-    }
-
-    try {
-        _robot.wrist_pronosup = std::make_shared<WristRotator>();
-        _main_menu->addItem(_robot.wrist_pronosup->menu());
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the wrist rotator -" << e.what();
-    }
-
-    if (!_robot.wrist_pronosup) {
-        try {
-            _robot.wrist_pronosup = std::make_shared<PronoSupination>();
-            _main_menu->addItem(_robot.wrist_pronosup->menu());
-        } catch (std::exception& e) {
-            qCritical() << "Couldn't access the wrist -" << e.what();
-        }
-    }
-
-    try {
-        _robot.elbow = std::make_shared<CustomElbow>();
-        _main_menu->addItem(_robot.elbow->menu());
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the custom elbow -" << e.what();
-    }
-
-    if (!_robot.elbow) {
-        try {
-            _robot.elbow = std::make_shared<OsmerElbow>();
-            _main_menu->addItem(_robot.elbow->menu());
-        } catch (std::exception& e) {
-            qCritical() << "Couldn't access the elbow -" << e.what();
-        }
-    }
-
-    try {
-        _robot.hand = std::make_shared<TouchBionicsHand>();
-        _main_menu->addItem(_robot.hand->menu());
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the hand -" << e.what();
-    }
-
-    try {
-        _robot.myoband = std::make_shared<Myoband>();
-        _robot.myoband->start();
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the Myoband dongle -" << e.what();
-    }
-
-    try {
-        _robot.arm_imu = std::make_shared<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the red IMU -" << e.what();
-    }
-
-    try {
-        _robot.trunk_imu = std::make_shared<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    } catch (std::exception& e) {
-        qCritical() << "Couldn't access the white IMU -" << e.what();
-    }
-
-    _robot.adc = std::make_shared<Adafruit_ADS1115>("/dev/i2c-1", 0x48);
-
-    _settings.beginGroup("Optitrack");
-    _robot.optitrack = std::make_shared<OptiListener>();
-    _robot.optitrack->begin(_settings.value("port", 1511).toInt());
-    _settings.endGroup();
-
-    _buzzer_submenu->addItem(ConsoleMenuItem("Single Buzz", "sb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ); }));
-    _buzzer_submenu->addItem(ConsoleMenuItem("Double Buzz", "db", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ); }));
-    _buzzer_submenu->addItem(ConsoleMenuItem("Triple Buzz", "tb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
-    _main_menu->addItem(*_buzzer_submenu);
-
-    if (_robot.elbow && _robot.wrist_pronosup) {
-        _vc = std::make_shared<VoluntaryControl>(_robot);
-        _main_menu->addItem(_vc->menu());
-        if (_robot.hand) {
-            _rm = std::make_shared<RemoteComputerControl>(_robot);
-            _main_menu->addItem(_rm->menu());
-            _mr = std::make_shared<MatlabReceiver>(_robot);
-            _main_menu->addItem(_mr->menu());
-            if (_robot.arm_imu && _robot.trunk_imu) {
-                _opti = std::make_shared<CompensationOptitrack>(_robot);
-                _main_menu->addItem(_opti->menu());
-            }
-            _demo = std::make_shared<Demo>(_robot);
-            _demo->set_preferred_cpu(1);
-        }
-    }
-
-    if (_demo) {
-        _main_menu->addItem(_demo->menu());
-        _main_menu->activate();
-
-        pinMode(28, INPUT);
-        pullUpDnControl(28, PUD_UP);
-        if (digitalRead(28)) {
-            _robot.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
-        } else {
-            _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
-            _demo->menu().activate();
-            _demo->start();
-        }
-    } else {
-        _main_menu->activate();
-    }
-
-    _sm = std::make_shared<SystemMonitor>();
+    _sm = std::make_unique<SystemMonitor>();
     _sm->start();
 
-    _robot.leds->set(LedStrip::white, 10);
+    _robot->user_feedback.leds->set(LedStrip::white, 10);
 }

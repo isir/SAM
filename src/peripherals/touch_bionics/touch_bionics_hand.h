@@ -1,7 +1,7 @@
 #ifndef TOUCHBIONICSHAND_H
 #define TOUCHBIONICSHAND_H
 
-#include "ui/console_menu.h"
+#include "ui/menu_user.h"
 #include "utils/serial_port.h"
 #include "utils/settings.h"
 #include <memory>
@@ -9,7 +9,7 @@
 /**
  * @brief The TouchBionicsHand class allows to control the TouchBionics hands.
  */
-class TouchBionicsHand {
+class TouchBionicsHand : public MenuUser {
 public:
     enum ACTION {
         STOP,
@@ -57,7 +57,6 @@ public:
     void setPosture(POSTURE posture);
     int getSpeed() { return _speed; }
     void setSpeed(int newSpeed) { _speed = newSpeed; }
-    ConsoleMenu& menu();
 
     void take_ownership() { _sp.take_ownership(); }
     void release_ownership() { _sp.release_ownership(); }
@@ -71,7 +70,6 @@ private:
 
     Settings _settings;
     SerialPort _sp;
-    ConsoleMenu _menu;
 };
 
 #endif // TOUCHBIONICSHAND_H

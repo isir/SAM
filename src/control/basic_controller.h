@@ -1,14 +1,14 @@
 #ifndef BASICCONTROLLER_H
 #define BASICCONTROLLER_H
 
-#include "ui/console_menu.h"
+#include "ui/menu_user.h"
 #include <QMutex>
 #include <QString>
 #include <QThread>
 #include <QTimer>
 #include <memory>
 
-class BasicController : public QThread {
+class BasicController : public QThread, public MenuUser {
     Q_OBJECT
 public:
     BasicController(double period_s = 1);
@@ -18,7 +18,6 @@ public:
     void set_preferred_cpu(int cpu);
     void set_prio(int prio);
     double period() { return _period_s; }
-    ConsoleMenu& menu() { return _menu; }
     void enable_watchdog(int timeout_ms);
 
 public slots:
@@ -29,7 +28,6 @@ protected:
     virtual void loop(double dt, double time) = 0;
     virtual void cleanup() = 0;
 
-    ConsoleMenu _menu;
     bool _loop_condition;
     QMutex _mutex;
 

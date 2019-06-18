@@ -45,10 +45,15 @@ HEADERS += \
     src/peripherals/touch_bionics/touch_bionics_hand.h \
     src/peripherals/XIMU.h \
     src/ui/console_input.h \
-    src/ui/console_menu.h \
-    src/ui/console_menu_item.h \
+    src/ui/menu_backend.h \
+    src/ui/menu_broker.h \
+    src/ui/menu_console.h \
+    src/ui/menu_frontend.h \
+    src/ui/menu_item.h \
+    src/ui/menu_mqtt.h \
+    src/ui/menu_user.h \
+    src/ui/mqtt_user.h \
     src/utils/logger.h \
-    src/utils/mqtt_wrapper.h \
     src/utils/opti_listener.h \
     src/utils/sam.h \
     src/utils/samanager.h \
@@ -87,10 +92,16 @@ SOURCES += \
     src/peripherals/touch_bionics/touch_bionics_hand.cpp \
     src/peripherals/XIMU.cpp \
     src/ui/console_input.cpp \
-    src/ui/console_menu.cpp \
+    src/ui/menu_backend.cpp \
+    src/ui/menu_broker.cpp \
+    src/ui/menu_console.cpp \
+    src/ui/menu_frontend.cpp \
+    src/ui/menu_mqtt.cpp \
+    src/ui/menu_user.cpp \
+    src/ui/mqtt_user.cpp \
     src/utils/logger.cpp \
-    src/utils/mqtt_wrapper.cpp \
     src/utils/opti_listener.cpp \
+    src/utils/sam.cpp \
     src/utils/samanager.cpp \
     src/utils/serial_port.cpp \
     src/utils/settings.cpp \

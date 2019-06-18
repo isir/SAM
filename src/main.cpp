@@ -1,5 +1,5 @@
 #include "utils/samanager.h"
-
+#include <QCoreApplication>
 #include <sys/mman.h>
 
 int main(int argc, char* argv[])

@@ -5,8 +5,8 @@ WristRotator::WristRotator()
 {
     Actuator::connect("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M1);
 
-    _menu.set_title(QString("Wrist Rotator - ") + read_firmware_version());
-    _menu.set_code(QString("pronosup"));
+    _menu->set_description(QString("Wrist Rotator - ") + read_firmware_version());
+    _menu->set_code(QString("pronosup"));
 
     read_params_limits(-60., 35.);
     read_params_technical(1000, 100);

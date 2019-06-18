@@ -1,9 +1,9 @@
 #include "system_monitor.h"
-#include "utils/mqtt_wrapper.h"
 #include <QDebug>
 
 SystemMonitor::SystemMonitor(QObject* parent)
     : QObject(parent)
+    , MqttUser("SystemMonitor")
 {
     _stat_file.setFileName("/proc/stat");
     _stat_file.open(QIODevice::ReadOnly);
@@ -44,6 +44,6 @@ void SystemMonitor::timer_callback()
     }
     _temp_file.reset();
 
-    mqtt_pub(QString("system/cpu_load"), msg);
-    mqtt_pub(QString("system/cpu_temp"), _temp_file.readLine());
+    _mqtt.publish(QString("system/cpu_load"), msg);
+    _mqtt.publish(QString("system/cpu_temp"), _temp_file.readLine());
 }

@@ -1,5 +1,4 @@
 #include "basic_controller.h"
-#include "utils/mqtt_wrapper.h"
 #include <QDebug>
 #include <QMutexLocker>
 
@@ -22,9 +21,9 @@ BasicController::BasicController(double period_s)
     , _pref_cpu(0)
     , _prio(20)
 {
-    QObject::connect(&_menu, &ConsoleMenu::finished, this, &BasicController::stop);
-    _menu.addItem(ConsoleMenuItem("Start loop", "start", [this](QString) { this->start(); }));
-    _menu.addItem(ConsoleMenuItem("Stop loop", "stop", [this](QString) { this->stop(); }));
+    QObject::connect(_menu.get(), &MenuBackend::finished, this, &BasicController::stop);
+    _menu->add_item("Start loop", "start", [this](QString) { this->start(); });
+    _menu->add_item("Stop loop", "stop", [this](QString) { this->stop(); });
 }
 
 BasicController::~BasicController()

@@ -7,7 +7,7 @@
 
 class Demo : public BasicController {
 public:
-    Demo(SAM::Components robot);
+    Demo(std::shared_ptr<SAM::Components> robot);
     ~Demo();
 
     bool setup();
@@ -15,7 +15,7 @@ public:
     void cleanup();
 
 private:
-    SAM::Components _robot;
+    std::shared_ptr<SAM::Components> _robot;
 
     Settings _settings;
     int _pin_up;

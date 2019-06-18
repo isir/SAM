@@ -1,10 +1,10 @@
 #include "myoband.h"
-#include "utils/mqtt_wrapper.h"
 #include <QDebug>
 #include <QMutexLocker>
 
 Myoband::Myoband()
     : BasicController(0.0025)
+    , MqttUser("Myoband")
     , _serial("/dev/myoband", 115200)
     , _client(nullptr)
     , _acc(Eigen::Vector3d::Zero())
@@ -12,8 +12,8 @@ Myoband::Myoband()
 {
     enable_watchdog(10000);
 
-    _menu.set_title("Myoband");
-    _menu.set_code("mb");
+    _menu->set_description("Myoband");
+    _menu->set_code("mb");
 
     QObject::connect(&_mqtt_timer, &QTimer::timeout, this, &Myoband::mqtt_timer_callback);
     _mqtt_timer.start(30);
@@ -120,14 +120,14 @@ void Myoband::mqtt_timer_callback()
             mqtt_payload.append(QByteArray::number(acc[i]) + " ");
         }
         mqtt_payload.chop(1);
-        mqtt_pub(QString("sam/myoband/acc"), mqtt_payload);
+        _mqtt.publish(QString("sam/myoband/acc"), mqtt_payload);
 
         mqtt_payload.clear();
         foreach (qint32 rms, get_emgs_rms()) {
             mqtt_payload.append(QByteArray::number(rms) + " ");
         }
         mqtt_payload.chop(1);
-        mqtt_pub(QString("sam/myoband/emg_rms"), mqtt_payload);
+        _mqtt.publish(QString("sam/myoband/emg_rms"), mqtt_payload);
     } else {
         _mqtt_timer.stop();
     }

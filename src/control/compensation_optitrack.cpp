@@ -5,7 +5,7 @@
 #include <iostream>
 #include <qmath.h>
 
-CompensationOptitrack::CompensationOptitrack(SAM::Components robot)
+CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> robot)
     : QObject(nullptr)
     , _robot(robot)
     , _Lt(40)
@@ -32,21 +32,21 @@ CompensationOptitrack::CompensationOptitrack(SAM::Components robot)
 
     _abs_time.start();
 
-    _menu.set_title("Control with optitrack recording");
-    _menu.set_code("opti");
-    _menu.addItem(ConsoleMenuItem("Start (+ filename [comp for compensation, vol for voluntary control])", "1", [this](QString args) { this->start(args); }));
-    _menu.addItem(ConsoleMenuItem("Stop", "s", [this](QString) { this->stop(); }));
-    _menu.addItem(ConsoleMenuItem("Back to 0°", "zero", [this](QString) { this->zero(); }));
-    _menu.addItem(ConsoleMenuItem("Display law parameters", "disp", [this](QString) { this->display_parameters(); }));
-    _menu.addItem(ConsoleMenuItem("Display Arduino data", "ard", [this](QString) { this->displayArduino(); }));
-    _menu.addItem(ConsoleMenuItem("Display anatomical lengths", "al", [this](QString) { this->display_lengths(); }));
+    _menu->set_description("Control with optitrack recording");
+    _menu->set_code("opti");
+    _menu->add_item("Start (+ filename [comp for compensation, vol for voluntary control])", "1", [this](QString args) { this->start(args); });
+    _menu->add_item("Stop", "s", [this](QString) { this->stop(); });
+    _menu->add_item("Back to 0°", "zero", [this](QString) { this->zero(); });
+    _menu->add_item("Display law parameters", "disp", [this](QString) { this->display_parameters(); });
+    _menu->add_item("Display Arduino data", "ard", [this](QString) { this->displayArduino(); });
+    _menu->add_item("Display anatomical lengths", "al", [this](QString) { this->display_lengths(); });
 
-    _menu.addItem(_robot.elbow->menu());
-    _menu.addItem(_robot.wrist_pronosup->menu());
-    _menu.addItem(_robot.hand->menu());
+    _menu->add_item(_robot->joints.elbow->menu());
+    _menu->add_item(_robot->joints.wrist_pronosup->menu());
+    _menu->add_item(_robot->joints.hand->menu());
 
-    QObject::connect(&_menu, &ConsoleMenu::finished, this, &CompensationOptitrack::stop);
-    QObject::connect(&_menu, &ConsoleMenu::activated, this, &CompensationOptitrack::on_activated);
+    QObject::connect(_menu.get(), &MenuBackend::finished, this, &CompensationOptitrack::stop);
+    QObject::connect(_menu.get(), &MenuBackend::activated, this, &CompensationOptitrack::on_activated);
 
     _pin_up = _settings.value("pin_up", 24).toInt();
     _pin_down = _settings.value("pin_down", 22).toInt();
@@ -61,7 +61,7 @@ CompensationOptitrack::~CompensationOptitrack()
 
 void CompensationOptitrack::zero()
 {
-    _robot.elbow->move_to(0, 10, true);
+    _robot->joints.elbow->move_to(0, 10, true);
 }
 
 void CompensationOptitrack::display_parameters()
@@ -81,7 +81,7 @@ void CompensationOptitrack::display_lengths()
     _ind = 0;
     qInfo("Wait for Optitrack data");
     printf("Wait for Optitrack data");
-    QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::connect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 }
 
 void CompensationOptitrack::read_optiData(optitrack_data_t data)
@@ -184,9 +184,9 @@ void CompensationOptitrack::start(QString filename = QString())
     QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
 
     if (filename == QString("comp")) {
-        QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+        QObject::connect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
     } else if (filename == QString("vol")) {
-        QObject::connect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+        QObject::connect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
     } else {
         qDebug("Filename does not correspond to one of the control mode.\n 'opti' for compensation control; 'vol', for voluntary");
     }
@@ -194,13 +194,13 @@ void CompensationOptitrack::start(QString filename = QString())
 
 void CompensationOptitrack::stop()
 {
-    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
-    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
-    QObject::disconnect(_robot.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+    QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+    QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 
     _infoSent = 0;
-    _robot.elbow->forward(0);
-    _robot.wrist_pronosup->forward(0);
+    _robot->joints.elbow->forward(0);
+    _robot->joints.wrist_pronosup->forward(0);
 
     _file.close();
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
@@ -221,8 +221,8 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
     int timerTask = 1;
 
     double qBras[4], qTronc[4];
-    _robot.arm_imu->get_quat(qBras);
-    _robot.trunk_imu->get_quat(qTronc);
+    _robot->sensors.arm_imu->get_quat(qBras);
+    _robot->sensors.trunk_imu->get_quat(qTronc);
     //    qDebug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
     //    qDebug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
 
@@ -267,7 +267,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         }
     }
 
-    double beta = _robot.elbow->pos() * M_PI / 180.;
+    double beta = _robot->joints.elbow->pos() * M_PI / 180.;
 
     if (_need_to_write_header) {
         _file.write("delta, time, btn_sync, abs_time, emg1, emg2, timerTask, pinArduino,");
@@ -309,14 +309,14 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _l, _lambda, _threshold);
         _lawopti.controlLawWrist(_lambdaW, _thresholdW);
-        _robot.elbow->set_velocity_safe(_lawopti.returnBetaDot_deg());
+        _robot->joints.elbow->set_velocity_safe(_lawopti.returnBetaDot_deg());
 
         if (_lawopti.returnWristVel_deg() > 0)
-            _robot.wrist_pronosup->move_to(6000, _lawopti.returnWristVel_deg() * 100, 6000, 35000);
+            _robot->joints.wrist_pronosup->move_to(6000, _lawopti.returnWristVel_deg() * 100, 6000, 35000);
         else if (_lawopti.returnWristVel_deg() < 0)
-            _robot.wrist_pronosup->move_to(6000, -_lawopti.returnWristVel_deg() * 100, 6000, -35000);
+            _robot->joints.wrist_pronosup->move_to(6000, -_lawopti.returnWristVel_deg() * 100, 6000, -35000);
         else if (_lawopti.returnWristVel_deg() == 0)
-            _robot.wrist_pronosup->forward(0);
+            _robot->joints.wrist_pronosup->forward(0);
 
         _lawopti.bufferingOldValues();
 
@@ -326,7 +326,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         }
         // buzzer after 1s, to indicate the start of the task
         if (_cnt == 100) {
-            _robot.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
+            _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
         }
     }
 
@@ -337,7 +337,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
     if (_cnt == 0) {
         ts << _Lua << ' ' << _Lfa << ' ' << _l << endl;
     }
-    ts << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _robot.adc->readADC_SingleEnded(0) << ' ' << _robot.adc->readADC_SingleEnded(1) << ' ' << timerTask;
+    ts << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _robot->sensors.adc->readADC_SingleEnded(0) << ' ' << _robot->sensors.adc->readADC_SingleEnded(1) << ' ' << timerTask;
     ts << ' ' << _pinArduino;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
@@ -375,22 +375,22 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
     //    }
 
     /// WRIST
-    double wristAngle = _robot.wrist_pronosup->read_encoder_position();
+    double wristAngle = _robot->joints.wrist_pronosup->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _robot.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
+        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _robot.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
+        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _robot.wrist_pronosup->forward(0);
+        _robot->joints.wrist_pronosup->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
     double qBras[4], qTronc[4];
-    _robot.arm_imu->get_quat(qBras);
-    _robot.trunk_imu->get_quat(qTronc);
+    _robot->sensors.arm_imu->get_quat(qBras);
+    _robot->sensors.trunk_imu->get_quat(qTronc);
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
         _file.write("btnUp, btnDown, pinArduino, wristAngle,");
@@ -420,8 +420,8 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
 
 void CompensationOptitrack::on_activated()
 {
-    _robot.elbow->calibrate();
-    _robot.wrist_pronosup->set_encoder_position(0);
+    _robot->joints.elbow->calibrate();
+    _robot->joints.wrist_pronosup->set_encoder_position(0);
 }
 
 void CompensationOptitrack::on_def()

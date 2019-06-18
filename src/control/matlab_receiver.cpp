@@ -1,12 +1,12 @@
 #include "matlab_receiver.h"
 #include <QNetworkDatagram>
 
-MatlabReceiver::MatlabReceiver(SAM::Components robot, QObject* parent)
+MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* parent)
     : QObject(parent)
     , _robot(robot)
 {
-    _menu.set_title("Matlab receiver");
-    _menu.set_code("mr");
+    _menu->set_description("Matlab receiver");
+    _menu->set_code("mr");
 
     _settings.beginGroup("MatlabReceiver");
     int port = _settings.value("port", 45456).toInt();
@@ -15,11 +15,11 @@ MatlabReceiver::MatlabReceiver(SAM::Components robot, QObject* parent)
     }
     QObject::connect(&_socket, &QUdpSocket::readyRead, this, &MatlabReceiver::socket_callback);
 
-    _menu.addItem(ConsoleMenuItem("Start", "start", [this](QString) { this->start(); }));
-    _menu.addItem(ConsoleMenuItem("Stop", "stop", [this](QString) { this->stop(); }));
-    _menu.addItem(_robot.wrist_pronosup->menu());
-    _menu.addItem(_robot.elbow->menu());
-    _menu.addItem(_robot.hand->menu());
+    _menu->add_item("Start", "start", [this](QString) { this->start(); });
+    _menu->add_item("Stop", "stop", [this](QString) { this->stop(); });
+    _menu->add_item(_robot->joints.wrist_pronosup->menu());
+    _menu->add_item(_robot->joints.elbow->menu());
+    _menu->add_item(_robot->joints.hand->menu());
 }
 
 MatlabReceiver::~MatlabReceiver()
@@ -29,12 +29,12 @@ MatlabReceiver::~MatlabReceiver()
 
 void MatlabReceiver::start()
 {
-    _robot.hand->take_ownership();
+    _robot->joints.hand->take_ownership();
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     QObject::connect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
 
-    _robot.elbow->calibrate();
-    _robot.hand->init_sequence();
+    _robot->joints.elbow->calibrate();
+    _robot->joints.hand->init_sequence();
 
     qInfo() << "MatlabReceiver: Starting";
 }
@@ -42,9 +42,9 @@ void MatlabReceiver::start()
 void MatlabReceiver::stop()
 {
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
-    _robot.hand->release_ownership();
-    _robot.wrist_pronosup->forward(0);
-    _robot.elbow->set_velocity_safe(0);
+    _robot->joints.hand->release_ownership();
+    _robot->joints.wrist_pronosup->forward(0);
+    _robot->joints.elbow->set_velocity_safe(0);
 }
 
 void MatlabReceiver::socket_callback()
@@ -69,77 +69,75 @@ void MatlabReceiver::handle_command(Command c)
         is_hand_command = false;
         break;
     case REINITIALIZE_HAND_POSITION:
-        _robot.hand->setPosture(TouchBionicsHand::HAND_POSTURE);
+        _robot->joints.hand->setPosture(TouchBionicsHand::HAND_POSTURE);
         break;
     case THUMB_UP:
-        _robot.hand->move(TouchBionicsHand::THUMB_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::THUMB_OPENING);
         break;
     case THUMB_DOWN:
-        _robot.hand->move(TouchBionicsHand::THUMB_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::THUMB_CLOSING);
         break;
     case THUMB_FLEXION_UP:
-        _robot.hand->move(TouchBionicsHand::THUMB_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::THUMB_OPENING);
         break;
     case THUMB_FLEXION_DOWN:
-        _robot.hand->move(TouchBionicsHand::THUMB_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::THUMB_CLOSING);
         break;
     case FOREFINGER_UP:
-        _robot.hand->move(TouchBionicsHand::FOREFINGER_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::FOREFINGER_OPENING);
         break;
     case FOREFINGER_DOWN:
-        _robot.hand->move(TouchBionicsHand::FOREFINGER_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::FOREFINGER_CLOSING);
         break;
     case MIDDLE_FINGER_UP:
-        _robot.hand->move(TouchBionicsHand::MIDDLEFINGER_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::MIDDLEFINGER_OPENING);
         break;
     case MIDDLE_FINGER_DOWN:
-        _robot.hand->move(TouchBionicsHand::MIDDLEFINGER_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::MIDDLEFINGER_CLOSING);
         break;
     case RING_FINGER_UP:
-        _robot.hand->move(TouchBionicsHand::RINGFINGER_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::RINGFINGER_OPENING);
         break;
     case RING_FINGER_DOWN:
-        _robot.hand->move(TouchBionicsHand::RINGFINGER_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::RINGFINGER_CLOSING);
         break;
     case LITTLEFINGER_DOWN:
-        _robot.hand->move(TouchBionicsHand::LITTLEFINGER_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::LITTLEFINGER_CLOSING);
         break;
     case LITTLEFINGER_UP:
-        _robot.hand->move(TouchBionicsHand::LITTLEFINGER_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::LITTLEFINGER_OPENING);
         break;
     case HAND_UP:
-        qDebug() << "Hand up";
-        _robot.hand->move(TouchBionicsHand::HAND_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING);
         break;
     case HAND_DOWN:
-        qDebug() << "Hand down";
-        _robot.hand->move(TouchBionicsHand::HAND_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING);
         break;
     case PINCH_UP:
-        _robot.hand->move(TouchBionicsHand::PINCH_OPENING);
+        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
         break;
     case PINCH_DOWN:
-        _robot.hand->move(TouchBionicsHand::PINCH_CLOSING);
+        _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
         break;
     case WRIST_UP:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot.wrist_pronosup->forward(60);
+        _robot->joints.wrist_pronosup->forward(60);
         break;
     case WRIST_DOWN:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot.wrist_pronosup->backward(60);
+        _robot->joints.wrist_pronosup->backward(60);
         break;
     case ELBOW_UP:
         is_elbow_command = true;
         is_hand_command = false;
-        _robot.elbow->set_velocity_safe(-30);
+        _robot->joints.elbow->set_velocity_safe(-30);
         break;
     case ELBOW_DOWN:
         is_elbow_command = true;
         is_hand_command = false;
-        _robot.elbow->set_velocity_safe(30);
+        _robot->joints.elbow->set_velocity_safe(30);
         break;
     default:
         is_hand_command = false;
@@ -147,12 +145,12 @@ void MatlabReceiver::handle_command(Command c)
     }
 
     if (!is_hand_command) {
-        _robot.hand->move(TouchBionicsHand::STOP);
+        _robot->joints.hand->move(TouchBionicsHand::STOP);
     }
     if (!is_wrist_command) {
-        _robot.wrist_pronosup->forward(0);
+        _robot->joints.wrist_pronosup->forward(0);
     }
     if (!is_elbow_command) {
-        _robot.elbow->set_velocity_safe(0);
+        _robot->joints.elbow->set_velocity_safe(0);
     }
 }

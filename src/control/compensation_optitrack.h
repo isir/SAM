@@ -2,7 +2,7 @@
 #define COMPENSATIONOPTITRACK_H
 
 #include "algorithms/lawopti.h"
-#include "ui/console_menu.h"
+#include "ui/menu_user.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
@@ -10,13 +10,11 @@
 #include <QTime>
 #include <QUdpSocket>
 
-class CompensationOptitrack : public QObject {
+class CompensationOptitrack : public QObject, public MenuUser {
     Q_OBJECT
 public:
-    explicit CompensationOptitrack(SAM::Components robot);
+    explicit CompensationOptitrack(std::shared_ptr<SAM::Components> robot);
     ~CompensationOptitrack();
-
-    ConsoleMenu& menu() { return _menu; }
 
     void start(QString filename);
     void stop();
@@ -26,7 +24,7 @@ public:
     void displayArduino();
 
 private:
-    SAM::Components _robot;
+    std::shared_ptr<SAM::Components> _robot;
     QUdpSocket _receiver;
     QUdpSocket _receiverArduino;
 
@@ -41,8 +39,6 @@ private:
     unsigned int _cnt;
     unsigned int _ind;
     unsigned int _infoSent;
-
-    ConsoleMenu _menu;
 
     int _Lt;
     double _Lua;

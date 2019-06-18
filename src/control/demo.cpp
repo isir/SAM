@@ -8,20 +8,20 @@
 #define IMU_ELBOW 1
 #define FULL_MYO_FINGERS 2
 
-Demo::Demo(SAM::Components robot)
+Demo::Demo(std::shared_ptr<SAM::Components> robot)
     : BasicController(.01)
     , _robot(robot)
 {
-    _menu.set_title("Demo");
-    _menu.set_code("demo");
-    if (_robot.shoulder)
-        _menu.addItem(_robot.shoulder->menu());
-    if (_robot.elbow)
-        _menu.addItem(_robot.elbow->menu());
-    if (_robot.wrist_pronosup)
-        _menu.addItem(_robot.wrist_pronosup->menu());
-    if (_robot.hand)
-        _menu.addItem(_robot.hand->menu());
+    _menu->set_description("Demo");
+    _menu->set_code("demo");
+    if (_robot->joints.shoulder)
+        _menu->add_item(_robot->joints.shoulder->menu());
+    if (_robot->joints.elbow)
+        _menu->add_item(_robot->joints.elbow->menu());
+    if (_robot->joints.wrist_pronosup)
+        _menu->add_item(_robot->joints.wrist_pronosup->menu());
+    if (_robot->joints.hand)
+        _menu->add_item(_robot->joints.hand->menu());
 
     _settings.beginGroup("Demo");
     _pin_up = _settings.value("pin_up", 24).toInt();
@@ -39,13 +39,13 @@ Demo::~Demo()
 
 bool Demo::setup()
 {
-    _robot.hand->take_ownership();
-    _robot.hand->init_sequence();
-    _robot.elbow->calibrate();
-    if (_robot.wrist_flex) {
-        _robot.wrist_flex->calibrate();
+    _robot->joints.hand->take_ownership();
+    _robot->joints.hand->init_sequence();
+    _robot->joints.elbow->calibrate();
+    if (_robot->joints.wrist_flex) {
+        _robot->joints.wrist_flex->calibrate();
     }
-    _robot.wrist_pronosup->calibrate();
+    _robot->joints.wrist_pronosup->calibrate();
 
     return true;
 }
@@ -66,20 +66,20 @@ void Demo::loop(double, double)
     static const MyoControl::EMGThresholds thresholds(15, 8, 15, 15, 8, 15);
 
     MyoControl::Action elbow(
-        "Elbow", [this]() { _robot.elbow->set_velocity_safe(-35); }, [this]() { _robot.elbow->set_velocity_safe(35); }, [this]() { _robot.elbow->set_velocity_safe(0); });
+        "Elbow", [this]() { _robot->joints.elbow->set_velocity_safe(-35); }, [this]() { _robot->joints.elbow->set_velocity_safe(35); }, [this]() { _robot->joints.elbow->set_velocity_safe(0); });
     MyoControl::Action wrist_pronosup(
-        "Wrist rotation", [this]() { _robot.wrist_pronosup->set_velocity_safe(40); }, [this]() { _robot.wrist_pronosup->set_velocity_safe(-40); }, [this]() { _robot.wrist_pronosup->set_velocity_safe(0); });
+        "Wrist rotation", [this]() { _robot->joints.wrist_pronosup->set_velocity_safe(40); }, [this]() { _robot->joints.wrist_pronosup->set_velocity_safe(-40); }, [this]() { _robot->joints.wrist_pronosup->set_velocity_safe(0); });
     MyoControl::Action wrist_flex(
-        "Wrist flexion", [this]() { _robot.wrist_flex->set_velocity_safe(20); }, [this]() { _robot.wrist_flex->set_velocity_safe(-20); }, [this]() { _robot.wrist_flex->set_velocity_safe(0); });
+        "Wrist flexion", [this]() { _robot->joints.wrist_flex->set_velocity_safe(20); }, [this]() { _robot->joints.wrist_flex->set_velocity_safe(-20); }, [this]() { _robot->joints.wrist_flex->set_velocity_safe(0); });
     MyoControl::Action shoulder(
-        "Shoulder", [this]() { _robot.shoulder->set_velocity_safe(35); }, [this]() { _robot.shoulder->set_velocity_safe(-35); }, [this]() { _robot.shoulder->set_velocity_safe(0); });
+        "Shoulder", [this]() { _robot->joints.shoulder->set_velocity_safe(35); }, [this]() { _robot->joints.shoulder->set_velocity_safe(-35); }, [this]() { _robot->joints.shoulder->set_velocity_safe(0); });
     MyoControl::Action hand(
-        "Hand", [this]() { _robot.hand->move(TouchBionicsHand::HAND_OPENING_ALL); }, [this]() { _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL); }, [this]() { _robot.hand->move(TouchBionicsHand::STOP); });
+        "Hand", [this]() { _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL); }, [this]() { _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL); }, [this]() { _robot->joints.hand->move(TouchBionicsHand::STOP); });
 
     std::vector<MyoControl::Action> s1 { hand, wrist_pronosup, elbow };
-    if (_robot.wrist_flex)
+    if (_robot->joints.wrist_flex)
         s1.insert(s1.begin() + 2, wrist_flex);
-    if (_robot.shoulder)
+    if (_robot->joints.shoulder)
         s1.push_back(shoulder);
     std::vector<MyoControl::Action> s2 { hand, wrist_pronosup };
 
@@ -100,14 +100,14 @@ void Demo::loop(double, double)
     emg[0] = 0;
     emg[1] = 0;
 
-    if (_robot.myoband) {
-        acc = _robot.myoband->get_acc();
+    if (_robot->sensors.myoband) {
+        acc = _robot->sensors.myoband->get_acc();
 
-        if (_robot.myoband->connected()) {
+        if (_robot->sensors.myoband->connected()) {
             if ((acc.squaredNorm() > max_acc_change_mode) && counter_auto_control == 0) {
                 control_mode = (control_mode + 1) % 3;
-                _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
-                _robot.elbow->set_velocity_safe(0);
+                _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
+                _robot->joints.elbow->set_velocity_safe(0);
                 counter_auto_control = 100;
 
                 if (control_mode == FULL_MYO) {
@@ -120,7 +120,7 @@ void Demo::loop(double, double)
                     myocontrol = std::make_unique<MyoControl::BubbleCocoClassifier>(s2, thresholds, counts_after_mode_change, counts_cocontraction, counts_before_bubble, counts_after_bubble);
                 }
             } else {
-                QVector<qint32> rms = _robot.myoband->get_emgs_rms();
+                QVector<qint32> rms = _robot->sensors.myoband->get_emgs_rms();
                 if (rms.size() < 8)
                     return;
                 emg[0] = rms[3];
@@ -139,7 +139,7 @@ void Demo::loop(double, double)
     myocontrol->process(emg[0], emg[1]);
 
     if (myocontrol->has_changed_mode()) {
-        _robot.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
+        _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
     }
 
     QVector<LedStrip::color> colors;
@@ -160,7 +160,7 @@ void Demo::loop(double, double)
     default:
         break;
     }
-    _robot.leds->set(colors);
+    _robot->user_feedback.leds->set(colors);
 
     // Elbow control if not full myo
     if (counter_auto_control > 0) {
@@ -170,15 +170,15 @@ void Demo::loop(double, double)
             if (acc[1] > 0.2 || acc[1] < -0.2) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
                     if (acc[1] > 0.2) {
-                        _robot.elbow->set_velocity_safe(35);
+                        _robot->joints.elbow->set_velocity_safe(35);
                     } else if (acc[1] < -0.2) {
-                        _robot.elbow->set_velocity_safe(-35);
+                        _robot->joints.elbow->set_velocity_safe(-35);
                     }
                 } else {
                     move_elbow_counter++;
                 }
             } else {
-                _robot.elbow->set_velocity_safe(0);
+                _robot->joints.elbow->set_velocity_safe(0);
             }
         }
     }
@@ -186,11 +186,11 @@ void Demo::loop(double, double)
 
 void Demo::cleanup()
 {
-    if (_robot.myoband) {
-        _robot.myoband->stop();
+    if (_robot->sensors.myoband) {
+        _robot->sensors.myoband->stop();
     }
-    _robot.wrist_pronosup->forward(0);
-    _robot.elbow->move_to(0, 20);
-    _robot.leds->set(LedStrip::white, 10);
-    _robot.hand->release_ownership();
+    _robot->joints.wrist_pronosup->forward(0);
+    _robot->joints.elbow->move_to(0, 20);
+    _robot->user_feedback.leds->set(LedStrip::white, 10);
+    _robot->joints.hand->release_ownership();
 }

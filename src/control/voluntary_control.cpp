@@ -6,7 +6,7 @@
 #include <iostream>
 #include <wiringPi.h>
 
-VoluntaryControl::VoluntaryControl(SAM::Components robot)
+VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
     : BasicController()
     , _robot(robot)
 {
@@ -15,9 +15,9 @@ VoluntaryControl::VoluntaryControl(SAM::Components robot)
     _pin_down = _settings.value("pin_down", 22).toInt();
     set_period(_settings.value("period", 0.01).toDouble());
 
-    _menu.set_title("Voluntary Control");
-    _menu.set_code("vc");
-    _menu.addItem(_robot.elbow->menu());
+    _menu->set_description("Voluntary Control");
+    _menu->set_code("vc");
+    _menu->add_item(_robot->joints.elbow->menu());
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
@@ -25,15 +25,14 @@ VoluntaryControl::VoluntaryControl(SAM::Components robot)
 
 VoluntaryControl::~VoluntaryControl()
 {
-    _robot.elbow->forward(0);
-    _robot.wrist_pronosup->forward(0);
+    _robot->joints.elbow->forward(0);
+    _robot->joints.wrist_pronosup->forward(0);
     stop();
 }
 
 bool VoluntaryControl::setup()
 {
-    //_osmer.calibration();
-    _robot.wrist_pronosup->set_encoder_position(0);
+    _robot->joints.wrist_pronosup->set_encoder_position(0);
     QString filename = QString("voluntary");
 
     int cnt = 0;
@@ -72,20 +71,20 @@ void VoluntaryControl::loop(double, double)
     //    }
 
     /// WRIST
-    double wristAngle = _robot.wrist_pronosup->read_encoder_position();
+    double wristAngle = _robot->joints.wrist_pronosup->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _robot.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
+        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _robot.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
+        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _robot.wrist_pronosup->forward(0);
+        _robot->joints.wrist_pronosup->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
     prev_pin_up_value = pin_up_value;
 
-    optitrack_data_t data = _robot.optitrack->get_last_data();
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
         _file.write("period, btnUp, btnDown, wristAngle");
@@ -111,6 +110,6 @@ void VoluntaryControl::loop(double, double)
 void VoluntaryControl::cleanup()
 {
     //_robot.elbow->forward(0);
-    _robot.wrist_pronosup->forward(0);
+    _robot->joints.wrist_pronosup->forward(0);
     _file.close();
 }
