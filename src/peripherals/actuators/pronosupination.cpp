@@ -13,5 +13,5 @@ PronoSupination::PronoSupination(std::shared_ptr<QMqttClient> mqtt)
     read_params_position(51., 1.4, 428., 60., 0., -180., 180.);
 
     _menu.set_title(QString("Pronosupination - ") + read_firmware_version());
-    _menu.set_code(QString("pronosup"));
+    _menu.set_code(QString("p"));
 }
