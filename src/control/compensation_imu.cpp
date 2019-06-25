@@ -3,9 +3,10 @@
 
 #include "control/algorithms/lawimu.h"
 #include "qmath.h"
+#include "wiringPi.h"
+#include <QDir>
 #include <QNetworkDatagram>
 #include <iostream>
-#include <wiringPi.h>
 
 CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
     : BasicController(mqtt)
@@ -16,7 +17,8 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
 
     _menu.set_title("CompensationIMU");
     _menu.set_code("imu");
-    _menu.addItem(_robot.elbow->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
+    _menu.addItem(_robot.hand->menu());
 }
 
 CompensationIMU::~CompensationIMU()
@@ -48,20 +50,22 @@ bool CompensationIMU::setup()
     return true;
 
     _cnt = 0;
-    unsigned int init_cnt = _settings.value("init_count", 10).toInt();
     _time.start();
 }
 
 void CompensationIMU::loop(double, double)
 {
-
+    int init_cnt = 10;
     QTime t;
     t.start();
     double timeWithDelta = _time.elapsed() / 1000.;
     optitrack_data_t data = _robot.optitrack->get_last_data();
+    double debugData[10];
+
     if (_need_to_write_header) {
         _file.write(" time, emg1, emg2,");
-        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z");
+        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,");
+        _file.write(" qFA.w, qFA.x, qFA.y, qFA.z,");
         _file.write(" phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,");
         _file.write(" nbRigidBodies");
         for (int i = 0; i < data.nRigidBodies; i++) {
@@ -72,19 +76,24 @@ void CompensationIMU::loop(double, double)
     }
 
     /// WRIST
-    double wristAngle = _robot.wrist_pronosup->read_encoder_position();
+    double wristAngleEncoder = _robot.wrist_pronosup->read_encoder_position();
 
-    double qBras[4], qTronc[4], qFA_record[4];
+    double qBras[4], qTronc[4], qFA[4];
     _robot.arm_imu->get_quat(qBras);
     _robot.trunk_imu->get_quat(qTronc);
-    _robot.fa_imu->get_quat(qFA_record);
+    _robot.fa_imu->get_quat(qFA);
+    Eigen::Quaterniond qFA_record;
+    qFA_record.w() = qFA[0];
+    qFA_record.x() = qFA[1];
+    qFA_record.y() = qFA[2];
+    qFA_record.z() = qFA[3];
 
     if (_cnt == 0) {
         _lawimu.initialization();
     } else if (_cnt <= init_cnt) {
         _lawimu.initialPositions(qFA_record, _cnt, init_cnt);
     } else {
-        _lawimu.rotationMatrices(qFA_record, _cnt, init_cnt);
+        _lawimu.rotationMatrices(qFA_record);
         _lawimu.controlLawWrist(_lambdaW, _thresholdW);
 
         if (_lawimu.returnWristVel_deg() > 0)
@@ -93,8 +102,6 @@ void CompensationIMU::loop(double, double)
             _robot.wrist_pronosup->move_to(6000, -_lawimu.returnWristVel_deg() * 100, 6000, -35000);
         else if (_lawimu.returnWristVel_deg() == 0)
             _robot.wrist_pronosup->forward(0);
-
-        _lawimu.bufferingOldValues();
 
         if (_cnt % _settings.value("display_count", 50).toInt() == 0) {
             _lawimu.displayData();
@@ -106,11 +113,9 @@ void CompensationIMU::loop(double, double)
     QTextStream ts(&_file);
     ts << timeWithDelta << ' ' << _robot.adc->readADC_SingleEnded(0) << ' ' << _robot.adc->readADC_SingleEnded(1);
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    ts << ' ' << qFA_record[0] << ' ' << qFA_record[1] << ' ' << qFA_record[2] << ' ' << qFA_record[3];
-    ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2];
-    ts << ' ' << debugData[3] << ' ' << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
-    ts << ' ' << debugData[9] << ' ' << debugData[10] << ' ' << debugData[11] << ' ' << debugData[12];
-    ts << ' ' << debugData[13] << ' ' << debugData[14] << ' ' << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
+    ts << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
+    ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
+    ts << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
     ts << ' ' << data.nRigidBodies;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
