@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QNetworkInterface>
 #include <inttypes.h>
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
