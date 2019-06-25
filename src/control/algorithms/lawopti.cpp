@@ -16,6 +16,7 @@ void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen:
 {
     posA0 = Eigen::Vector3d::Zero();
     posAinHip = posA;
+    posA0inHip = posA;
     posEEinHip = posEE;
     posA_filt = posA;
     posA_filt_old = posA;
@@ -54,6 +55,8 @@ void LawOpti::initialization(Eigen::Vector3d posA, Eigen::Vector3d posEE, Eigen:
     beta_new = -M_PI_2;
     dBeta = 0;
     betaDot = 0;
+    wristAngle_new = 0.;
+    wristVel = 0.;
     R = Eigen::Matrix3d::Zero();
 }
 /**
@@ -227,9 +230,9 @@ void LawOpti::controlLawWrist(int lambdaW, double thresholdW)
     wristAngle_new = atan2(R_FA(0, 1), R_FA(0, 0)); //rotation around Z-axis
     if (abs(wristAngle_new) < thresholdW)
         wristVel = 0.;
-    else if (wristAngle_new < -thresholdW) {
+    else if (wristAngle_new <= -thresholdW) {
         wristVel = lambdaW * (wristAngle_new + thresholdW);
-    } else if (wristAngle_new > thresholdW) {
+    } else if (wristAngle_new >= thresholdW) {
         wristVel = lambdaW * (wristAngle_new - thresholdW);
     }
 }
@@ -256,10 +259,10 @@ void LawOpti::writeDebugData(double debug[], Eigen::Vector3d posEE, double beta)
 void LawOpti::displayData(Eigen::Vector3d posEE, double beta)
 {
     //qDebug("posA0 : %lf; %lf, %lf", posA0[0], posA0[1], posA0[2]);
-    qDebug("posA0 in hip frame: %lf; %lf, %lf", posA0inHip[0], posA0inHip[1], posA0inHip[2]);
-    qDebug("posEE from FA: %lf; %lf, %lf", posEEfromFA[0], posEEfromFA[1], posEEfromFA[2]);
-    qDebug("posEE in hip frame: %lf; %lf, %lf", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
-    qDebug("beta (deg): %lf \n beta_new (deg): %lf", beta * 180 / M_PI, beta_new * 180 / M_PI);
+    //    qDebug("posA0 in hip frame: %lf; %lf, %lf", posA0inHip[0], posA0inHip[1], posA0inHip[2]);
+    //    qDebug("posEE from FA: %lf; %lf, %lf", posEEfromFA[0], posEEfromFA[1], posEEfromFA[2]);
+    //    qDebug("posEE in hip frame: %lf; %lf, %lf", posEEinHip[0], posEEinHip[1], posEEinHip[2]);
+    //    qDebug("beta (deg): %lf \n beta_new (deg): %lf", beta * 180 / M_PI, beta_new * 180 / M_PI);
     qDebug("phi: %lf -- theta: %lf  -- wristAngle (deg): %lf ", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI);
     qDebug("Wrist velocity (deg): %lf", wristVel * 180 / M_PI);
 }
