@@ -14,8 +14,9 @@ Demo::Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
 {
     _menu.set_title("Demo");
     _menu.set_code("demo");
-    _menu.addItem(_robot.wrist_pronosup->menu());
+    _menu.addItem(_robot.shoulder->menu());
     _menu.addItem(_robot.elbow->menu());
+    _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.hand->menu());
 
     _settings.beginGroup("Demo");
@@ -34,24 +35,13 @@ Demo::~Demo()
 
 bool Demo::setup()
 {
-    pinMode(28, INPUT);
-    pullUpDnControl(28, PUD_UP);
-    if (digitalRead(28)) {
-        _robot.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
-        return false;
-    }
-    _robot.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
-
-    if (!_robot.hand->take_ownership()) {
-        throw std::runtime_error("Demo failed to take ownership of the hand");
-    }
+    _robot.hand->take_ownership();
     _robot.hand->init_sequence();
     _robot.elbow->calibrate();
-
-    _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
-    QThread::msleep(500);
-    _robot.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
-    QThread::msleep(500);
+    if (_robot.wrist_flex) {
+        _robot.wrist_flex->calibrate();
+    }
+    _robot.wrist_pronosup->calibrate();
 
     return true;
 }
@@ -64,16 +54,19 @@ void Demo::loop(double, double)
     static int counter_auto_control = 0, move_elbow_counter = 0;
     static const int max_acc_change_mode = 15;
 
+    static const int shoulder_speed_int = -35;
+    static const int shoulder_speed_out = 35;
     static const int elbow_speed_up = -35;
     static const int elbow_speed_down = 35;
-    static const double wrist_speed = 30;
+    static const double wrist_speed = 40;
+    static const double wrist_flex_speed = 20;
 
     static const int threshold_emg1_demo_nat = 15;
     static const int threshold_emg2_demo_nat = 15;
     static const int threshold_emg1_coco_demo_nat = 15;
     static const int threshold_emg2_coco_demo_nat = 15;
 
-    static const MyoControl::MODE demoCocoSequence1[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW };
+    static const MyoControl::MODE demoCocoSequence1[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_ELBOW, MyoControl::MYO_MODE_WRIST_FLEXION };
     static const MyoControl::MODE demoCocoSequence2[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND };
     static const MyoControl::MODE demoCocoSequence3[] = { MyoControl::MYO_MODE_WRIST, MyoControl::MYO_MODE_HAND, MyoControl::MYO_MODE_THUMB, MyoControl::MYO_MODE_FOREFINGER, MyoControl::MYO_MODE_MIDDLEFINGER, MyoControl::MYO_MODE_RINGFINGER, MyoControl::MYO_MODE_LITTLEFINGER, MyoControl::MYO_MODE_ELBOW };
 
@@ -86,7 +79,7 @@ void Demo::loop(double, double)
         control_mode = FULL_MYO;
         current_color = LedStrip::green;
         myocontrol.setControlType(MyoControl::BUBBLE_COCO_CONTROL);
-        myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+        myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 4, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
         first = false;
     }
 
@@ -108,7 +101,7 @@ void Demo::loop(double, double)
                 if (control_mode == FULL_MYO) {
                     qInfo() << "Full myo";
                     current_color = LedStrip::green;
-                    myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 3, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
+                    myocontrol.initBubbleCocontractionControl(demoCocoSequence1, 4, 15, 5, 5, 5, threshold_emg1_demo_nat, threshold_emg1_demo_nat - 7, threshold_emg2_demo_nat, threshold_emg2_demo_nat - 7, threshold_emg1_coco_demo_nat, threshold_emg2_coco_demo_nat);
                 } else if (control_mode == IMU_ELBOW) {
                     qInfo() << "IMU Elbow";
                     current_color = LedStrip::red;
@@ -141,10 +134,16 @@ void Demo::loop(double, double)
             _robot.hand->move(0);
         }
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST || myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_FORWARDING || myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_BACKWARDING) {
-            _robot.wrist_pronosup->forward(0);
+            _robot.wrist_pronosup->set_velocity_safe(0);
+        }
+        if (myocontrol.getOldMode() == MyoControl::MYO_MODE_WRIST_FLEXION) {
+            _robot.wrist_flex->set_velocity_safe(0);
         }
         if (myocontrol.getOldMode() == MyoControl::MYO_MODE_ELBOW) {
             _robot.elbow->set_velocity_safe(0);
+        }
+        if (myocontrol.getOldMode() == MyoControl::MYO_MODE_SHOULDER) {
+            _robot.shoulder->set_velocity_safe(0);
         }
     }
 
@@ -162,15 +161,26 @@ void Demo::loop(double, double)
     case 2:
         colors[4] = LedStrip::color(50, 0, 50, 1);
         break;
+    case 3:
+        colors[4] = LedStrip::white;
+        break;
     default:
         break;
     }
 
     switch (action) {
-    case MyoControl::ELBOW_DOWN:
-        _robot.elbow->set_velocity_safe(elbow_speed_down);
+    case MyoControl::SHOULDER_INT:
+        _robot.shoulder->set_velocity_safe(shoulder_speed_int);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
+        break;
+    case MyoControl::SHOULDER_OUT:
+        _robot.shoulder->set_velocity_safe(shoulder_speed_out);
+        colors[2] = LedStrip::white;
+        colors[3] = LedStrip::white;
+        break;
+    case MyoControl::SHOULDER_STOP:
+        _robot.shoulder->set_velocity_safe(0);
         break;
     case MyoControl::ELBOW_UP:
         _robot.elbow->set_velocity_safe(elbow_speed_up);
@@ -181,17 +191,30 @@ void Demo::loop(double, double)
         _robot.elbow->set_velocity_safe(0);
         break;
     case MyoControl::WRIST_BACKWARD:
-        _robot.wrist_pronosup->set_velocity(-wrist_speed);
+        _robot.wrist_pronosup->set_velocity_safe(-wrist_speed);
         colors[2] = LedStrip::white;
         colors[3] = LedStrip::white;
         break;
     case MyoControl::WRIST_FORWARD:
-        _robot.wrist_pronosup->set_velocity(wrist_speed);
+        _robot.wrist_pronosup->set_velocity_safe(wrist_speed);
         colors[5] = LedStrip::white;
         colors[6] = LedStrip::white;
         break;
     case MyoControl::WRIST_STOP:
-        _robot.wrist_pronosup->forward(0);
+        _robot.wrist_pronosup->set_velocity_safe(0);
+        break;
+    case MyoControl::WRIST_FLEXION:
+        _robot.wrist_flex->set_velocity_safe(-wrist_flex_speed);
+        colors[2] = LedStrip::white;
+        colors[3] = LedStrip::white;
+        break;
+    case MyoControl::WRIST_EXTENSION:
+        _robot.wrist_flex->set_velocity_safe(wrist_flex_speed);
+        colors[5] = LedStrip::white;
+        colors[6] = LedStrip::white;
+        break;
+    case MyoControl::WRIST_NOFLEXION:
+        _robot.wrist_flex->set_velocity_safe(0);
         break;
     case MyoControl::HAND_STOP:
         _robot.hand->move(0);
@@ -277,10 +300,6 @@ void Demo::loop(double, double)
                 _robot.elbow->set_velocity_safe(0);
             }
         }
-    }
-
-    if (digitalRead(28)) {
-        stop();
     }
 }
 

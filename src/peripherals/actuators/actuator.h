@@ -1,24 +1,24 @@
 #ifndef ACTUATOR_H
 #define ACTUATOR_H
 
-#include "peripherals/roboclaw/client.h"
+#include "peripherals/roboclaw/roboclaw.h"
 #include "ui/console_menu.h"
 #include "utils/settings.h"
 #include <QString>
 
-class Actuator : public RoboClaw::Client {
+class Actuator : public RC::RoboClaw {
     Q_OBJECT
 public:
     Actuator(QString name, std::shared_ptr<QMqttClient> mqtt);
 
     const ConsoleMenu& menu() { return _menu; }
 
-    void connect(QString default_port_name, int default_address, int default_baudrate, RoboClaw::Client::Channel default_channel);
+    void connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel);
 
     virtual void calibrate() {}
 
     double pos();
-    using RoboClaw::Client::move_to;
+    using RoboClaw::RoboClaw::move_to;
     void move_to(double deg, double speed, bool block = false);
     void set_velocity(double deg_s);
     void set_velocity_safe(double deg_s);

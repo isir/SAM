@@ -1,14 +1,21 @@
 #include "serial_port.h"
 #include <QDebug>
+#include <QMutexLocker>
 #include <fcntl.h>
-#include <stdexcept>
-#include <string.h>
 #include <unistd.h>
 
-SerialPort::SerialPort()
+SerialPort::SerialPort(QString port_name, unsigned int baudrate)
     : _fd(-1)
+    , _port_name(port_name)
+    , _baudrate(baudrate)
+    , _mutex(QMutex::Recursive)
     , _owner(nullptr)
     , _timeout(-1)
+{
+}
+
+SerialPort::SerialPort()
+    : SerialPort("", 0)
 {
 }
 
@@ -19,6 +26,8 @@ SerialPort::~SerialPort()
 
 void SerialPort::open(QString port_name, unsigned int baudrate)
 {
+    QMutexLocker lock(&_mutex);
+
     _fd = ::open(port_name.toStdString().c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (_fd < 0) {
         throw std::runtime_error(port_name.toStdString() + ": " + strerror(errno));
@@ -34,29 +43,53 @@ void SerialPort::open(QString port_name, unsigned int baudrate)
 
     _time.start();
 }
+
+void SerialPort::open()
+{
+    QMutexLocker lock(&_mutex);
+
+    if (!_port_name.isEmpty() && _baudrate > 0) {
+        open(_port_name, _baudrate);
+    }
+}
+
 void SerialPort::close()
 {
+    QMutexLocker lock(&_mutex);
+
     if (_fd > 0) {
         ::close(_fd);
         _fd = -1;
     }
 }
 
-bool SerialPort::take_ownership()
+void SerialPort::take_ownership()
+{
+    _mutex.lock();
+    _owner = QThread::currentThread();
+}
+
+bool SerialPort::try_take_ownership()
 {
     bool ret = _mutex.tryLock();
-    _owner = QThread::currentThread();
+    if (ret) {
+        _owner = QThread::currentThread();
+    }
     return ret;
 }
 
 void SerialPort::release_ownership()
 {
-    _owner = nullptr;
-    _mutex.unlock();
+    if (check_ownership()) {
+        _owner = nullptr;
+        _mutex.unlock();
+    }
 }
 
 QByteArray SerialPort::read(int n)
 {
+    QMutexLocker lock(&_mutex);
+
     QByteArray res;
     if (!check_ownership()) {
         qWarning() << QThread::currentThread() << "is not the current owner of this SerialPort -" << _owner;
@@ -75,33 +108,46 @@ QByteArray SerialPort::read(int n)
     return res;
 }
 
-QByteArray SerialPort::readAll()
+QByteArray SerialPort::read_all()
 {
-    QByteArray res;
+    QMutexLocker lock(&_mutex);
+
     if (!check_ownership()) {
         qWarning() << QThread::currentThread() << "is not the current owner of this SerialPort -" << _owner;
-        return res;
+        return QByteArray();
     }
-    int cnt = ::read(_fd, _buffer, 256);
-    res.append(_buffer, cnt);
-    return res;
+    int cnt = ::read(_fd, _buffer, _internal_buffer_size);
+    if (cnt > 0) {
+        return QByteArray(_buffer, cnt);
+    } else {
+        return QByteArray();
+    }
 }
 
 void SerialPort::write(QByteArray data)
 {
+    QMutexLocker lock(&_mutex);
+
     write(data.data(), data.size());
 }
 
 void SerialPort::write(const char* data, int n)
 {
+    QMutexLocker lock(&_mutex);
+
     if (!check_ownership()) {
         qWarning() << QThread::currentThread() << "is not the current owner of this SerialPort -" << _owner;
         return;
     }
-    ::write(_fd, data, n);
+    int w = ::write(_fd, data, n);
+    if (w < n) {
+        throw std::runtime_error(port_name().toStdString() + "::write: " + strerror(errno));
+    }
 }
 
 bool SerialPort::check_ownership()
 {
+    QMutexLocker lock(&_mutex);
+
     return _owner == nullptr || QThread::currentThread() == _owner;
 }

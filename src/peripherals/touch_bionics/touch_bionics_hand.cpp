@@ -42,15 +42,13 @@ TouchBionicsHand::~TouchBionicsHand()
 void TouchBionicsHand::init_sequence()
 {
     setPosture(TouchBionicsHand::HAND_POSTURE);
-    QThread::sleep(1);
+    QThread::sleep(2);
 
     setSpeed(5);
     move(TouchBionicsHand::HAND_CLOSING);
-    QThread::msleep(500);
 
-    move(TouchBionicsHand::HAND_OPENING);
-    QThread::sleep(1);
-    move(TouchBionicsHand::THUMB_INT_CLOSING);
+    QThread::sleep(2);
+    move(TouchBionicsHand::STOP);
 }
 
 void TouchBionicsHand::setPosture(POSTURE posture)

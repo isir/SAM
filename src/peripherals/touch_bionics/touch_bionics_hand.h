@@ -60,7 +60,7 @@ public:
     void setSpeed(int newSpeed) { _speed = newSpeed; }
     ConsoleMenu& menu();
 
-    bool take_ownership() { return _sp.take_ownership(); }
+    void take_ownership() { _sp.take_ownership(); }
     void release_ownership() { _sp.release_ownership(); }
 
 private:

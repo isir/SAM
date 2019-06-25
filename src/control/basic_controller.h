@@ -17,6 +17,7 @@ public:
 
     void set_period(double seconds);
     void set_preferred_cpu(int cpu);
+    void set_prio(int prio);
     double period() { return _period_s; }
     ConsoleMenu& menu() { return _menu; }
     void enable_watchdog(int timeout_ms);
@@ -41,6 +42,7 @@ private:
 
     double _period_s;
     int _pref_cpu;
+    int _prio;
     QTimer _watchdog_timer;
 
 signals:

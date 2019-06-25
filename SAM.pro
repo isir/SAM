@@ -47,10 +47,9 @@ HEADERS += \
         src/peripherals/myoband/myoLinux/serial.h \
         src/peripherals/myoband/myoband.h \
     src/peripherals/roboclaw/cast_helper.h \
-        src/peripherals/roboclaw/client.h \
         src/peripherals/roboclaw/factory.h \
         src/peripherals/roboclaw/message.h \
-        src/peripherals/roboclaw/server.h \
+    src/peripherals/roboclaw/roboclaw.h \
         src/peripherals/roboclaw/types.h \
         src/peripherals/touch_bionics/touch_bionics_hand.h \
     src/ui/console_input.h \
@@ -62,7 +61,8 @@ HEADERS += \
     src/utils/samanager.h \
     src/utils/serial_port.h \
         src/utils/settings.h \
-    src/utils/system_monitor.h
+    src/utils/system_monitor.h \
+    src/peripherals/actuators/shoulder_rotator.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -89,10 +89,9 @@ SOURCES += \
         src/peripherals/myoband/myoLinux/myoclient.cpp \
         src/peripherals/myoband/myoLinux/serial.cpp \
         src/peripherals/myoband/myoband.cpp \
-        src/peripherals/roboclaw/client.cpp \
         src/peripherals/roboclaw/factory.cpp \
         src/peripherals/roboclaw/message.cpp \
-        src/peripherals/roboclaw/server.cpp \
+    src/peripherals/roboclaw/roboclaw.cpp \
         src/peripherals/touch_bionics/touch_bionics_hand.cpp \
     src/ui/console_input.cpp \
     src/ui/console_menu.cpp \
@@ -101,7 +100,8 @@ SOURCES += \
     src/utils/samanager.cpp \
     src/utils/serial_port.cpp \
         src/utils/settings.cpp \
-    src/utils/system_monitor.cpp
+    src/utils/system_monitor.cpp \
+    src/peripherals/actuators/shoulder_rotator.cpp
 
 INCLUDEPATH += src/
 

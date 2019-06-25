@@ -19,8 +19,10 @@ public:
      */
     enum MODE {
         MYO_MODE_NONE,
+        MYO_MODE_SHOULDER,
         MYO_MODE_ELBOW,
         MYO_MODE_WRIST,
+        MYO_MODE_WRIST_FLEXION,
         MYO_MODE_HAND,
         MYO_MODE_PINCH,
         MYO_MODE_WRIST_FORWARDING,
@@ -40,12 +42,18 @@ public:
      */
     enum JOINT_ACTION {
         NONE,
+        SHOULDER_INT,
+        SHOULDER_OUT,
+        SHOULDER_STOP,
         ELBOW_UP,
         ELBOW_DOWN,
         ELBOW_STOP,
         WRIST_FORWARD,
         WRIST_BACKWARD,
         WRIST_STOP,
+        WRIST_FLEXION,
+        WRIST_EXTENSION,
+        WRIST_NOFLEXION,
         HAND_OPEN,
         HAND_CLOSE,
         HAND_STOP,

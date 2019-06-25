@@ -4,7 +4,7 @@
 #include <QTime>
 
 Actuator::Actuator(QString name, std::shared_ptr<QMqttClient> mqtt)
-    : RoboClaw::Client()
+    : RoboClaw::RoboClaw()
     , _menu(mqtt)
     , _name(name)
     , _connected(false)
@@ -28,15 +28,14 @@ Actuator::Actuator(QString name, std::shared_ptr<QMqttClient> mqtt)
     _menu.addItem(ConsoleMenuItem("Set encoder zero", "z", [this](QString) { set_encoder_position(0); }));
 }
 
-void Actuator::connect(QString default_port_name, int default_address, int default_baudrate, RoboClaw::Client::Channel default_channel)
+void Actuator::connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel)
 {
     int address = _settings.value("address", default_address).toInt();
     Channel channel = static_cast<Channel>(_settings.value("channel", default_channel).toInt());
     QString port_name = _settings.value("port_name", default_port_name).toString();
-    int baudrate = _settings.value("baudrate", default_baudrate).toInt();
+    unsigned int baudrate = _settings.value("baudrate", default_baudrate).toUInt();
 
-    set_address(address, channel);
-    connect_to_server(port_name, baudrate);
+    init(port_name, baudrate, address, channel);
 
     _connected = true;
 }
@@ -59,7 +58,7 @@ void Actuator::move_to(double deg, double speed, bool block)
     if (velocity == 0)
         velocity = 1;
 
-    RoboClaw::Client::move_to(_acc, velocity, _acc, target);
+    RoboClaw::RoboClaw::move_to(_acc, velocity, _acc, target);
 
     if (block) {
         int threshold = 10000;
@@ -72,7 +71,7 @@ void Actuator::move_to(double deg, double speed, bool block)
 
 void Actuator::set_velocity(double deg_s)
 {
-    RoboClaw::Client::set_velocity(qRound(deg_s * _incs_per_deg));
+    RoboClaw::RoboClaw::set_velocity(qRound(deg_s * _incs_per_deg));
 }
 
 void Actuator::set_velocity_safe(double deg_s)
@@ -92,7 +91,7 @@ void Actuator::calibrate(double velocity_deg_s, double final_pos, double velocit
     QTime t;
 
     if (use_velocity_control) {
-        set_velocity(qRound(velocity_deg_s * _incs_per_deg));
+        set_velocity(velocity_deg_s);
     } else {
         if (velocity_deg_s < 0) {
             backward(qAbs(velocity_deg_s));
@@ -111,7 +110,7 @@ void Actuator::calibrate(double velocity_deg_s, double final_pos, double velocit
     forward(0);
     _calibrated = true;
 
-    RoboClaw::position_pid_params_t p_params = read_position_pid();
+    RC::position_pid_params_t p_params = read_position_pid();
     _settings.beginGroup("Position_PID");
     p_params.min_pos = _settings.value("min_pos", _min_angle * _incs_per_deg).toInt();
     p_params.max_pos = _settings.value("max_pos", _max_angle * _incs_per_deg).toInt();
@@ -139,7 +138,7 @@ void Actuator::read_params_velocity(double default_kp, double default_ki, double
         return;
     }
 
-    RoboClaw::velocity_pid_params_t v_params = {};
+    RC::velocity_pid_params_t v_params = {};
     _settings.beginGroup("Velocity_PID");
     v_params.p = _settings.value("kp", default_kp).toDouble();
     v_params.i = _settings.value("ki", default_ki).toDouble();
@@ -156,7 +155,7 @@ void Actuator::read_params_position(double default_kp, double default_ki, double
         return;
     }
 
-    RoboClaw::position_pid_params_t p_params = {};
+    RC::position_pid_params_t p_params = {};
     _settings.beginGroup("Position_PID");
     p_params.p = _settings.value("kp", default_kp).toDouble();
     p_params.i = _settings.value("ki", default_ki).toDouble();

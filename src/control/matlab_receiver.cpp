@@ -30,10 +30,7 @@ MatlabReceiver::~MatlabReceiver()
 
 void MatlabReceiver::start()
 {
-    if (!_robot.hand->take_ownership()) {
-        qWarning() << "MatlabReceiver: Failed to take ownership of the hand, exiting...";
-        return;
-    }
+    _robot.hand->take_ownership();
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     QObject::connect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
 
