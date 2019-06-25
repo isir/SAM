@@ -105,7 +105,7 @@ void VoluntaryControl::loop(double, double)
     QTextStream ts(&_file);
     //ts.setPadChar(' ');
     //    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
-    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
+    ts << period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << data.nRigidBodies;
     for (int i = 0; i < data.nRigidBodies; i++) {
