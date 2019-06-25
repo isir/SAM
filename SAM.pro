@@ -62,7 +62,8 @@ HEADERS += \
     src/utils/serial_port.h \
         src/utils/settings.h \
     src/utils/system_monitor.h \
-    src/peripherals/actuators/shoulder_rotator.h
+    src/peripherals/actuators/shoulder_rotator.h \
+    src/control/compensation_imu.h
 
 SOURCES += \
         src/control/algorithms/lawopti.cpp \
@@ -101,7 +102,8 @@ SOURCES += \
     src/utils/serial_port.cpp \
         src/utils/settings.cpp \
     src/utils/system_monitor.cpp \
-    src/peripherals/actuators/shoulder_rotator.cpp
+    src/peripherals/actuators/shoulder_rotator.cpp \
+    src/control/compensation_imu.cpp
 
 INCLUDEPATH += src/
 
