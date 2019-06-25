@@ -241,7 +241,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
     int btn_sync = digitalRead(_settings.value("btn_sync", 29).toInt());
 
     Eigen::Vector3d posA, posElbow, posFA, posEE, posHip;
-    Eigen::Quaterniond qHip, qFA_record;
+    Eigen::Quaterniond<double, Eigen::DontAlign> qHip, qFA_record;
     double timeWithDelta = _time.elapsed() / 1000.;
     double deltaTtable = timeWithDelta - _previous_elapsed;
     double absTtable = _abs_time.elapsed() / 1000.;
