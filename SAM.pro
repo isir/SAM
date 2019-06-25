@@ -1,7 +1,7 @@
 QT -= gui
 QT += network serialport mqtt
 
-CONFIG += console
+CONFIG += console c++14
 CONFIG -= app_bundle
 
 # The following define makes your compiler emit warnings if you use
