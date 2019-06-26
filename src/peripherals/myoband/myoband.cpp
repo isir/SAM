@@ -74,7 +74,6 @@ bool Myoband::setup()
     _client->setMode(myolinux::myo::EmgMode::SendEmg, myolinux::myo::ImuMode::SendData, myolinux::myo::ClassifierMode::Disabled);
     _client->onEmg(emg_callback);
     _client->onImu(imu_callback);
-    _mqtt_timer.start(30);
 
     return true;
 }
@@ -131,7 +130,5 @@ void Myoband::mqtt_timer_callback()
         }
         mqtt_payload.chop(1);
         _mqtt.publish(QString("sam/myoband/emg_rms"), mqtt_payload);
-    } else {
-        _mqtt_timer.stop();
     }
 }
