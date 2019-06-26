@@ -22,6 +22,9 @@ Myoband::Myoband()
 Myoband::~Myoband()
 {
     stop();
+    if (!wait(1000)) {
+        terminate();
+    }
 }
 
 bool Myoband::setup()
