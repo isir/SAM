@@ -53,6 +53,7 @@ HEADERS += \
     src/ui/menu_mqtt.h \
     src/ui/menu_user.h \
     src/ui/mqtt_user.h \
+    src/utils/check_ptr.h \
     src/utils/logger.h \
     src/utils/opti_listener.h \
     src/utils/sam.h \

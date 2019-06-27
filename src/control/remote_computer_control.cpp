@@ -1,9 +1,14 @@
 #include "remote_computer_control.h"
+#include "utils/check_ptr.h"
 
 RemoteComputerControl::RemoteComputerControl(std::shared_ptr<SAM::Components> robot)
     : BasicController(.01)
     , _robot(robot)
 {
+    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->joints.hand)) {
+        throw std::runtime_error("Remote Computer Control is missing components");
+    }
+
     _menu->set_description("Remote control with keyboard");
     _menu->set_code("key");
     _menu->add_item(_robot->joints.wrist_pronosup->menu());

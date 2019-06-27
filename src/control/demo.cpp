@@ -1,6 +1,7 @@
 #include "demo.h"
 #include "algorithms/myocontrol.h"
 #include "peripherals/ledstrip.h"
+#include "utils/check_ptr.h"
 #include <QDebug>
 #include <QTime>
 
@@ -12,16 +13,21 @@ Demo::Demo(std::shared_ptr<SAM::Components> robot)
     : BasicController(.01)
     , _robot(robot)
 {
+    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->joints.hand)) {
+        throw std::runtime_error("Demo is missing components");
+    }
+
     _menu->set_description("Demo");
     _menu->set_code("demo");
+
     if (_robot->joints.shoulder)
         _menu->add_item(_robot->joints.shoulder->menu());
-    if (_robot->joints.elbow)
-        _menu->add_item(_robot->joints.elbow->menu());
-    if (_robot->joints.wrist_pronosup)
-        _menu->add_item(_robot->joints.wrist_pronosup->menu());
-    if (_robot->joints.hand)
-        _menu->add_item(_robot->joints.hand->menu());
+    if (_robot->joints.wrist_flex) {
+        _menu->add_item(_robot->joints.wrist_flex->menu());
+    }
+    _menu->add_item(_robot->joints.elbow->menu());
+    _menu->add_item(_robot->joints.wrist_pronosup->menu());
+    _menu->add_item(_robot->joints.hand->menu());
 
     _settings.beginGroup("Demo");
     _pin_up = _settings.value("pin_up", 24).toInt();

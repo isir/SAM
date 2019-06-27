@@ -1,10 +1,15 @@
 #include "matlab_receiver.h"
+#include "utils/check_ptr.h"
 #include <QNetworkDatagram>
 
 MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* parent)
     : QObject(parent)
     , _robot(robot)
 {
+    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->joints.hand)) {
+        throw std::runtime_error("Matlab Receiver is missing components");
+    }
+
     _menu->set_description("Matlab receiver");
     _menu->set_code("mr");
 

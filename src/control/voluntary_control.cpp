@@ -1,5 +1,6 @@
 #include "voluntary_control.h"
 #include "peripherals/roboclaw/factory.h"
+#include "utils/check_ptr.h"
 
 #include "qmath.h"
 #include <QNetworkDatagram>
@@ -10,6 +11,10 @@ VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
     : BasicController()
     , _robot(robot)
 {
+    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup)) {
+        throw std::runtime_error("Volontary Control is missing components");
+    }
+
     _settings.beginGroup("VoluntaryControl");
     _pin_up = _settings.value("pin_up", 24).toInt();
     _pin_down = _settings.value("pin_down", 22).toInt();

@@ -1,4 +1,5 @@
 #include "compensation_optitrack.h"
+#include "utils/check_ptr.h"
 #include "wiringPi.h"
 #include <QDir>
 #include <QNetworkDatagram>
@@ -18,6 +19,10 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     , _thresholdW(5.)
     , _pinArduino(0)
 {
+    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->sensors.trunk_imu, _robot->sensors.arm_imu, _robot->sensors.optitrack)) {
+        throw std::runtime_error("Optitrack Compensation is missing components");
+    }
+
     _settings.beginGroup("CompensationOptitrack");
 
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
