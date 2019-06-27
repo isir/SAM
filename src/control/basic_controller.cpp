@@ -22,8 +22,8 @@ BasicController::BasicController(double period_s)
     , _prio(20)
 {
     QObject::connect(_menu.get(), &MenuBackend::finished, this, &BasicController::stop);
-    _menu->add_item("Start loop", "start", [this](QString) { this->start(); });
-    _menu->add_item("Stop loop", "stop", [this](QString) { this->stop(); });
+    _menu->add_item("start", "Start loop", [this](QString) { this->start(); });
+    _menu->add_item("stop", "Stop loop", [this](QString) { this->stop(); });
 }
 
 BasicController::~BasicController()
