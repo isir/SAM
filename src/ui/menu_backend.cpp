@@ -16,7 +16,9 @@ MenuBackend::~MenuBackend()
 
 void MenuBackend::add_item(std::shared_ptr<MenuItem> item)
 {
-    _items.insert(item->code(), item);
+    if (item) {
+        _items.insert(item->code(), item);
+    }
 }
 
 void MenuBackend::handle_input(QString input)
