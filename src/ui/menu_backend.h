@@ -20,6 +20,14 @@ public:
     }
     void add_item(std::shared_ptr<MenuItem> item);
 
+    template <typename T>
+    void add_submenu_from_user(const std::unique_ptr<T>& obj)
+    {
+        if (obj) {
+            add_item(obj->menu());
+        }
+    }
+
     static MenuBroker broker;
     void handle_input(QString input);
 

@@ -63,51 +63,41 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
-    if (_robot->joints.wrist_flex)
-        _main_menu->add_item(_robot->joints.wrist_flex->menu());
-
-    if (_robot->joints.shoulder)
-        _main_menu->add_item(_robot->joints.shoulder->menu());
-
-    if (_robot->joints.wrist_pronosup)
-        _main_menu->add_item(_robot->joints.wrist_pronosup->menu());
-
-    if (_robot->joints.elbow)
-        _main_menu->add_item(_robot->joints.elbow->menu());
-
-    if (_robot->joints.hand)
-        _main_menu->add_item(_robot->joints.hand->menu());
-
-    if (_vc)
-        _main_menu->add_item(_vc->menu());
-
-    if (_rm)
-        _main_menu->add_item(_rm->menu());
-
-    if (_mr)
-        _main_menu->add_item(_mr->menu());
-
-    if (_opti)
-        _main_menu->add_item(_opti->menu());
-
-    if (_demo)
-        _main_menu->add_item(_demo->menu());
+    _main_menu->add_submenu_from_user(_robot->joints.wrist_flex);
+    _main_menu->add_submenu_from_user(_robot->joints.shoulder);
+    _main_menu->add_submenu_from_user(_robot->joints.wrist_pronosup);
+    _main_menu->add_submenu_from_user(_robot->joints.elbow);
+    _main_menu->add_submenu_from_user(_robot->joints.hand);
+    _main_menu->add_submenu_from_user(_vc);
+    _main_menu->add_submenu_from_user(_rm);
+    _main_menu->add_submenu_from_user(_mr);
+    _main_menu->add_submenu_from_user(_opti);
+    _main_menu->add_submenu_from_user(_demo);
 
     _main_menu->activate();
 }
 
 void SAManager::instanciate_controllers()
 {
-    if (_robot->joints.elbow && _robot->joints.wrist_pronosup) {
+    try {
         _vc = std::make_unique<VoluntaryControl>(_robot);
-        if (_robot->joints.hand) {
-            _rm = std::make_unique<RemoteComputerControl>(_robot);
-            _mr = std::make_unique<MatlabReceiver>(_robot);
-            if (_robot->sensors.arm_imu && _robot->sensors.trunk_imu) {
-                _opti = std::make_unique<CompensationOptitrack>(_robot);
-            }
-            _demo = std::make_unique<Demo>(_robot);
-        }
+    } catch (std::exception&) {
+    }
+    try {
+        _rm = std::make_unique<RemoteComputerControl>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _mr = std::make_unique<MatlabReceiver>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _opti = std::make_unique<CompensationOptitrack>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _demo = std::make_unique<Demo>(_robot);
+    } catch (std::exception&) {
     }
 }
 
