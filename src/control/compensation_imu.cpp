@@ -15,8 +15,14 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
     _settings.beginGroup("CompensationIMU");
     set_period(_settings.value("period", 0.02).toDouble());
 
+    QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
+    if (!_receiver.bind(QHostAddress::AnyIPv4, 45454)) {
+        qCritical() << _receiver.errorString();
+    }
+
     _menu.set_title("CompensationIMU");
     _menu.set_code("imu");
+    _menu.addItem(ConsoleMenuItem("Tare IMUs", "tare", [this](QString) { this->tareIMU(); }));
     _menu.addItem(_robot.wrist_pronosup->menu());
     _menu.addItem(_robot.hand->menu());
 }
@@ -28,10 +34,53 @@ CompensationIMU::~CompensationIMU()
     stop();
 }
 
+void CompensationIMU::tareIMU()
+{
+    _robot.arm_imu->send_command_algorithm_init_then_tare();
+    _robot.trunk_imu->send_command_algorithm_init_then_tare();
+    //    _robot.fa_imu->send_command_algorithm_init_then_tare();
+    qDebug("Wait for triple bip");
+
+    usleep(6 * 1000000);
+    _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
+}
+
+void CompensationIMU::on_def()
+{
+    while (_receiver.hasPendingDatagrams()) {
+        QByteArray dataReceived = _receiver.receiveDatagram().data();
+        QTextStream ts(&dataReceived);
+        int tmp;
+
+        ts >> tmp;
+        _Lua = tmp;
+
+        ts >> tmp;
+        _Lfa = tmp;
+
+        ts >> tmp;
+        _l = tmp;
+
+        ts >> tmp;
+        _lambda = tmp;
+
+        ts >> tmp;
+        _lambdaW = tmp;
+
+        ts >> tmp;
+        _threshold = tmp * M_PI / 180.; // dead zone limit for beta change, in rad.
+
+        ts >> tmp;
+        _thresholdW = tmp * M_PI / 180; // dead zone limit for wrist angle change, in rad.
+    }
+}
+
 bool CompensationIMU::setup()
 {
     //_osmer.calibration();
     _robot.wrist_pronosup->set_encoder_position(0);
+    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
+
     QString filename = QString("compensationIMU");
 
     int cnt = 0;
@@ -47,10 +96,10 @@ bool CompensationIMU::setup()
         return false;
     }
     _need_to_write_header = true;
-    return true;
 
     _cnt = 0;
     _time.start();
+    return true;
 }
 
 void CompensationIMU::loop(double, double)
@@ -133,5 +182,7 @@ void CompensationIMU::cleanup()
 {
     //_robot.elbow->forward(0);
     _robot.wrist_pronosup->forward(0);
+    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::on_def);
+    QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::on_def);
     _file.close();
 }
