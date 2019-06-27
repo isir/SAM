@@ -24,7 +24,7 @@ private:
     double R11, R12, R13, R21, R22, R23, R31, R32, R33;
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> ea;
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> z0, zFA;
-    double phi, theta, wristAngle_new; // euler angles for wrist frame
+    double wristAngle_new, theta, psi; // euler angles for wrist frame
     double wristVel;
 };
 
