@@ -68,8 +68,7 @@ void LawIMU::initialPositions(Eigen::Quaterniond qFA_record, int initCounter, in
 void LawIMU::rotationMatrices(Eigen::Quaterniond qFA_record)
 {
     qFA = qFA_record;
-    /// A MODIFER POUR FORMULE CORRECTE AVEC QUATERNION !!!
-    qFA_relative = qFA.normalized().conjugate() * qFA0;
+    qFA_relative = qFA.normalized() * qFA0.conjugate();
     /// For optitrack quaternion definition
     R_FA = qFA_relative.toRotationMatrix();
     //    ///  From quaternions to orientation
@@ -81,9 +80,9 @@ void LawIMU::rotationMatrices(Eigen::Quaterniond qFA_record)
  */
 void LawIMU::controlLawWrist(int lambdaW, double thresholdW)
 {
-    phi = atan2(R_FA(1, 2), R_FA(2, 2)); //rotation around X-axis
+    wristAngle_new = atan2(R_FA(1, 2), R_FA(2, 2)); //rotation around X-axis
     theta = -atan(R_FA(0, 2) / sqrt(1 - R_FA(0, 2) * R_FA(0, 2))); //rotation around Y-axis
-    wristAngle_new = atan2(R_FA(0, 1), R_FA(0, 0)); //rotation around Z-axis
+    psi = atan2(R_FA(0, 1), R_FA(0, 0)); //rotation around Z-axis
     if (abs(wristAngle_new) < thresholdW)
         wristVel = 0.;
     else if (wristAngle_new <= -thresholdW) {
@@ -95,14 +94,14 @@ void LawIMU::controlLawWrist(int lambdaW, double thresholdW)
 
 void LawIMU::writeDebugData(double debug[])
 {
-    debug[0] = phi;
+    debug[0] = wristAngle_new;
     debug[1] = theta;
-    debug[2] = wristAngle_new;
+    debug[2] = psi;
     debug[3] = wristVel;
 }
 
 void LawIMU::displayData()
 {
-    qDebug("phi: %lf -- theta: %lf  -- wristAngle (deg): %lf ", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI);
+    qDebug("wristAngle (deg): %lf  -- theta: %lf  -- psi: %lf", wristAngle_new * 180 / M_PI, theta * 180 / M_PI, psi * 180 / M_PI);
     qDebug("Wrist velocity (deg): %lf", wristVel * 180 / M_PI);
 }
