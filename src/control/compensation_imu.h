@@ -3,11 +3,13 @@
 
 #include "basic_controller.h"
 #include "control/algorithms/lawimu.h"
+#include "ui/console_menu.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QFile>
 #include <QTime>
+#include <QUdpSocket>
 
 class CompensationIMU : public BasicController {
     Q_OBJECT
@@ -16,7 +18,8 @@ public:
     ~CompensationIMU();
 
 private:
-    void tareIMU();
+    void tare_IMU();
+    void receiveData();
     bool setup();
     void loop(double dt, double time);
     void cleanup();
