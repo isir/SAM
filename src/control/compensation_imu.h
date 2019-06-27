@@ -16,17 +16,26 @@ public:
     ~CompensationIMU();
 
 private:
+    void tareIMU();
     bool setup();
     void loop(double dt, double time);
     void cleanup();
 
     SAM::Components _robot;
+    QUdpSocket _receiver;
     QFile _file;
     bool _need_to_write_header;
     Settings _settings;
     int _cnt;
     QTime _time;
     LawIMU _lawimu;
+
+    int _Lt;
+    double _Lua;
+    double _Lfa;
+    double _l;
+    int _lambdaW, _lambda;
+    double _thresholdW, _threshold;
 };
 
 #endif // COMPENSATION_IMU_H
