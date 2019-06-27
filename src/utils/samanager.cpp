@@ -113,13 +113,13 @@ void SAManager::mqtt_connected_callback()
     try {
         _robot.arm_imu = std::make_shared<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
-        qCritical() << "Couldn't access the red IMU -" << e.what();
+        qCritical() << "Couldn't access the white IMU -" << e.what();
     }
 
     try {
         _robot.trunk_imu = std::make_shared<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
-        qCritical() << "Couldn't access the white IMU -" << e.what();
+        qCritical() << "Couldn't access the red IMU -" << e.what();
     }
 
     _robot.adc = std::make_shared<Adafruit_ADS1115>("/dev/i2c-1", 0x48);
@@ -134,6 +134,11 @@ void SAManager::mqtt_connected_callback()
     _buzzer_submenu->addItem(ConsoleMenuItem("Triple Buzz", "tb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
     _main_menu->addItem(*_buzzer_submenu);
 
+    if (_robot.arm_imu) {
+        qDebug("arm_imu = 1");
+        _imu = std::make_shared<CompensationIMU>(_robot, _mqtt);
+        _main_menu->addItem(_imu->menu());
+    }
     if (_robot.elbow && _robot.wrist_pronosup) {
         _vc = std::make_shared<VoluntaryControl>(_robot, _mqtt);
         _main_menu->addItem(_vc->menu());
