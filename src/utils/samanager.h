@@ -1,6 +1,7 @@
 #ifndef SAMANAGER_H
 #define SAMANAGER_H
 
+#include "control/compensation_imu.h"
 #include "control/compensation_optitrack.h"
 #include "control/demo.h"
 #include "control/matlab_receiver.h"
@@ -31,6 +32,7 @@ private:
 
     std::shared_ptr<VoluntaryControl> _vc;
     std::shared_ptr<CompensationOptitrack> _opti;
+    std::shared_ptr<CompensationIMU> _imu;
     std::shared_ptr<RemoteComputerControl> _rm;
     std::shared_ptr<MatlabReceiver> _mr;
     std::shared_ptr<Demo> _demo;
