@@ -19,7 +19,7 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     , _thresholdW(5.)
     , _pinArduino(0)
 {
-    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->sensors.trunk_imu, _robot->sensors.arm_imu, _robot->sensors.optitrack)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.trunk_imu, _robot->sensors.arm_imu, _robot->sensors.optitrack)) {
         throw std::runtime_error("Optitrack Compensation is missing components");
     }
 
@@ -46,8 +46,8 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     _menu->add_item("Display Arduino data", "ard", [this](QString) { this->displayArduino(); });
     _menu->add_item("Display anatomical lengths", "al", [this](QString) { this->display_lengths(); });
 
-    _menu->add_item(_robot->joints.elbow->menu());
-    _menu->add_item(_robot->joints.wrist_pronosup->menu());
+    _menu->add_item(_robot->joints.elbow_flexion->menu());
+    _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
 
     QObject::connect(_menu.get(), &MenuBackend::finished, this, &CompensationOptitrack::stop);
@@ -66,7 +66,7 @@ CompensationOptitrack::~CompensationOptitrack()
 
 void CompensationOptitrack::zero()
 {
-    _robot->joints.elbow->move_to(0, 10, true);
+    _robot->joints.elbow_flexion->move_to(0, 10, true);
 }
 
 void CompensationOptitrack::display_parameters()
@@ -204,8 +204,8 @@ void CompensationOptitrack::stop()
     QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 
     _infoSent = 0;
-    _robot->joints.elbow->forward(0);
-    _robot->joints.wrist_pronosup->forward(0);
+    _robot->joints.elbow_flexion->forward(0);
+    _robot->joints.wrist_pronation->forward(0);
 
     _file.close();
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationOptitrack::on_def);
@@ -272,7 +272,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         }
     }
 
-    double beta = _robot->joints.elbow->pos() * M_PI / 180.;
+    double beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
     if (_need_to_write_header) {
         _file.write("delta, time, btn_sync, abs_time, emg1, emg2, timerTask, pinArduino,");
@@ -314,14 +314,14 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
         _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _l, _lambda, _threshold);
         _lawopti.controlLawWrist(_lambdaW, _thresholdW);
-        _robot->joints.elbow->set_velocity_safe(_lawopti.returnBetaDot_deg());
+        _robot->joints.elbow_flexion->set_velocity_safe(_lawopti.returnBetaDot_deg());
 
         if (_lawopti.returnWristVel_deg() > 0)
-            _robot->joints.wrist_pronosup->move_to(6000, _lawopti.returnWristVel_deg() * 100, 6000, 35000);
+            _robot->joints.wrist_pronation->move_to(6000, _lawopti.returnWristVel_deg() * 100, 6000, 35000);
         else if (_lawopti.returnWristVel_deg() < 0)
-            _robot->joints.wrist_pronosup->move_to(6000, -_lawopti.returnWristVel_deg() * 100, 6000, -35000);
+            _robot->joints.wrist_pronation->move_to(6000, -_lawopti.returnWristVel_deg() * 100, 6000, -35000);
         else if (_lawopti.returnWristVel_deg() == 0)
-            _robot->joints.wrist_pronosup->forward(0);
+            _robot->joints.wrist_pronation->forward(0);
 
         _lawopti.bufferingOldValues();
 
@@ -380,14 +380,14 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
     //    }
 
     /// WRIST
-    double wristAngle = _robot->joints.wrist_pronosup->read_encoder_position();
+    double wristAngle = _robot->joints.wrist_pronation->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
+        _robot->joints.wrist_pronation->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
+        _robot->joints.wrist_pronation->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _robot->joints.wrist_pronosup->forward(0);
+        _robot->joints.wrist_pronation->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
@@ -425,8 +425,8 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
 
 void CompensationOptitrack::on_activated()
 {
-    _robot->joints.elbow->calibrate();
-    _robot->joints.wrist_pronosup->set_encoder_position(0);
+    _robot->joints.elbow_flexion->calibrate();
+    _robot->joints.wrist_pronation->set_encoder_position(0);
 }
 
 void CompensationOptitrack::on_def()

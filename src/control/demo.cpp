@@ -13,20 +13,20 @@ Demo::Demo(std::shared_ptr<SAM::Components> robot)
     : BasicController(.01)
     , _robot(robot)
 {
-    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->joints.hand)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {
         throw std::runtime_error("Demo is missing components");
     }
 
     _menu->set_description("Demo");
     _menu->set_code("demo");
 
-    if (_robot->joints.shoulder)
-        _menu->add_item(_robot->joints.shoulder->menu());
-    if (_robot->joints.wrist_flex) {
-        _menu->add_item(_robot->joints.wrist_flex->menu());
+    if (_robot->joints.shoulder_medial_rotation)
+        _menu->add_item(_robot->joints.shoulder_medial_rotation->menu());
+    if (_robot->joints.wrist_flexion) {
+        _menu->add_item(_robot->joints.wrist_flexion->menu());
     }
-    _menu->add_item(_robot->joints.elbow->menu());
-    _menu->add_item(_robot->joints.wrist_pronosup->menu());
+    _menu->add_item(_robot->joints.elbow_flexion->menu());
+    _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
 
     _settings.beginGroup("Demo");
@@ -47,11 +47,11 @@ bool Demo::setup()
 {
     _robot->joints.hand->take_ownership();
     _robot->joints.hand->init_sequence();
-    _robot->joints.elbow->calibrate();
-    if (_robot->joints.wrist_flex) {
-        _robot->joints.wrist_flex->calibrate();
+    _robot->joints.elbow_flexion->calibrate();
+    if (_robot->joints.wrist_flexion) {
+        _robot->joints.wrist_flexion->calibrate();
     }
-    _robot->joints.wrist_pronosup->calibrate();
+    _robot->joints.wrist_pronation->calibrate();
 
     return true;
 }
@@ -72,20 +72,20 @@ void Demo::loop(double, double)
     static const MyoControl::EMGThresholds thresholds(15, 8, 15, 15, 8, 15);
 
     MyoControl::Action elbow(
-        "Elbow", [this]() { _robot->joints.elbow->set_velocity_safe(-35); }, [this]() { _robot->joints.elbow->set_velocity_safe(35); }, [this]() { _robot->joints.elbow->set_velocity_safe(0); });
+        "Elbow", [this]() { _robot->joints.elbow_flexion->set_velocity_safe(-35); }, [this]() { _robot->joints.elbow_flexion->set_velocity_safe(35); }, [this]() { _robot->joints.elbow_flexion->set_velocity_safe(0); });
     MyoControl::Action wrist_pronosup(
-        "Wrist rotation", [this]() { _robot->joints.wrist_pronosup->set_velocity_safe(40); }, [this]() { _robot->joints.wrist_pronosup->set_velocity_safe(-40); }, [this]() { _robot->joints.wrist_pronosup->set_velocity_safe(0); });
+        "Wrist rotation", [this]() { _robot->joints.wrist_pronation->set_velocity_safe(40); }, [this]() { _robot->joints.wrist_pronation->set_velocity_safe(-40); }, [this]() { _robot->joints.wrist_pronation->set_velocity_safe(0); });
     MyoControl::Action wrist_flex(
-        "Wrist flexion", [this]() { _robot->joints.wrist_flex->set_velocity_safe(20); }, [this]() { _robot->joints.wrist_flex->set_velocity_safe(-20); }, [this]() { _robot->joints.wrist_flex->set_velocity_safe(0); });
+        "Wrist flexion", [this]() { _robot->joints.wrist_flexion->set_velocity_safe(20); }, [this]() { _robot->joints.wrist_flexion->set_velocity_safe(-20); }, [this]() { _robot->joints.wrist_flexion->set_velocity_safe(0); });
     MyoControl::Action shoulder(
-        "Shoulder", [this]() { _robot->joints.shoulder->set_velocity_safe(35); }, [this]() { _robot->joints.shoulder->set_velocity_safe(-35); }, [this]() { _robot->joints.shoulder->set_velocity_safe(0); });
+        "Shoulder", [this]() { _robot->joints.shoulder_medial_rotation->set_velocity_safe(35); }, [this]() { _robot->joints.shoulder_medial_rotation->set_velocity_safe(-35); }, [this]() { _robot->joints.shoulder_medial_rotation->set_velocity_safe(0); });
     MyoControl::Action hand(
         "Hand", [this]() { _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL); }, [this]() { _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL); }, [this]() { _robot->joints.hand->move(TouchBionicsHand::STOP); });
 
     std::vector<MyoControl::Action> s1 { hand, wrist_pronosup, elbow };
-    if (_robot->joints.wrist_flex)
+    if (_robot->joints.wrist_flexion)
         s1.insert(s1.begin() + 2, wrist_flex);
-    if (_robot->joints.shoulder)
+    if (_robot->joints.shoulder_medial_rotation)
         s1.push_back(shoulder);
     std::vector<MyoControl::Action> s2 { hand, wrist_pronosup };
 
@@ -113,7 +113,7 @@ void Demo::loop(double, double)
             if ((acc.squaredNorm() > max_acc_change_mode) && counter_auto_control == 0) {
                 control_mode = (control_mode + 1) % 3;
                 _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
-                _robot->joints.elbow->set_velocity_safe(0);
+                _robot->joints.elbow_flexion->set_velocity_safe(0);
                 counter_auto_control = 100;
 
                 if (control_mode == FULL_MYO) {
@@ -176,15 +176,15 @@ void Demo::loop(double, double)
             if (acc[1] > 0.2 || acc[1] < -0.2) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
                     if (acc[1] > 0.2) {
-                        _robot->joints.elbow->set_velocity_safe(35);
+                        _robot->joints.elbow_flexion->set_velocity_safe(35);
                     } else if (acc[1] < -0.2) {
-                        _robot->joints.elbow->set_velocity_safe(-35);
+                        _robot->joints.elbow_flexion->set_velocity_safe(-35);
                     }
                 } else {
                     move_elbow_counter++;
                 }
             } else {
-                _robot->joints.elbow->set_velocity_safe(0);
+                _robot->joints.elbow_flexion->set_velocity_safe(0);
             }
         }
     }
@@ -195,8 +195,8 @@ void Demo::cleanup()
     if (_robot->sensors.myoband) {
         _robot->sensors.myoband->stop();
     }
-    _robot->joints.wrist_pronosup->forward(0);
-    _robot->joints.elbow->move_to(0, 20);
+    _robot->joints.wrist_pronation->forward(0);
+    _robot->joints.elbow_flexion->move_to(0, 20);
     _robot->user_feedback.leds->set(LedStrip::white, 10);
     _robot->joints.hand->release_ownership();
 }

@@ -6,7 +6,7 @@ MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* 
     : QObject(parent)
     , _robot(robot)
 {
-    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->joints.hand)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {
         throw std::runtime_error("Matlab Receiver is missing components");
     }
 
@@ -22,8 +22,8 @@ MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* 
 
     _menu->add_item("Start", "start", [this](QString) { this->start(); });
     _menu->add_item("Stop", "stop", [this](QString) { this->stop(); });
-    _menu->add_item(_robot->joints.wrist_pronosup->menu());
-    _menu->add_item(_robot->joints.elbow->menu());
+    _menu->add_item(_robot->joints.wrist_pronation->menu());
+    _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.hand->menu());
 }
 
@@ -38,7 +38,7 @@ void MatlabReceiver::start()
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     QObject::connect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
 
-    _robot->joints.elbow->calibrate();
+    _robot->joints.elbow_flexion->calibrate();
     _robot->joints.hand->init_sequence();
 
     qInfo() << "MatlabReceiver: Starting";
@@ -48,8 +48,8 @@ void MatlabReceiver::stop()
 {
     QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
     _robot->joints.hand->release_ownership();
-    _robot->joints.wrist_pronosup->forward(0);
-    _robot->joints.elbow->set_velocity_safe(0);
+    _robot->joints.wrist_pronation->forward(0);
+    _robot->joints.elbow_flexion->set_velocity_safe(0);
 }
 
 void MatlabReceiver::socket_callback()
@@ -127,22 +127,22 @@ void MatlabReceiver::handle_command(Command c)
     case WRIST_UP:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot->joints.wrist_pronosup->forward(60);
+        _robot->joints.wrist_pronation->forward(60);
         break;
     case WRIST_DOWN:
         is_wrist_command = true;
         is_hand_command = false;
-        _robot->joints.wrist_pronosup->backward(60);
+        _robot->joints.wrist_pronation->backward(60);
         break;
     case ELBOW_UP:
         is_elbow_command = true;
         is_hand_command = false;
-        _robot->joints.elbow->set_velocity_safe(-30);
+        _robot->joints.elbow_flexion->set_velocity_safe(-30);
         break;
     case ELBOW_DOWN:
         is_elbow_command = true;
         is_hand_command = false;
-        _robot->joints.elbow->set_velocity_safe(30);
+        _robot->joints.elbow_flexion->set_velocity_safe(30);
         break;
     default:
         is_hand_command = false;
@@ -153,9 +153,9 @@ void MatlabReceiver::handle_command(Command c)
         _robot->joints.hand->move(TouchBionicsHand::STOP);
     }
     if (!is_wrist_command) {
-        _robot->joints.wrist_pronosup->forward(0);
+        _robot->joints.wrist_pronation->forward(0);
     }
     if (!is_elbow_command) {
-        _robot->joints.elbow->set_velocity_safe(0);
+        _robot->joints.elbow_flexion->set_velocity_safe(0);
     }
 }

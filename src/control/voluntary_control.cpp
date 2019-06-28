@@ -11,7 +11,7 @@ VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
     : BasicController()
     , _robot(robot)
 {
-    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation)) {
         throw std::runtime_error("Volontary Control is missing components");
     }
 
@@ -22,7 +22,7 @@ VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
 
     _menu->set_description("Voluntary Control");
     _menu->set_code("vc");
-    _menu->add_item(_robot->joints.elbow->menu());
+    _menu->add_item(_robot->joints.elbow_flexion->menu());
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
@@ -30,14 +30,14 @@ VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
 
 VoluntaryControl::~VoluntaryControl()
 {
-    _robot->joints.elbow->forward(0);
-    _robot->joints.wrist_pronosup->forward(0);
+    _robot->joints.elbow_flexion->forward(0);
+    _robot->joints.wrist_pronation->forward(0);
     stop();
 }
 
 bool VoluntaryControl::setup()
 {
-    _robot->joints.wrist_pronosup->set_encoder_position(0);
+    _robot->joints.wrist_pronation->set_encoder_position(0);
     QString filename = QString("voluntary");
 
     int cnt = 0;
@@ -76,14 +76,14 @@ void VoluntaryControl::loop(double, double)
     //    }
 
     /// WRIST
-    double wristAngle = _robot->joints.wrist_pronosup->read_encoder_position();
+    double wristAngle = _robot->joints.wrist_pronation->read_encoder_position();
 
     if (pin_down_value == 0 && prev_pin_down_value == 1) {
-        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, 35000);
+        _robot->joints.wrist_pronation->move_to(6000, 5000, 6000, 35000);
     } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-        _robot->joints.wrist_pronosup->move_to(6000, 5000, 6000, -35000);
+        _robot->joints.wrist_pronation->move_to(6000, 5000, 6000, -35000);
     } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        _robot->joints.wrist_pronosup->forward(0);
+        _robot->joints.wrist_pronation->forward(0);
     }
 
     prev_pin_down_value = pin_down_value;
@@ -115,6 +115,6 @@ void VoluntaryControl::loop(double, double)
 void VoluntaryControl::cleanup()
 {
     //_robot.elbow->forward(0);
-    _robot->joints.wrist_pronosup->forward(0);
+    _robot->joints.wrist_pronation->forward(0);
     _file.close();
 }

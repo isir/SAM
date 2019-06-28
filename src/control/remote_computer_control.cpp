@@ -5,14 +5,14 @@ RemoteComputerControl::RemoteComputerControl(std::shared_ptr<SAM::Components> ro
     : BasicController(.01)
     , _robot(robot)
 {
-    if (!check_ptr(_robot->joints.elbow, _robot->joints.wrist_pronosup, _robot->joints.hand)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {
         throw std::runtime_error("Remote Computer Control is missing components");
     }
 
     _menu->set_description("Remote control with keyboard");
     _menu->set_code("key");
-    _menu->add_item(_robot->joints.wrist_pronosup->menu());
-    _menu->add_item(_robot->joints.elbow->menu());
+    _menu->add_item(_robot->joints.wrist_pronation->menu());
+    _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.hand->menu());
 }
 
@@ -36,8 +36,8 @@ bool RemoteComputerControl::setup()
     QThread::sleep(1);
     _robot->joints.hand->move(TouchBionicsHand::THUMB_INT_CLOSING);
 
-    _robot->joints.elbow->calibrate();
-    _robot->joints.wrist_pronosup->set_encoder_position(0);
+    _robot->joints.elbow_flexion->calibrate();
+    _robot->joints.wrist_pronation->set_encoder_position(0);
 
     _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
     QThread::msleep(500);
@@ -52,7 +52,7 @@ void RemoteComputerControl::loop(double, double)
 
 void RemoteComputerControl::cleanup()
 {
-    _robot->joints.elbow->forward(0);
-    _robot->joints.wrist_pronosup->forward(0);
+    _robot->joints.elbow_flexion->forward(0);
+    _robot->joints.wrist_pronation->forward(0);
     _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
 }

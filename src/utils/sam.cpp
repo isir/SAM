@@ -44,40 +44,40 @@ Joints::Joints()
 {
 
     try {
-        wrist_flex = std::make_unique<WristFlexor>();
+        wrist_flexion = std::make_unique<WristFlexor>();
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the wrist flexor -" << e.what();
     }
 
     try {
-        shoulder = std::make_unique<ShoulderRotator>();
+        shoulder_medial_rotation = std::make_unique<ShoulderRotator>();
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the Shoulder rotator -" << e.what();
     }
 
     try {
-        wrist_pronosup = std::make_unique<WristRotator>();
+        wrist_pronation = std::make_unique<WristRotator>();
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the wrist rotator -" << e.what();
     }
 
-    if (!wrist_pronosup) {
+    if (!wrist_pronation) {
         try {
-            wrist_pronosup = std::make_unique<PronoSupination>();
+            wrist_pronation = std::make_unique<PronoSupination>();
         } catch (std::exception& e) {
             qCritical() << "Couldn't access the wrist -" << e.what();
         }
     }
 
     try {
-        elbow = std::make_unique<CustomElbow>();
+        elbow_flexion = std::make_unique<CustomElbow>();
     } catch (std::exception& e) {
         qCritical() << "Couldn't access the custom elbow -" << e.what();
     }
 
-    if (!elbow) {
+    if (!elbow_flexion) {
         try {
-            elbow = std::make_unique<OsmerElbow>();
+            elbow_flexion = std::make_unique<OsmerElbow>();
         } catch (std::exception& e) {
             qCritical() << "Couldn't access the elbow -" << e.what();
         }

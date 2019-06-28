@@ -63,10 +63,10 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
-    _main_menu->add_submenu_from_user(_robot->joints.wrist_flex);
-    _main_menu->add_submenu_from_user(_robot->joints.shoulder);
-    _main_menu->add_submenu_from_user(_robot->joints.wrist_pronosup);
-    _main_menu->add_submenu_from_user(_robot->joints.elbow);
+    _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
+    _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
+    _main_menu->add_submenu_from_user(_robot->joints.wrist_pronation);
+    _main_menu->add_submenu_from_user(_robot->joints.elbow_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.hand);
     _main_menu->add_submenu_from_user(_vc);
     _main_menu->add_submenu_from_user(_rm);

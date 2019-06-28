@@ -41,10 +41,10 @@ class Joints {
 public:
     Joints();
 
-    std::unique_ptr<Actuator> wrist_pronosup;
-    std::unique_ptr<WristFlexor> wrist_flex;
-    std::unique_ptr<Actuator> elbow;
-    std::unique_ptr<ShoulderRotator> shoulder;
+    std::unique_ptr<Actuator> wrist_pronation;
+    std::unique_ptr<WristFlexor> wrist_flexion;
+    std::unique_ptr<Actuator> elbow_flexion;
+    std::unique_ptr<ShoulderRotator> shoulder_medial_rotation;
     std::unique_ptr<TouchBionicsHand> hand;
 };
 
