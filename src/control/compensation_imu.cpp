@@ -30,8 +30,12 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
     _menu.set_title("CompensationIMU");
     _menu.set_code("imu");
     _menu.addItem(ConsoleMenuItem("Tare IMUs", "tare", [this](QString) { this->tare_IMU(); }));
-    //    _menu.addItem(_robot.wrist_pronosup->menu());
-    _menu.addItem(_robot.hand->menu());
+    if (_robot.wrist) {
+        _menu.addItem(_robot.wrist_pronosup->menu());
+    }
+    if (_robot.hand) {
+        _menu.addItem(_robot.hand->menu());
+    }
 }
 
 CompensationIMU::~CompensationIMU()
