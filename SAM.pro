@@ -110,7 +110,7 @@ SOURCES += \
 
 INCLUDEPATH += src/
 
-QMAKE_CXXFLAGS += -O2
+QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard
 
 LIBS += -lwiringPi -li2c -lboost_thread -lboost_system
 
