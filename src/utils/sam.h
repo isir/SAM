@@ -24,7 +24,7 @@ struct Components {
     std::shared_ptr<Myoband> myoband;
     std::shared_ptr<XIMU> arm_imu;
     std::shared_ptr<XIMU> trunk_imu;
-    //    std::shared_ptr<XIMU> fa_imu;
+    std::shared_ptr<XIMU> fa_imu;
     std::shared_ptr<Adafruit_ADS1115> adc;
 
     std::shared_ptr<OptiListener> optitrack;
