@@ -122,6 +122,12 @@ void SAManager::mqtt_connected_callback()
         qCritical() << "Couldn't access the red IMU -" << e.what();
     }
 
+    try {
+        _robot.fa_imu = std::make_shared<XIMU>("/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+    } catch (std::exception& e) {
+        qCritical() << "Couldn't access the yellow IMU -" << e.what();
+    }
+
     _robot.adc = std::make_shared<Adafruit_ADS1115>("/dev/i2c-1", 0x48);
 
     _settings.beginGroup("Optitrack");
@@ -134,8 +140,7 @@ void SAManager::mqtt_connected_callback()
     _buzzer_submenu->addItem(ConsoleMenuItem("Triple Buzz", "tb", [this](QString) { _robot.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); }));
     _main_menu->addItem(*_buzzer_submenu);
 
-    if (_robot.arm_imu) {
-        qDebug("arm_imu = 1");
+    if (_robot.fa_imu && _robot.wrist_pronosup) {
         _imu = std::make_shared<CompensationIMU>(_robot, _mqtt);
         _main_menu->addItem(_imu->menu());
     }
