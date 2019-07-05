@@ -155,6 +155,7 @@ QByteArray RC::RoboClaw::send(const Message& msg)
         }
 
         if (t.elapsed() >= to) {
+            _serial_port->release_ownership();
             throw std::runtime_error(std::string("Request timed out: ") + msg.toString().toStdString() + " - Pattern is [" + msg.regexp().toStdString() + "] - Rx buffer contains [" + ret.toHex().toStdString() + "]");
         }
     }
