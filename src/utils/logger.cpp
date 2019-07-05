@@ -6,8 +6,8 @@ Logger::Logger(std::shared_ptr<QMqttClient> mqtt, QObject* parent)
     , _err_file("/var/log/sam_err")
     , _mqtt(mqtt)
 {
-    _info_file.open(QIODevice::ReadWrite);
-    _err_file.open(QIODevice::ReadWrite);
+    _info_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
+    _err_file.open(QIODevice::ReadWrite | QIODevice::Truncate);
     QObject::connect(this, &Logger::message, this, &Logger::handle_message, Qt::QueuedConnection);
 }
 
