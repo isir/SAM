@@ -102,6 +102,7 @@ void LawIMU::writeDebugData(double debug[])
 
 void LawIMU::displayData()
 {
-    qDebug("wristAngle (deg): %lf  -- theta: %lf  -- psi: %lf", wristAngle_new * 180 / M_PI, theta * 180 / M_PI, psi * 180 / M_PI);
-    qDebug("Wrist velocity (deg): %lf", wristVel * 180 / M_PI);
+    qDebug("wristAngle (deg): %lf  -- theta: %lf  -- psi: %lf\n", wristAngle_new * 180 / M_PI, theta * 180 / M_PI, psi * 180 / M_PI);
+    //    printf("wristAngle (deg): %lf  -- theta: %lf  -- psi: %lf\n", wristAngle_new * 180 / M_PI, theta * 180 / M_PI, psi * 180 / M_PI);
+    qDebug("Wrist velocity (deg): %lf\n", wristVel * 180 / M_PI);
 }
