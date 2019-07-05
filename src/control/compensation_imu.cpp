@@ -20,7 +20,7 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
     , _thresholdW(5.)
 {
     _settings.beginGroup("CompensationIMU");
-    set_period(_settings.value("period", 0.02).toDouble());
+    set_period(_settings.value("period", 0.01).toDouble());
 
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
     if (!_receiver.bind(QHostAddress::AnyIPv4, 45454)) {
@@ -30,7 +30,7 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
     _menu.set_title("CompensationIMU");
     _menu.set_code("imu");
     _menu.addItem(ConsoleMenuItem("Tare IMUs", "tare", [this](QString) { this->tare_IMU(); }));
-    if (_robot.wrist) {
+    if (_robot.wrist_pronosup) {
         _menu.addItem(_robot.wrist_pronosup->menu());
     }
     if (_robot.hand) {
@@ -40,8 +40,13 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
 
 CompensationIMU::~CompensationIMU()
 {
-    //    _robot.elbow->forward(0);
-    //    _robot.wrist_pronosup->forward(0);
+    //    if (_robot.elbow) {
+    //        _robot.elbow->forward(0);
+    //    }
+    if (_robot.wrist_pronosup) {
+        _robot.wrist_pronosup->forward(0);
+    }
+
     stop();
     QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
 }
@@ -50,7 +55,10 @@ void CompensationIMU::tare_IMU()
 {
     _robot.arm_imu->send_command_algorithm_init_then_tare();
     _robot.trunk_imu->send_command_algorithm_init_then_tare();
-    //    _robot.fa_imu->send_command_algorithm_init_then_tare();
+    _robot.fa_imu->send_command_algorithm_init_then_tare();
+    double qFA[4];
+    _robot.fa_imu->get_quat(qFA);
+    qDebug("qFA: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
     qDebug("Wait for triple bip");
 
     usleep(6 * 1000000);
@@ -91,9 +99,14 @@ void CompensationIMU::receiveData()
 
 bool CompensationIMU::setup()
 {
-    //_robot.elbow->.calibration();
-    //    _robot.wrist_pronosup->set_encoder_position(0);
     QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
+    qDebug("setup");
+    //    if (_robot.elbow) {
+    //        _robot.elbow->calibrate();
+    //    }
+    if (_robot.wrist_pronosup) {
+        _robot.wrist_pronosup->set_encoder_position(0);
+    }
 
     QString filename = QString("compensationIMU");
 
@@ -126,7 +139,7 @@ void CompensationIMU::loop(double, double)
     double debugData[10];
 
     if (_need_to_write_header) {
-        _file.write(" time, emg1, emg2,");
+        _file.write(" time,");
         _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,");
         _file.write(" qFA.w, qFA.x, qFA.y, qFA.z,");
         _file.write(" phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,");
@@ -139,12 +152,12 @@ void CompensationIMU::loop(double, double)
     }
 
     /// WRIST
-    double wristAngleEncoder = 0.; //_robot.wrist_pronosup->read_encoder_position();
+    double wristAngleEncoder = _robot.wrist_pronosup->read_encoder_position();
 
     double qBras[4], qTronc[4], qFA[4];
-    _robot.arm_imu->get_quat(qFA);
+    _robot.arm_imu->get_quat(qBras);
     _robot.trunk_imu->get_quat(qTronc);
-    //    _robot.fa_imu->get_quat(qFA);
+    _robot.fa_imu->get_quat(qFA);
     Eigen::Quaterniond qFA_record;
     qFA_record.w() = qFA[0];
     qFA_record.x() = qFA[1];
@@ -159,23 +172,25 @@ void CompensationIMU::loop(double, double)
         _lawimu.rotationMatrices(qFA_record);
         _lawimu.controlLawWrist(_lambdaW, _thresholdW);
 
-        //        if (_lawimu.returnWristVel_deg() > 0)
-        //            _robot.wrist_pronosup->move_to(6000, _lawimu.returnWristVel_deg() * 100, 6000, 35000);
-        //        else if (_lawimu.returnWristVel_deg() < 0)
-        //            _robot.wrist_pronosup->move_to(6000, -_lawimu.returnWristVel_deg() * 100, 6000, -35000);
-        //        else if (_lawimu.returnWristVel_deg() == 0)
-        //            _robot.wrist_pronosup->forward(0);
+        if (_lawimu.returnWristVel_deg() > 0) {
+            _robot.wrist_pronosup->move_to(350, _lawimu.returnWristVel_deg());
+        } else if (_lawimu.returnWristVel_deg() < 0) {
+            _robot.wrist_pronosup->move_to(-350, -_lawimu.returnWristVel_deg());
+        } else if (_lawimu.returnWristVel_deg() == 0) {
+            _robot.wrist_pronosup->forward(0);
+        }
 
         if (_cnt % _settings.value("display_count", 50).toInt() == 0) {
             _lawimu.displayData();
-            qDebug("lambdaW: %d", _lambdaW);
+            // qDebug("lambdaW: %d", _lambdaW);
+            //            printf("lambdaW: %d\n", _lambdaW);
         }
     }
 
     _lawimu.writeDebugData(debugData);
 
     QTextStream ts(&_file);
-    ts << timeWithDelta << ' ' << _robot.adc->readADC_SingleEnded(0) << ' ' << _robot.adc->readADC_SingleEnded(1);
+    ts << timeWithDelta;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
@@ -195,8 +210,8 @@ void CompensationIMU::loop(double, double)
 
 void CompensationIMU::cleanup()
 {
-    //_robot.elbow->forward(0);
-    //    _robot.wrist_pronosup->forward(0);
+    //    _robot.elbow->forward(0);
+    _robot.wrist_pronosup->forward(0);
     QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
     _file.close();
