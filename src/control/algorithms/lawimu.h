@@ -1,6 +1,7 @@
 #ifndef LAWIMU_H
 #define LAWIMU_H
 
+#include "math.h"
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 
