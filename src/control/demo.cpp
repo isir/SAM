@@ -71,16 +71,17 @@ void Demo::loop(double, double)
 
     static const MyoControl::EMGThresholds thresholds(15, 8, 15, 15, 8, 15);
 
+    auto robot = _robot;
     MyoControl::Action elbow(
-        "Elbow", [this]() { _robot->joints.elbow_flexion->set_velocity_safe(-35); }, [this]() { _robot->joints.elbow_flexion->set_velocity_safe(35); }, [this]() { _robot->joints.elbow_flexion->set_velocity_safe(0); });
+        "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-35); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(35); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
     MyoControl::Action wrist_pronosup(
-        "Wrist rotation", [this]() { _robot->joints.wrist_pronation->set_velocity_safe(40); }, [this]() { _robot->joints.wrist_pronation->set_velocity_safe(-40); }, [this]() { _robot->joints.wrist_pronation->set_velocity_safe(0); });
+        "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
     MyoControl::Action wrist_flex(
-        "Wrist flexion", [this]() { _robot->joints.wrist_flexion->set_velocity_safe(20); }, [this]() { _robot->joints.wrist_flexion->set_velocity_safe(-20); }, [this]() { _robot->joints.wrist_flexion->set_velocity_safe(0); });
+        "Wrist flexion", [robot]() { robot->joints.wrist_flexion->set_velocity_safe(20); }, [robot]() { robot->joints.wrist_flexion->set_velocity_safe(-20); }, [robot]() { robot->joints.wrist_flexion->set_velocity_safe(0); });
     MyoControl::Action shoulder(
-        "Shoulder", [this]() { _robot->joints.shoulder_medial_rotation->set_velocity_safe(35); }, [this]() { _robot->joints.shoulder_medial_rotation->set_velocity_safe(-35); }, [this]() { _robot->joints.shoulder_medial_rotation->set_velocity_safe(0); });
+        "Shoulder", [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(35); }, [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(-35); }, [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(0); });
     MyoControl::Action hand(
-        "Hand", [this]() { _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL); }, [this]() { _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL); }, [this]() { _robot->joints.hand->move(TouchBionicsHand::STOP); });
+        "Hand", [robot]() { robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL); }, [robot]() { robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL); }, [robot]() { robot->joints.hand->move(TouchBionicsHand::STOP); });
 
     std::vector<MyoControl::Action> s1 { hand, wrist_pronosup, elbow };
     if (_robot->joints.wrist_flexion)
