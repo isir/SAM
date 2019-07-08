@@ -27,6 +27,11 @@ CompensationIMU::CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttCli
         qCritical() << _receiver.errorString();
     }
 
+    QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationIMU::listenArduino);
+    if (!_receiverArduino.bind(QHostAddress::AnyIPv4, 45455)) {
+        qCritical() << "Arduino receiver" << _receiverArduino.errorString();
+    }
+
     _menu.set_title("CompensationIMU");
     _menu.set_code("imu");
     _menu.addItem(ConsoleMenuItem("Tare IMUs", "tare", [this](QString) { this->tare_IMU(); }));
@@ -55,7 +60,9 @@ void CompensationIMU::tare_IMU()
 {
     _robot.arm_imu->send_command_algorithm_init_then_tare();
     _robot.trunk_imu->send_command_algorithm_init_then_tare();
+
     _robot.fa_imu->send_command_algorithm_init_then_tare();
+
     double qFA[4];
     _robot.fa_imu->get_quat(qFA);
     qDebug("qFA: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
@@ -97,10 +104,24 @@ void CompensationIMU::receiveData()
     }
 }
 
+void CompensationIMU::listenArduino()
+{
+    while (_receiverArduino.hasPendingDatagrams()) {
+        QByteArray dataReceivedArduino = _receiverArduino.receiveDatagram().data();
+        QTextStream tsA(&dataReceivedArduino);
+        int tmp;
+
+        tsA >> tmp;
+        _pinArduino = tmp;
+        qDebug("pinArduino:%d", _pinArduino);
+    }
+}
+
 bool CompensationIMU::setup()
 {
     QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
-    qDebug("setup");
+    QObject::disconnect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationIMU::listenArduino);
+    QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationIMU::listenArduino);
     //    if (_robot.elbow) {
     //        _robot.elbow->calibrate();
     //    }
@@ -139,7 +160,7 @@ void CompensationIMU::loop(double, double)
     double debugData[10];
 
     if (_need_to_write_header) {
-        _file.write(" time,");
+        _file.write(" time, pinArduino,");
         _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,");
         _file.write(" qFA.w, qFA.x, qFA.y, qFA.z,");
         _file.write(" phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,");
@@ -190,7 +211,7 @@ void CompensationIMU::loop(double, double)
     _lawimu.writeDebugData(debugData);
 
     QTextStream ts(&_file);
-    ts << timeWithDelta;
+    ts << timeWithDelta << ' ' << _pinArduino;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
