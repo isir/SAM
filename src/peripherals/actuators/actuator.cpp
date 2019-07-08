@@ -47,13 +47,16 @@ double Actuator::pos()
 
 void Actuator::move_to(double deg, double speed, bool block)
 {
-    if (!_calibrated) {
-        qWarning() << "Not calibrated...";
-        return;
-    }
+    //    if (!_calibrated) {
+    //        qWarning() << "Not calibrated...";
+    //        return;
+    //    }
 
     qint32 target = static_cast<qint32>(deg * _incs_per_deg);
     quint32 velocity = static_cast<quint32>(speed * _incs_per_deg);
+
+    qDebug() << "target:" << target;
+    qDebug() << "velocity:" << velocity;
 
     if (velocity == 0)
         velocity = 1;
