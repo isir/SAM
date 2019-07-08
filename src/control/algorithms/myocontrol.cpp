@@ -23,7 +23,7 @@ Classifier::~Classifier()
 void Classifier::previous()
 {
     if (_it == _actions.begin()) {
-        _it = _actions.end();
+        _it = _actions.end() - 1;
     } else {
         --_it;
     }
