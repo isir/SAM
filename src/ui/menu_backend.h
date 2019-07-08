@@ -33,12 +33,10 @@ public:
 
 public slots:
     void activate();
+    void activate_item(QString code, QString args = QString());
 
 protected:
     virtual void on_exit();
-
-protected slots:
-    void activate_item(QString code, QString args = QString());
 
 private:
     void set_parent(MenuBackend* parent);

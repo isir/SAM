@@ -108,7 +108,7 @@ void SAManager::autostart_demo()
             _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
         } else {
             _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
-            _demo->menu()->activate();
+            _main_menu->activate_item("demo");
             _demo->start();
         }
     }
