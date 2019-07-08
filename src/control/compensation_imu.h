@@ -20,12 +20,14 @@ public:
 private:
     void tare_IMU();
     void receiveData();
+    void listenArduino();
     bool setup();
     void loop(double dt, double time);
     void cleanup();
 
     SAM::Components _robot;
     QUdpSocket _receiver;
+    QUdpSocket _receiverArduino;
     QFile _file;
     bool _need_to_write_header;
     Settings _settings;
@@ -39,6 +41,7 @@ private:
     double _l;
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;
+    int _pinArduino;
 };
 
 #endif // COMPENSATION_IMU_H
