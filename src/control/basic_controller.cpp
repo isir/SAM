@@ -16,15 +16,14 @@ static double timespec_diff(struct timespec* start, struct timespec* stop)
     return result.tv_sec + (result.tv_nsec * 1e-9);
 }
 
-BasicController::BasicController(std::shared_ptr<QMqttClient> mqtt, double period_s)
-    : _menu(mqtt)
-    , _period_s(period_s)
+BasicController::BasicController(double period_s)
+    : _period_s(period_s)
     , _pref_cpu(0)
     , _prio(20)
 {
-    QObject::connect(&_menu, &ConsoleMenu::finished, this, &BasicController::stop);
-    _menu.addItem(ConsoleMenuItem("Start loop", "start", [this](QString) { this->start(); }));
-    _menu.addItem(ConsoleMenuItem("Stop loop", "stop", [this](QString) { this->stop(); }));
+    QObject::connect(_menu.get(), &MenuBackend::finished, this, &BasicController::stop);
+    _menu->add_item("start", "Start loop", [this](QString) { this->start(); });
+    _menu->add_item("stop", "Stop loop", [this](QString) { this->stop(); });
 }
 
 BasicController::~BasicController()
@@ -66,9 +65,8 @@ void BasicController::enable_watchdog(int timeout_ms)
 void BasicController::stop()
 {
     if (isRunning()) {
-        _mutex.lock();
+        QMutexLocker locker(&_mutex);
         _loop_condition = false;
-        _mutex.unlock();
     }
 }
 
@@ -83,6 +81,8 @@ void BasicController::run()
     double dt = 0;
     unsigned int cnt = 0;
     double min = std::numeric_limits<double>::max(), max = 0, avg = 0;
+
+    _loop_condition = true;
 
     emit ping();
 
@@ -107,8 +107,6 @@ void BasicController::run()
     struct timespec prev_period, next_period;
     clock_gettime(CLOCK_MONOTONIC, &prev_period);
     next_period = prev_period;
-
-    _loop_condition = true;
 
     while (true) {
         next_period.tv_nsec += period_ns;

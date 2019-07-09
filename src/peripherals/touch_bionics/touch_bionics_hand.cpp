@@ -3,9 +3,8 @@
 #include <QDebug>
 #include <QThread>
 
-TouchBionicsHand::TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt)
+TouchBionicsHand::TouchBionicsHand()
     : _settings("TouchBionics")
-    , _menu(mqtt)
 {
     _sp.open(_settings.value("port_name", "/dev/touchbionics").toString(), B115200);
 
@@ -16,19 +15,19 @@ TouchBionicsHand::TouchBionicsHand(std::shared_ptr<QMqttClient> mqtt)
         _speed = 9;
     }
 
-    _menu.set_title(QString("TouchBionics Hand "));
-    _menu.set_code(QString("tb"));
+    _menu->set_description(QString("TouchBionics Hand "));
+    _menu->set_code(QString("tb"));
 
-    _menu.addItem(ConsoleMenuItem("Hand posture", "h", [this](QString) { this->setPosture(HAND_POSTURE); }));
-    _menu.addItem(ConsoleMenuItem("Close hand", "ch", [this](QString) { this->move(HAND_CLOSING); }));
-    _menu.addItem(ConsoleMenuItem("Open hand", "oh", [this](QString) { this->move(HAND_OPENING); }));
-    _menu.addItem(ConsoleMenuItem("Pinch posture", "p", [this](QString) { this->setPosture(PINCH_POSTURE); }));
-    _menu.addItem(ConsoleMenuItem("Close pinch", "cp", [this](QString) { this->move(PINCH_CLOSING); }));
-    _menu.addItem(ConsoleMenuItem("Open pinch ", "op", [this](QString) { this->move(PINCH_OPENING); }));
-    _menu.addItem(ConsoleMenuItem("Triple Pinch posture", "tp", [this](QString) { this->setPosture(TRIPLE_PINCH_POSTURE); }));
-    _menu.addItem(ConsoleMenuItem("Close triple pinch", "ctp", [this](QString) { this->move(TRIPLE_PINCH_CLOSING); }));
-    _menu.addItem(ConsoleMenuItem("Open triple pinch ", "otp", [this](QString) { this->move(TRIPLE_PINCH_OPENING); }));
-    _menu.addItem(ConsoleMenuItem("Open forefinger ", "off", [this](QString) { this->move(FOREFINGER_OPENING); }));
+    _menu->add_item("Hand posture", "h", [this](QString) { this->setPosture(HAND_POSTURE); });
+    _menu->add_item("Close hand", "ch", [this](QString) { this->move(HAND_CLOSING); });
+    _menu->add_item("Open hand", "oh", [this](QString) { this->move(HAND_OPENING); });
+    _menu->add_item("Pinch posture", "p", [this](QString) { this->setPosture(PINCH_POSTURE); });
+    _menu->add_item("Close pinch", "cp", [this](QString) { this->move(PINCH_CLOSING); });
+    _menu->add_item("Open pinch ", "op", [this](QString) { this->move(PINCH_OPENING); });
+    _menu->add_item("Triple Pinch posture", "tp", [this](QString) { this->setPosture(TRIPLE_PINCH_POSTURE); });
+    _menu->add_item("Close triple pinch", "ctp", [this](QString) { this->move(TRIPLE_PINCH_CLOSING); });
+    _menu->add_item("Open triple pinch ", "otp", [this](QString) { this->move(TRIPLE_PINCH_OPENING); });
+    _menu->add_item("Open forefinger ", "off", [this](QString) { this->move(FOREFINGER_OPENING); });
 }
 
 TouchBionicsHand::~TouchBionicsHand()
@@ -183,9 +182,4 @@ void TouchBionicsHand::move(int action)
     }
 
     _last_action = action;
-}
-
-ConsoleMenu& TouchBionicsHand::menu()
-{
-    return _menu;
 }

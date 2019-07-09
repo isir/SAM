@@ -1,12 +1,12 @@
 #include "osmer_elbow.h"
 
-OsmerElbow::OsmerElbow(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Osmer", mqtt)
+OsmerElbow::OsmerElbow()
+    : Actuator("Osmer")
 {
     connect("/dev/ttyAMA0", B230400, 0x80, RoboClaw::M1);
 
-    _menu.set_title(QString("Custom Elbow - ") + read_firmware_version());
-    _menu.set_code(QString("elbow"));
+    _menu->set_description(QString("Custom Elbow - ") + read_firmware_version());
+    _menu->set_code(QString("elbow"));
 
     read_params_limits(-100., 0.);
     read_params_technical(23422, 100);

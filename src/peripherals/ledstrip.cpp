@@ -25,7 +25,6 @@ LedStrip::~LedStrip()
 
 void LedStrip::set(QVector<color> colors)
 {
-    //stop_sequence();
     send_opening_bytes();
     foreach (color c, colors) {
         send_color_bytes(c);
@@ -35,7 +34,6 @@ void LedStrip::set(QVector<color> colors)
 
 void LedStrip::set(color c, unsigned int n)
 {
-    //stop_sequence();
     send_opening_bytes();
     for (unsigned int i = 0; i < n; ++i) {
         send_color_bytes(c);

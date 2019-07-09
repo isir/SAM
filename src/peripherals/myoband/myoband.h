@@ -3,16 +3,18 @@
 
 #include "myoLinux/myoclient.h"
 #include "myoLinux/serial.h"
+#include "ui/mqtt_user.h"
+#include <QMqttClient>
 #include <QMutex>
 #include <QTimer>
 #include <QVector>
 #include <control/basic_controller.h>
 #include <eigen3/Eigen/Dense>
 
-class Myoband : public BasicController {
+class Myoband : public BasicController, public MqttUser {
     Q_OBJECT
 public:
-    Myoband(std::shared_ptr<QMqttClient> mqtt);
+    Myoband();
     ~Myoband();
 
     bool setup();
@@ -51,7 +53,6 @@ private:
     myolinux::Serial _serial;
     myolinux::myo::Client* _client;
     QMutex _mutex;
-    std::shared_ptr<QMqttClient> _mqtt;
     QTimer _mqtt_timer;
 
     QVector<qint8> _emgs;

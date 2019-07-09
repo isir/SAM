@@ -2,16 +2,15 @@
 #define ACTUATOR_H
 
 #include "peripherals/roboclaw/roboclaw.h"
-#include "ui/console_menu.h"
+#include "ui/menu_user.h"
 #include "utils/settings.h"
 #include <QString>
 
-class Actuator : public RC::RoboClaw {
+class Actuator : public RC::RoboClaw, public MenuUser {
     Q_OBJECT
 public:
-    Actuator(QString name, std::shared_ptr<QMqttClient> mqtt);
-
-    const ConsoleMenu& menu() { return _menu; }
+    Actuator(QString name);
+    virtual ~Actuator() {}
 
     void connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel);
 
@@ -21,7 +20,7 @@ public:
     using RoboClaw::RoboClaw::move_to;
     void move_to(double deg, double speed, bool block = false);
     void set_velocity(double deg_s);
-    void set_velocity_safe(double deg_s);
+    virtual void set_velocity_safe(double deg_s);
 
 protected:
     void calibrate(double velocity_deg_s, double final_pos, double velocity_threshold_deg_s, bool use_velocity_control = true);
@@ -31,7 +30,6 @@ protected:
     void read_params_position(double default_kp, double default_ki, double default_kd, double default_i_max, int default_deadzone, int default_lower_limit, int default_upper_limit);
 
     Settings _settings;
-    ConsoleMenu _menu;
 
 protected slots:
     virtual void on_exit();

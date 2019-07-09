@@ -1,14 +1,12 @@
 #include "pronosupination.h"
-#include "peripherals/roboclaw/factory.h"
-#include <iostream>
 
-PronoSupination::PronoSupination(std::shared_ptr<QMqttClient> mqtt)
-    : Actuator("Pronosupination", mqtt)
+PronoSupination::PronoSupination()
+    : Actuator("Pronosupination")
 {
     connect("/dev/ttyAMA0", B230400, 0x80, RoboClaw::M2);
 
-    _menu.set_title(QString("Pronosupination - ") + read_firmware_version());
-    _menu.set_code(QString("pronosup"));
+    _menu->set_description(QString("Pronosupination - ") + read_firmware_version());
+    _menu->set_code(QString("pronosup"));
 
     read_params_limits(-100., 0.);
     read_params_technical(23422, 100);

@@ -6,16 +6,18 @@
 #include "control/matlab_receiver.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
-#include "ui/console_menu.h"
+#include "ui/menu_backend.h"
+#include "ui/menu_console.h"
+#include "ui/menu_mqtt.h"
+#include "ui/mqtt_user.h"
 #include "utils/logger.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include "utils/system_monitor.h"
 #include <QCoreApplication>
-#include <QMqttClient>
 #include <QObject>
 
-class SAManager : public QObject {
+class SAManager : public QObject, public MqttUser {
     Q_OBJECT
 public:
     explicit SAManager(QCoreApplication* a, QObject* parent = nullptr);
@@ -24,21 +26,25 @@ public:
     static std::shared_ptr<Logger> log() { return _log; }
 
 private:
-    static std::shared_ptr<QMqttClient> _mqtt;
+    void internal_init();
+    void fill_menus();
+    void instanciate_controllers();
+    void autostart_demo();
+
     static std::shared_ptr<Logger> _log;
 
-    std::shared_ptr<SystemMonitor> _sm;
+    std::unique_ptr<VoluntaryControl> _vc;
+    std::unique_ptr<CompensationOptitrack> _opti;
+    std::unique_ptr<RemoteComputerControl> _rm;
+    std::unique_ptr<MatlabReceiver> _mr;
+    std::unique_ptr<Demo> _demo;
+    std::unique_ptr<SystemMonitor> _sm;
 
-    std::shared_ptr<VoluntaryControl> _vc;
-    std::shared_ptr<CompensationOptitrack> _opti;
-    std::shared_ptr<RemoteComputerControl> _rm;
-    std::shared_ptr<MatlabReceiver> _mr;
-    std::shared_ptr<Demo> _demo;
+    std::unique_ptr<MenuBackend> _main_menu;
+    std::unique_ptr<MenuMQTT> _menu_mqtt_binding;
+    std::unique_ptr<MenuConsole> _menu_console_binding;
 
-    std::shared_ptr<ConsoleMenu> _main_menu;
-    std::shared_ptr<ConsoleMenu> _buzzer_submenu;
-
-    SAM::Components _robot;
+    std::shared_ptr<SAM::Components> _robot;
 
     Settings _settings;
 

@@ -2,13 +2,11 @@
 #define REMOTECOMPUTERCONTROL_H
 
 #include "basic_controller.h"
-#include "ui/console_menu.h"
 #include "utils/sam.h"
-#include "utils/settings.h"
 
 class RemoteComputerControl : public BasicController {
 public:
-    explicit RemoteComputerControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    explicit RemoteComputerControl(std::shared_ptr<SAM::Components> robot);
     ~RemoteComputerControl();
 
 private:
@@ -16,8 +14,7 @@ private:
     void loop(double dt, double time);
     void cleanup();
 
-    SAM::Components _robot;
-    Settings _settings;
+    std::shared_ptr<SAM::Components> _robot;
 };
 
 #endif // REMOTECOMPUTERCONTROL_H

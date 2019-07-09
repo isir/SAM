@@ -1,23 +1,22 @@
 #ifndef SYSTEMMONITOR_H
 #define SYSTEMMONITOR_H
 
+#include "ui/mqtt_user.h"
 #include <QFile>
-#include <QMqttClient>
 #include <QObject>
 #include <QTimer>
 #include <memory>
 
-class SystemMonitor : public QObject {
+class SystemMonitor : public QObject, public MqttUser {
     Q_OBJECT
 public:
-    explicit SystemMonitor(std::shared_ptr<QMqttClient> mqtt, QObject* parent = nullptr);
+    explicit SystemMonitor(QObject* parent = nullptr);
     void start();
 
 private:
     QFile _stat_file;
     QFile _temp_file;
     QTimer _timer;
-    std::shared_ptr<QMqttClient> _mqtt;
 
 private slots:
     void timer_callback();
