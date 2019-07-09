@@ -21,6 +21,7 @@ private:
     void tare_IMU();
     void receiveData();
     void listenArduino();
+    void displayArduino();
     bool setup();
     void loop(double dt, double time);
     void cleanup();
@@ -42,6 +43,8 @@ private:
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;
     int _pinArduino;
+    int _pin_up;
+    int _pin_down;
 };
 
 #endif // COMPENSATION_IMU_H
