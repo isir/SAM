@@ -1,13 +1,13 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-#include "basic_controller.h"
+#include "threaded_loop.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QFile>
 
-class VoluntaryControl : public BasicController {
+class VoluntaryControl : public ThreadedLoop {
     Q_OBJECT
 public:
     explicit VoluntaryControl(std::shared_ptr<SAM::Components> robot);

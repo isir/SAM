@@ -1,9 +1,10 @@
 #ifndef MQTT_USER_H
 #define MQTT_USER_H
 
+#include "utils/named_object.h"
 #include <QMqttClient>
 
-class MqttUser {
+class MqttUser : public NamedObject {
 public:
     typedef enum {
         AUTOCONNECT,

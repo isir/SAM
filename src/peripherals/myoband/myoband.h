@@ -8,10 +8,10 @@
 #include <QMutex>
 #include <QTimer>
 #include <QVector>
-#include <control/basic_controller.h>
+#include <control/threaded_loop.h>
 #include <eigen3/Eigen/Dense>
 
-class Myoband : public BasicController, public MqttUser {
+class Myoband : public ThreadedLoop, public MqttUser {
     Q_OBJECT
 public:
     Myoband();

@@ -9,11 +9,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 HEADERS += \
     src/control/algorithms/lawopti.h \
     src/control/algorithms/myocontrol.h \
-    src/control/basic_controller.h \
     src/control/compensation_optitrack.h \
     src/control/demo.h \
     src/control/matlab_receiver.h \
     src/control/remote_computer_control.h \
+    src/control/threaded_loop.h \
     src/control/voluntary_control.h \
     src/peripherals/actuators/actuator.h \
     src/peripherals/actuators/custom_elbow.h \
@@ -55,6 +55,7 @@ HEADERS += \
     src/ui/mqtt_user.h \
     src/utils/check_ptr.h \
     src/utils/logger.h \
+    src/utils/named_object.h \
     src/utils/opti_listener.h \
     src/utils/sam.h \
     src/utils/samanager.h \
@@ -63,10 +64,10 @@ HEADERS += \
     src/utils/system_monitor.h
 
 SOURCES += \
+    src/control/threaded_loop.cpp \
     src/main.cpp \
     src/control/algorithms/lawopti.cpp \
     src/control/algorithms/myocontrol.cpp \
-    src/control/basic_controller.cpp \
     src/control/compensation_optitrack.cpp \
     src/control/demo.cpp \
     src/control/matlab_receiver.cpp \
@@ -101,6 +102,7 @@ SOURCES += \
     src/ui/menu_user.cpp \
     src/ui/mqtt_user.cpp \
     src/utils/logger.cpp \
+    src/utils/named_object.cpp \
     src/utils/opti_listener.cpp \
     src/utils/sam.cpp \
     src/utils/samanager.cpp \

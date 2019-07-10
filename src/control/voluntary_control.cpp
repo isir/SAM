@@ -8,7 +8,7 @@
 #include <wiringPi.h>
 
 VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
-    : BasicController()
+    : ThreadedLoop("Voluntary control")
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation)) {

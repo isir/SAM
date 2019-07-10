@@ -10,7 +10,7 @@
 #define FULL_MYO_FINGERS 2
 
 Demo::Demo(std::shared_ptr<SAM::Components> robot)
-    : BasicController(.01)
+    : ThreadedLoop("Demo", .01)
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {

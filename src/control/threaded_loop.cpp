@@ -1,4 +1,4 @@
-#include "basic_controller.h"
+#include "threaded_loop.h"
 #include <QDebug>
 #include <QMutexLocker>
 
@@ -16,53 +16,54 @@ static double timespec_diff(struct timespec* start, struct timespec* stop)
     return result.tv_sec + (result.tv_nsec * 1e-9);
 }
 
-BasicController::BasicController(double period_s)
-    : _period_s(period_s)
+ThreadedLoop::ThreadedLoop(QString name, double period_s)
+    : NamedObject(name)
+    , _period_s(period_s)
     , _pref_cpu(0)
     , _prio(20)
 {
-    QObject::connect(_menu.get(), &MenuBackend::finished, this, &BasicController::stop);
+    QObject::connect(_menu.get(), &MenuBackend::finished, this, &ThreadedLoop::stop);
     _menu->add_item("start", "Start loop", [this](QString) { this->start(); });
     _menu->add_item("stop", "Stop loop", [this](QString) { this->stop(); });
 }
 
-BasicController::~BasicController()
+ThreadedLoop::~ThreadedLoop()
 {
     stop();
 }
 
-void BasicController::set_period(double seconds)
+void ThreadedLoop::set_period(double seconds)
 {
     QMutexLocker locker(&_mutex);
     _period_s = seconds;
 }
 
-void BasicController::set_preferred_cpu(int cpu)
+void ThreadedLoop::set_preferred_cpu(int cpu)
 {
     QMutexLocker locker(&_mutex);
     _pref_cpu = cpu;
 }
 
-void BasicController::set_prio(int prio)
+void ThreadedLoop::set_prio(int prio)
 {
     QMutexLocker locker(&_mutex);
     _prio = prio;
 }
 
-void BasicController::enable_watchdog(int timeout_ms)
+void ThreadedLoop::enable_watchdog(int timeout_ms)
 {
-    QObject::disconnect(this, &BasicController::ping, &_watchdog_timer, qOverload<>(&QTimer::start));
-    QObject::disconnect(&_watchdog_timer, &QTimer::timeout, this, &BasicController::unresponsive_callback);
+    QObject::disconnect(this, &ThreadedLoop::ping, &_watchdog_timer, qOverload<>(&QTimer::start));
+    QObject::disconnect(&_watchdog_timer, &QTimer::timeout, this, &ThreadedLoop::unresponsive_callback);
 
     if (timeout_ms > 0) {
         _watchdog_timer.setInterval(timeout_ms);
         _watchdog_timer.setSingleShot(true);
-        QObject::connect(this, &BasicController::ping, &_watchdog_timer, qOverload<>(&QTimer::start));
-        QObject::connect(&_watchdog_timer, &QTimer::timeout, this, &BasicController::unresponsive_callback);
+        QObject::connect(this, &ThreadedLoop::ping, &_watchdog_timer, qOverload<>(&QTimer::start));
+        QObject::connect(&_watchdog_timer, &QTimer::timeout, this, &ThreadedLoop::unresponsive_callback);
     }
 }
 
-void BasicController::stop()
+void ThreadedLoop::stop()
 {
     if (isRunning()) {
         QMutexLocker locker(&_mutex);
@@ -70,13 +71,13 @@ void BasicController::stop()
     }
 }
 
-void BasicController::unresponsive_callback()
+void ThreadedLoop::unresponsive_callback()
 {
     terminate();
     qCritical() << "Watchdog timed out, current thread was terminated.";
 }
 
-void BasicController::run()
+void ThreadedLoop::run()
 {
     double dt = 0;
     unsigned int cnt = 0;
@@ -115,7 +116,7 @@ void BasicController::run()
             next_period.tv_nsec -= 1e9;
         }
 
-        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_period, NULL);
+        clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next_period, nullptr);
         dt = timespec_diff(&prev_period, &next_period);
         clock_gettime(CLOCK_MONOTONIC, &prev_period);
 
@@ -136,5 +137,5 @@ void BasicController::run()
     }
     cleanup();
     enable_watchdog(-1);
-    qInfo() << "Thread finished - Avg loop time = " << avg * 1000. << "ms, min = " << min * 1000. << "ms, max = " << max * 1000. << "ms";
+    qInfo() << name() << "- Thread finished - Avg loop time = " << avg * 1000. << "ms, min = " << min * 1000. << "ms, max = " << max * 1000. << "ms";
 }

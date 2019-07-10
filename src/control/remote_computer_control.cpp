@@ -2,7 +2,7 @@
 #include "utils/check_ptr.h"
 
 RemoteComputerControl::RemoteComputerControl(std::shared_ptr<SAM::Components> robot)
-    : BasicController(.01)
+    : ThreadedLoop("Remote computer control", .01)
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {

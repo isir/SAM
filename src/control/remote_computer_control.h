@@ -1,10 +1,10 @@
 #ifndef REMOTECOMPUTERCONTROL_H
 #define REMOTECOMPUTERCONTROL_H
 
-#include "basic_controller.h"
+#include "threaded_loop.h"
 #include "utils/sam.h"
 
-class RemoteComputerControl : public BasicController {
+class RemoteComputerControl : public ThreadedLoop {
 public:
     explicit RemoteComputerControl(std::shared_ptr<SAM::Components> robot);
     ~RemoteComputerControl();

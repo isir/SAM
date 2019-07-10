@@ -2,6 +2,7 @@
 #include "utils/settings.h"
 
 MqttUser::MqttUser(QString client_id, Autoconnection autoconnect)
+    : NamedObject(client_id)
 {
     _mqtt.setClientId(client_id);
     if (autoconnect == AUTOCONNECT) {
@@ -19,7 +20,7 @@ void MqttUser::connect_to_mqtt_server()
 
     s.beginGroup("MQTT");
     _mqtt.setHostname(s.value("hostname", "127.0.0.1").toString());
-    _mqtt.setPort(s.value("port", 1883).toInt());
+    _mqtt.setPort(static_cast<quint16>(s.value("port", 1883).toUInt()));
     _mqtt.connectToHost();
     s.endGroup();
 }

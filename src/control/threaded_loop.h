@@ -2,17 +2,18 @@
 #define BASICCONTROLLER_H
 
 #include "ui/menu_user.h"
+#include "utils/named_object.h"
 #include <QMutex>
 #include <QString>
 #include <QThread>
 #include <QTimer>
 #include <memory>
 
-class BasicController : public QThread, public MenuUser {
+class ThreadedLoop : public QThread, public NamedObject, public MenuUser {
     Q_OBJECT
 public:
-    BasicController(double period_s = 1);
-    virtual ~BasicController();
+    ThreadedLoop(QString name, double period_s = 1);
+    virtual ~ThreadedLoop();
 
     void set_period(double seconds);
     void set_preferred_cpu(int cpu);

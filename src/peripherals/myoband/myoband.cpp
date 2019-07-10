@@ -3,7 +3,7 @@
 #include <QMutexLocker>
 
 Myoband::Myoband()
-    : BasicController(0.0025)
+    : ThreadedLoop("Myoband", 0.0025)
     , MqttUser("Myoband")
     , _serial("/dev/myoband", 115200)
     , _client(nullptr)
