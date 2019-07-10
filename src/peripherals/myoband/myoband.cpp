@@ -112,6 +112,36 @@ bool Myoband::connected()
     }
 }
 
+QVector<qint8> Myoband::get_emgs()
+{
+    QMutexLocker lock(&_mutex);
+    return _emgs;
+}
+
+QVector<qint32> Myoband::get_emgs_rms()
+{
+    QMutexLocker lock(&_mutex);
+    return _emgs_rms;
+}
+
+Eigen::Quaterniond Myoband::get_imu()
+{
+    QMutexLocker lock(&_mutex);
+    return _imu;
+}
+
+Eigen::Vector3d Myoband::get_acc()
+{
+    QMutexLocker lock(&_mutex);
+    return _acc;
+}
+
+Eigen::Vector3d Myoband::get_gyro()
+{
+    QMutexLocker lock(&_mutex);
+    return _gyro;
+}
+
 void Myoband::mqtt_timer_callback()
 {
     if (connected()) {

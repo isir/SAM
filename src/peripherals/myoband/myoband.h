@@ -5,7 +5,6 @@
 #include "myoLinux/serial.h"
 #include "ui/mqtt_user.h"
 #include <QMqttClient>
-#include <QMutex>
 #include <QTimer>
 #include <QVector>
 #include <control/threaded_loop.h>
@@ -23,36 +22,15 @@ public:
 
     bool connected();
 
-    QVector<qint8> get_emgs()
-    {
-        QMutexLocker lock(&_mutex);
-        return _emgs;
-    }
-    QVector<qint32> get_emgs_rms()
-    {
-        QMutexLocker lock(&_mutex);
-        return _emgs_rms;
-    }
-    Eigen::Quaterniond get_imu()
-    {
-        QMutexLocker lock(&_mutex);
-        return _imu;
-    }
-    Eigen::Vector3d get_acc()
-    {
-        QMutexLocker lock(&_mutex);
-        return _acc;
-    }
-    Eigen::Vector3d get_gyro()
-    {
-        QMutexLocker lock(&_mutex);
-        return _gyro;
-    }
+    QVector<qint8> get_emgs();
+    QVector<qint32> get_emgs_rms();
+    Eigen::Quaterniond get_imu();
+    Eigen::Vector3d get_acc();
+    Eigen::Vector3d get_gyro();
 
 private:
     myolinux::Serial _serial;
     myolinux::myo::Client* _client;
-    QMutex _mutex;
     QTimer _mqtt_timer;
 
     QVector<qint8> _emgs;
