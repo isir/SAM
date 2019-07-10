@@ -16,10 +16,6 @@ public:
     Myoband();
     ~Myoband();
 
-    bool setup();
-    void loop(double dt, double time);
-    void cleanup();
-
     bool connected();
 
     QVector<qint8> get_emgs();
@@ -29,6 +25,10 @@ public:
     Eigen::Vector3d get_gyro();
 
 private:
+    bool setup();
+    void loop(double dt, double time);
+    void cleanup();
+
     myolinux::Serial _serial;
     myolinux::myo::Client* _client;
     QTimer _mqtt_timer;
