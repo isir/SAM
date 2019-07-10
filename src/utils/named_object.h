@@ -14,7 +14,7 @@ public:
         return _name;
     }
 
-private:
+protected:
     QString _name;
     QList<QString> _parents;
 };
