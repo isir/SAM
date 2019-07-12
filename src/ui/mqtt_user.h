@@ -16,7 +16,7 @@ public:
     void connect_to_mqtt_server();
 
 protected:
-    MqttUser(QString client_id, Autoconnection autoconnect = AUTOCONNECT);
+    MqttUser(QString client_id, Autoconnection autoconnect = AUTOCONNECT, NamedObject* parent = nullptr);
 
     QMqttClient _mqtt;
 };

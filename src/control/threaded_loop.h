@@ -3,6 +3,7 @@
 
 #include "ui/menu_user.h"
 #include "utils/named_object.h"
+#include "utils/param.h"
 #include <QMutex>
 #include <QString>
 #include <QThread>
@@ -38,9 +39,9 @@ protected slots:
 private:
     void run();
 
-    double _period_s;
-    int _pref_cpu;
-    int _prio;
+    Param<double> _period_s;
+    Param<int> _pref_cpu;
+    Param<int> _prio;
     QTimer _watchdog_timer;
 
 signals:

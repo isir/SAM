@@ -57,6 +57,7 @@ HEADERS += \
     src/utils/logger.h \
     src/utils/named_object.h \
     src/utils/opti_listener.h \
+    src/utils/param.h \
     src/utils/sam.h \
     src/utils/samanager.h \
     src/utils/serial_port.h \
@@ -104,6 +105,7 @@ SOURCES += \
     src/utils/logger.cpp \
     src/utils/named_object.cpp \
     src/utils/opti_listener.cpp \
+    src/utils/param.cpp \
     src/utils/sam.cpp \
     src/utils/samanager.cpp \
     src/utils/serial_port.cpp \

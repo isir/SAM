@@ -1,8 +1,8 @@
 #include "mqtt_user.h"
 #include "utils/settings.h"
 
-MqttUser::MqttUser(QString client_id, Autoconnection autoconnect)
-    : NamedObject(client_id)
+MqttUser::MqttUser(QString client_id, Autoconnection autoconnect, NamedObject* parent)
+    : NamedObject(client_id, parent)
 {
     _mqtt.setClientId(client_id);
     if (autoconnect == AUTOCONNECT) {

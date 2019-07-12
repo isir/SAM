@@ -18,9 +18,9 @@ static double timespec_diff(struct timespec* start, struct timespec* stop)
 
 ThreadedLoop::ThreadedLoop(QString name, double period_s)
     : NamedObject(name)
-    , _period_s(period_s)
-    , _pref_cpu(0)
-    , _prio(20)
+    , _period_s("period_s", this, period_s)
+    , _pref_cpu("pref_cpu", this, 0)
+    , _prio("prio", this, 20)
 {
     QObject::connect(_menu.get(), &MenuBackend::finished, this, &ThreadedLoop::stop);
     _menu->add_item("start", "Start loop", [this](QString) { this->start(); });
@@ -87,29 +87,16 @@ void ThreadedLoop::run()
 
     emit ping();
 
-    _mutex.lock();
-
-    cpu_set_t set;
-    CPU_ZERO(&set);
-    CPU_SET(_pref_cpu, &set);
-    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
-
-    struct sched_param sp = {};
-    sp.sched_priority = _prio;
-    sched_setscheduler(0, SCHED_RR, &sp);
-
-    _mutex.unlock();
-
     if (!setup()) {
         return;
     }
 
-    long period_ns = qRound(_period_s * 1e9);
     struct timespec prev_period, next_period;
     clock_gettime(CLOCK_MONOTONIC, &prev_period);
     next_period = prev_period;
 
     while (true) {
+        long period_ns = qRound(_period_s * 1e9);
         next_period.tv_nsec += period_ns;
         while (next_period.tv_nsec >= 1e9) {
             next_period.tv_sec++;
@@ -132,6 +119,20 @@ void ThreadedLoop::run()
         avg = (avg * (cnt - 1) + dt) / cnt;
 
         QMutexLocker locker(&_mutex);
+
+        if (_pref_cpu.changed()) {
+            cpu_set_t set;
+            CPU_ZERO(&set);
+            CPU_SET(_pref_cpu, &set);
+            pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &set);
+        }
+
+        if (_prio.changed()) {
+            struct sched_param sp = {};
+            sp.sched_priority = _prio;
+            sched_setscheduler(0, SCHED_RR, &sp);
+        }
+
         if (!_loop_condition)
             break;
     }
