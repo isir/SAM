@@ -1,10 +1,11 @@
 #include "mqtt_user.h"
 #include "utils/settings.h"
+#include <QUuid>
 
 MqttUser::MqttUser(QString client_id, Autoconnection autoconnect, NamedObject* parent)
     : NamedObject(client_id, parent)
 {
-    _mqtt.setClientId(client_id);
+    _mqtt.setClientId(client_id + QUuid::createUuid().toString(QUuid::Id128));
     if (autoconnect == AUTOCONNECT) {
         connect_to_mqtt_server();
     }
