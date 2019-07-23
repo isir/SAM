@@ -100,7 +100,7 @@ void Actuator::calibrate(double velocity_deg_s, double final_pos, double velocit
     }
 
     t.start();
-    while ((qAbs(read_encoder_speed()) < calib_velocity_threshold) && t.elapsed() < 500)
+    while ((qAbs(read_encoder_speed()) < calib_velocity_threshold) || t.elapsed() < 500)
         QCoreApplication::processEvents();
     while (qAbs(read_encoder_speed()) > calib_velocity_threshold)
         QCoreApplication::processEvents();
