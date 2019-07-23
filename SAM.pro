@@ -116,7 +116,7 @@ INCLUDEPATH += src/
 
 QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard
 
-LIBS += -lwiringPi -li2c -lboost_thread -lboost_system
+LIBS += -lwiringPi -li2c -lboost_thread -lboost_system -lespeak
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
