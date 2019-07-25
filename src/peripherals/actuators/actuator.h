@@ -6,18 +6,18 @@
 #include "utils/settings.h"
 #include <QString>
 
-class Actuator : public RC::RoboClaw, public MenuUser {
+class Actuator : public QObject, public RC::RoboClaw, public MenuUser {
     Q_OBJECT
 public:
     Actuator(QString name);
     virtual ~Actuator() {}
 
-    void connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel);
+    void connect(QString default_port_name, unsigned int default_baudrate, int default_address, RC::RoboClaw::Channel default_channel);
 
     virtual void calibrate() {}
 
     double pos();
-    using RoboClaw::RoboClaw::move_to;
+    using RC::RoboClaw::move_to;
     void move_to(double deg, double speed, bool block = false);
     void set_velocity(double deg_s);
     virtual void set_velocity_safe(double deg_s);

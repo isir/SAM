@@ -1,9 +1,10 @@
 #include "roboclaw.h"
 #include "cast_helper.h"
 #include "factory.h"
+#include <cmath>
 
-#include <QDebug>
-#include <QTime>
+#define ff_answer std::make_shared<Answer::ExactMatch>(std::vector<std::byte>(1, std::byte { 0xff }))
+#define crc_answer std::make_shared<Answer::EndsWithCRC>()
 
 RC::RoboClaw::RoboClaw()
     : _address(0x80)
@@ -15,151 +16,179 @@ RC::RoboClaw::~RoboClaw()
 {
 }
 
-void RC::RoboClaw::init(QString port_name, unsigned int baudrate, quint8 address, Channel channel)
+void RC::RoboClaw::init(std::string port_name, unsigned int baudrate, uint8_t address, Channel channel)
 {
     _serial_port = Factory::get(port_name, baudrate);
     _address = address;
     _channel = channel;
 }
 
-void RC::RoboClaw::forward(quint8 value)
+void RC::RoboClaw::forward(uint8_t value)
 {
-    quint8 function_code = _channel == Channel::M1 ? 0 : 4;
-    send(Message(_address, function_code, CastHelper::from(value), "(\\xff)"));
+    std::vector<std::byte>(1, std::byte { 0xff });
+    send(Message(_address, get_fn_code(0, 4), ff_answer, CastHelper::from(value)));
 }
 
-void RC::RoboClaw::backward(quint8 value)
+void RC::RoboClaw::backward(uint8_t value)
 {
-    quint8 function_code = _channel == Channel::M1 ? 1 : 5;
-    send(Message(_address, function_code, CastHelper::from(value), "(\\xff)"));
+    send(Message(_address, get_fn_code(1, 5), ff_answer, CastHelper::from(value)));
 }
 
-qint32 RC::RoboClaw::read_encoder_position()
+int32_t RC::RoboClaw::read_encoder_position()
 {
-    quint8 function_code = _channel == Channel::M1 ? 16 : 17;
-    return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}", false)));
+    return CastHelper::to<int32_t>(send(Message(_address, get_fn_code(16, 17), crc_answer, std::vector<std::byte>(), false)));
 }
 
-qint32 RC::RoboClaw::read_encoder_speed()
+int32_t RC::RoboClaw::read_encoder_speed()
 {
-    quint8 function_code = _channel == Channel::M1 ? 30 : 31;
-    return CastHelper::to<qint32>(send(Message(_address, function_code, QByteArray(), "(.{5}).{2}", false)));
+    return CastHelper::to<int32_t>(send(Message(_address, get_fn_code(30, 31), crc_answer, std::vector<std::byte>(), false)));
 }
 
-void RC::RoboClaw::set_velocity(qint32 value)
+void RC::RoboClaw::set_velocity(int32_t value)
 {
-    quint8 function_code = _channel == Channel::M1 ? 35 : 36;
-    send(Message(_address, function_code, CastHelper::from(value), "(\\xff)"));
+    send(Message(_address, get_fn_code(36, 36), ff_answer, CastHelper::from(value)));
 }
 
-QString RC::RoboClaw::read_firmware_version()
+std::string RC::RoboClaw::read_firmware_version()
 {
-    return QString::fromLatin1(send(Message(_address, 21, QByteArray(), "(.{,48})\\n\\x00.{2}", false)));
+    std::vector<std::byte> ans = send(Message(_address, 21, crc_answer, std::vector<std::byte>(), false));
+    std::string ret;
+    for (auto b : ans) {
+        ret.push_back(static_cast<char>(b));
+    }
+    return ret.substr(0, ret.find('\n'));
 }
 
-void RC::RoboClaw::set_encoder_position(qint32 value)
+void RC::RoboClaw::set_encoder_position(int32_t value)
 {
-    quint8 function_code = _channel == Channel::M1 ? 22 : 23;
-    send(Message(_address, function_code, CastHelper::from(static_cast<quint32>(value)), "(\\xff)"));
+    send(Message(_address, get_fn_code(22, 23), ff_answer, CastHelper::from(static_cast<uint32_t>(value))));
 }
 
 double RC::RoboClaw::read_main_battery_voltage()
 {
-    return .1 * CastHelper::to<quint16>(send(Message(_address, 24, QByteArray(), "(.{2}).{2}")));
+    return .1 * CastHelper::to<uint16_t>(send(Message(_address, 24, crc_answer, std::vector<std::byte>())));
 }
 
 double RC::RoboClaw::read_current()
 {
-    QByteArray buf = send(Message(_address, 49, QByteArray(), "(.{4}).{2}", false));
+    std::vector<std::byte> buf = send(Message(_address, 49, crc_answer, std::vector<std::byte>(), false));
     if (_channel == M1)
-        return CastHelper::to<qint16>(buf) / 100.;
+        return CastHelper::to<int16_t>(buf) / 100.;
     else {
-        return CastHelper::to<qint16>(buf.mid(2)) / 100.;
+        return CastHelper::to<int16_t>(std::vector<std::byte>(buf.begin() + 2, buf.end())) / 100.;
     }
 }
 
 void RC::RoboClaw::set_velocity_pid(velocity_pid_params_t params)
 {
-    quint8 function_code = _channel == Channel::M1 ? 28 : 29;
-    send(Message(_address, function_code, CastHelper::from(static_cast<quint32>(qRound(65536 * params.d))) + CastHelper::from(static_cast<quint32>(qRound(65536 * params.p))) + CastHelper::from(static_cast<quint32>(qRound(65536 * params.i))) + CastHelper::from(params.qpps), "(\\xff)"));
+    std::vector<std::byte> tmp, payload;
+    tmp = CastHelper::from(static_cast<uint32_t>(std::round(65536 * params.d)));
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(static_cast<uint32_t>(std::round(65536 * params.p)));
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(static_cast<uint32_t>(std::round(65536 * params.i)));
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(params.qpps);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    send(Message(_address, get_fn_code(28, 29), ff_answer, payload));
 }
 
 RC::velocity_pid_params_t RC::RoboClaw::read_velocity_pid()
 {
-    quint8 function_code = _channel == Channel::M1 ? 55 : 56;
     velocity_pid_params_t ret;
-    QByteArray buf = send(Message(_address, function_code, QByteArray(), "(.{16}).{2}", false));
-    ret.p = static_cast<float>(CastHelper::to<quint32>(buf) / 65536.);
-    buf.remove(0, 4);
-    ret.i = static_cast<float>(CastHelper::to<quint32>(buf) / 65536.);
-    buf.remove(0, 4);
-    ret.d = static_cast<float>(CastHelper::to<quint32>(buf) / 65536.);
-    buf.remove(0, 4);
-    ret.qpps = CastHelper::to<quint32>(buf);
+    std::vector<std::byte> buf = send(Message(_address, get_fn_code(55, 56), crc_answer, std::vector<std::byte>(), false));
+    ret.p = static_cast<float>(CastHelper::to<uint32_t>(buf) / 65536.);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.i = static_cast<float>(CastHelper::to<uint32_t>(buf) / 65536.);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.d = static_cast<float>(CastHelper::to<uint32_t>(buf) / 65536.);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.qpps = CastHelper::to<uint32_t>(buf);
     return ret;
 }
 
 void RC::RoboClaw::set_position_pid(position_pid_params_t params)
 {
-    quint8 function_code = _channel == Channel::M1 ? 61 : 62;
-    send(Message(_address, function_code, CastHelper::from(static_cast<quint32>(qRound(1024 * params.d))) + CastHelper::from(static_cast<quint32>(qRound(1024 * params.p))) + CastHelper::from(static_cast<quint32>(qRound(1024 * params.i))) + CastHelper::from(params.i_max) + CastHelper::from(params.deadzone) + CastHelper::from(params.min_pos) + CastHelper::from(params.max_pos), "(\\xff)"));
+    std::vector<std::byte> tmp, payload;
+    tmp = CastHelper::from(static_cast<uint32_t>(std::round(1024 * params.d)));
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(static_cast<uint32_t>(std::round(1024 * params.p)));
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(static_cast<uint32_t>(std::round(1024 * params.i)));
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(params.i_max);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(params.deadzone);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(params.min_pos);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(params.max_pos);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    send(Message(_address, get_fn_code(61, 62), ff_answer, payload));
 }
 
 RC::position_pid_params_t RC::RoboClaw::read_position_pid()
 {
-    quint8 function_code = _channel == Channel::M1 ? 63 : 64;
     position_pid_params_t ret;
-    QByteArray buf = send(Message(_address, function_code, QByteArray(), "(.{28}).{2}", false));
-    ret.p = static_cast<float>(CastHelper::to<quint32>(buf) / 1024.);
-    buf.remove(0, 4);
-    ret.i = static_cast<float>(CastHelper::to<quint32>(buf) / 1024.);
-    buf.remove(0, 4);
-    ret.d = static_cast<float>(CastHelper::to<quint32>(buf) / 1024.);
-    buf.remove(0, 4);
-    ret.i_max = CastHelper::to<quint32>(buf);
-    buf.remove(0, 4);
-    ret.deadzone = CastHelper::to<quint32>(buf);
-    buf.remove(0, 4);
-    ret.min_pos = CastHelper::to<qint32>(buf);
-    buf.remove(0, 4);
-    ret.max_pos = CastHelper::to<qint32>(buf);
+    std::vector<std::byte> buf = send(Message(_address, get_fn_code(63, 64), crc_answer, std::vector<std::byte>(), false));
+    ret.p = static_cast<float>(CastHelper::to<uint32_t>(buf) / 1024.);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.i = static_cast<float>(CastHelper::to<uint32_t>(buf) / 1024.);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.d = static_cast<float>(CastHelper::to<uint32_t>(buf) / 1024.);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.i_max = CastHelper::to<uint32_t>(buf);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.deadzone = CastHelper::to<uint32_t>(buf);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.min_pos = CastHelper::to<int32_t>(buf);
+    buf.erase(buf.begin(), buf.begin() + 4);
+    ret.max_pos = CastHelper::to<int32_t>(buf);
     return ret;
 }
 
-void RC::RoboClaw::move_to(quint32 accel, quint32 speed, quint32 decel, qint32 pos)
+void RC::RoboClaw::move_to(int32_t accel, uint32_t speed, uint32_t decel, int32_t pos)
 {
-    quint8 function_code = _channel == Channel::M1 ? 65 : 66;
-    send(Message(_address, function_code, CastHelper::from(accel) + CastHelper::from(speed) + CastHelper::from(decel) + CastHelper::from(pos) + CastHelper::from<quint8>(1), "(\\xff)"));
+    std::vector<std::byte> tmp, payload;
+    tmp = CastHelper::from(accel);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(speed);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(decel);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(pos);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    CastHelper::from<uint8_t>(1);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    send(Message(_address, get_fn_code(65, 66), ff_answer, payload));
 }
 
-QByteArray RC::RoboClaw::send(const Message& msg)
+std::vector<std::byte> RC::RoboClaw::send(const Message& msg)
 {
     static const int to = 20;
-    QByteArray ret;
-    QTime t;
-    QRegExp rx(msg.regexp());
+    std::vector<std::byte> ret;
 
     _serial_port->take_ownership();
     _serial_port->read_all();
 
-    t.start();
+    auto start = std::chrono::steady_clock::now();
 
     _serial_port->write(msg.data());
 
     while (true) {
-        ret.append(_serial_port->read_all());
-        int pos = rx.indexIn(QString::fromLatin1(ret, ret.length()));
-        if (pos > -1 && rx.captureCount() > 0) {
-            ret = ret.mid(rx.pos(1), rx.cap(1).length());
+        std::vector<std::byte> tmp = _serial_port->read_all();
+        ret.insert(ret.end(), tmp.begin(), tmp.end());
+        if (msg.answer()->try_match(ret, msg.data())) {
             break;
         }
 
-        if (t.elapsed() >= to) {
+        auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+        if (elapsed_ms >= to) {
             _serial_port->release_ownership();
-            throw std::runtime_error(std::string("Request timed out: ") + msg.toString().toStdString() + " - Pattern is [" + msg.regexp().toStdString() + "] - Rx buffer contains [" + ret.toHex().toStdString() + "]");
+            throw std::runtime_error("Request timed out: " + msg.to_string());
         }
     }
 
     _serial_port->release_ownership();
-    return ret;
+    return msg.answer()->format(ret);
 }

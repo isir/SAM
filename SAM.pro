@@ -37,6 +37,7 @@ HEADERS += \
     src/peripherals/myoband/myoLinux/myolinux.h \
     src/peripherals/myoband/myoLinux/serial.h \
     src/peripherals/myoband/myoband.h \
+    src/peripherals/roboclaw/answer.h \
     src/peripherals/roboclaw/cast_helper.h \
     src/peripherals/roboclaw/factory.h \
     src/peripherals/roboclaw/message.h \
@@ -89,6 +90,7 @@ SOURCES += \
     src/peripherals/myoband/myoLinux/myoclient.cpp \
     src/peripherals/myoband/myoLinux/serial.cpp \
     src/peripherals/myoband/myoband.cpp \
+    src/peripherals/roboclaw/answer.cpp \
     src/peripherals/roboclaw/factory.cpp \
     src/peripherals/roboclaw/message.cpp \
     src/peripherals/roboclaw/roboclaw.cpp \
@@ -114,7 +116,7 @@ SOURCES += \
 
 INCLUDEPATH += src/
 
-QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard
+QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard -std=c++17
 
 LIBS += -lwiringPi -li2c -lboost_thread -lboost_system -lespeak
 

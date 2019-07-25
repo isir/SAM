@@ -1,24 +1,24 @@
 #ifndef TYPES_H
 #define TYPES_H
 
-#include <QtGlobal>
+#include <stdint.h>
 
 namespace RC {
 typedef struct {
     float p;
     float i;
     float d;
-    quint32 i_max;
-    quint32 deadzone;
-    qint32 min_pos;
-    qint32 max_pos;
+    uint32_t i_max;
+    uint32_t deadzone;
+    int32_t min_pos;
+    int32_t max_pos;
 } position_pid_params_t;
 
 typedef struct {
     float p;
     float i;
     float d;
-    quint32 qpps;
+    uint32_t qpps;
 } velocity_pid_params_t;
 }
 

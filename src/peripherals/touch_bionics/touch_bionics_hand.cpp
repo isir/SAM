@@ -6,7 +6,7 @@
 TouchBionicsHand::TouchBionicsHand()
     : _settings("TouchBionics")
 {
-    _sp.open(_settings.value("port_name", "/dev/touchbionics").toString(), B115200);
+    _sp.open(_settings.value("port_name", "/dev/touchbionics").toString().toStdString(), B115200);
 
     _speed = _settings.value("speed", 3).toInt();
     if (_speed < 0) {
@@ -53,7 +53,7 @@ void TouchBionicsHand::setPosture(POSTURE posture)
         cmd += "0";
     }
     cmd += QByteArray::number(posture) + "\r";
-    _sp.write(cmd);
+    _sp.write(cmd.data(), static_cast<unsigned int>(cmd.length()));
 
     switch (posture) {
     case HAND_POSTURE:

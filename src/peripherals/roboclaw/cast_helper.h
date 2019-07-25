@@ -1,13 +1,14 @@
 #ifndef CASTHELPER_H
 #define CASTHELPER_H
 
-#include <QByteArray>
+#include <cstddef>
+#include <vector>
 
 namespace RC {
 class CastHelper {
 public:
     template <typename T>
-    static T to(const QByteArray input)
+    static T to(const std::vector<std::byte>& input)
     {
         T ret = 0;
 
@@ -15,17 +16,17 @@ public:
             return ret;
 
         for (unsigned int i = 0; i < sizeof(T); ++i) {
-            ret = (ret << 8) | input[i];
+            ret = (ret << 8) | static_cast<T>(input[i]);
         }
         return ret;
     }
 
     template <typename T>
-    static QByteArray from(T input)
+    static std::vector<std::byte> from(T input)
     {
-        QByteArray ret;
+        std::vector<std::byte> ret;
         for (unsigned int i = 0; i < sizeof(T); ++i) {
-            ret.push_front(input & 0xff);
+            ret.insert(ret.begin(), static_cast<std::byte>(input & 0xff));
             input >>= 8;
         }
         return ret;

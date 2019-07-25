@@ -17,7 +17,7 @@ Actuator::Actuator(QString name)
     _menu->add_item("f", "Forward (0-127)", [this](QString args) { if(args.isEmpty()) args = "20"; forward(args.toUInt()); });
     _menu->add_item("b", "Backward (0-127)", [this](QString args) { if (args.isEmpty()) args = "20";backward(args.toUInt()); });
     _menu->add_item("pc", "Print current", [this](QString) { qInfo() << "Current:" << read_current() << "A"; });
-    _menu->add_item("fw", "Print firmware version", [this](QString) { qInfo() << read_firmware_version(); });
+    _menu->add_item("fw", "Print firmware version", [this](QString) { qInfo() << QString::fromStdString(read_firmware_version()); });
     _menu->add_item("es", "Print encoder speed", [this](QString) { qInfo() << "Speed:" << read_encoder_speed() << "steps/s"; });
     _menu->add_item("s", "Stop", [this](QString) { forward(0); });
     _menu->add_item("calib", "Calibrate", [this](QString) { calibrate(); });
@@ -29,12 +29,12 @@ Actuator::Actuator(QString name)
 
 void Actuator::connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel)
 {
-    int address = _settings.value("address", default_address).toInt();
+    uint8_t address = static_cast<uint8_t>(_settings.value("address", default_address).toUInt());
     Channel channel = static_cast<Channel>(_settings.value("channel", default_channel).toInt());
     QString port_name = _settings.value("port_name", default_port_name).toString();
     unsigned int baudrate = _settings.value("baudrate", default_baudrate).toUInt();
 
-    init(port_name, baudrate, address, channel);
+    init(port_name.toStdString(), baudrate, address, channel);
 
     _connected = true;
 }
@@ -62,7 +62,7 @@ void Actuator::move_to(double deg, double speed, bool block)
     if (block) {
         int threshold = 10000;
         do {
-            QThread::msleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             QCoreApplication::processEvents();
         } while ((qAbs(target - read_encoder_position()) > threshold));
     }

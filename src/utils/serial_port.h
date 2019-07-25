@@ -1,54 +1,50 @@
 #ifndef SERIALPORT_H
 #define SERIALPORT_H
 
-#include <QByteArray>
-#include <QMutex>
-#include <QThread>
-#include <QTime>
+#include <cstddef>
+#include <mutex>
 #include <string>
 #include <termios.h>
+#include <thread>
+#include <vector>
 
 class SerialPort {
 public:
-    SerialPort(QString port_name, unsigned int baudrate);
+    SerialPort(std::string port_name, unsigned int baudrate);
     SerialPort();
 
     ~SerialPort();
 
-    void open(QString port_name, unsigned int baudrate);
+    void open(std::string port_name, unsigned int baudrate);
     void open();
 
     void close();
 
-    QString port_name() { return _port_name; }
+    std::string port_name() { return _port_name; }
     unsigned int baudrate() { return _baudrate; }
 
     void take_ownership();
     bool try_take_ownership();
     void release_ownership();
 
-    QThread* owner() { return _owner; }
+    std::thread::id owner() { return _owner; }
 
-    QByteArray read(int n);
-    QByteArray read_all();
+    std::vector<std::byte> read(size_t n);
+    std::vector<std::byte> read_all();
 
-    void write(QByteArray data);
-    void write(const char* data, int n);
+    void write(std::vector<std::byte> data);
+    void write(const char* data, size_t n);
 
 private:
     bool check_ownership();
 
     int _fd;
-    QString _port_name;
+    std::string _port_name;
     unsigned int _baudrate;
 
-    QMutex _mutex;
-    QThread* _owner;
-    QTime _time;
-    int _timeout;
-
-    static const int _internal_buffer_size = 256;
-    char _buffer[_internal_buffer_size];
+    std::mutex _mutex;
+    std::thread::id _owner;
+    unsigned int _timeout_ms;
 };
 
 #endif // SERIALPORT_H

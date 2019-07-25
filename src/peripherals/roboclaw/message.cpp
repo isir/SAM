@@ -1,48 +1,61 @@
 #include "message.h"
+#include <iomanip>
+#include <sstream>
 
-RC::Message::Message()
+namespace RC {
+Message::Message()
 {
 }
 
-RC::Message::Message(uint8_t address, uint8_t command, QByteArray payload, QString regexp, bool append_crc)
-    : _regexp(regexp)
+Message::Message(uint8_t address, uint8_t command, std::shared_ptr<Answer::BaseAnswer> ans, std::vector<std::byte> payload, bool append_crc)
+    : _answer(ans)
 {
-    _data.push_back(address);
-    _data.push_back(command);
-    _data.push_back(payload);
+    _data.push_back(std::byte { address });
+    _data.push_back(std::byte { command });
+    _data.insert(_data.end(), payload.begin(), payload.end());
     if (append_crc) {
         uint16_t crc = crc16(_data);
-        _data.push_back(crc >> 8);
-        _data.push_back(crc & 0xff);
+        _data.push_back(static_cast<std::byte>(crc >> 8));
+        _data.push_back(static_cast<std::byte>(crc & 0xff));
     }
 }
 
-QString RC::Message::toString() const
+std::string Message::to_string() const
 {
-    QString ret('[');
+    std::string ret = "[";
     if (_data.size() >= 2) {
-        ret.append(QString::number(_data[0])).append(',');
-        ret.append(QString::number(_data[1]));
+        ret.append(std::to_string(static_cast<unsigned int>(_data[0])));
+        ret.push_back(',');
+        ret.append(std::to_string(static_cast<unsigned int>(_data[1])));
     }
     if (_data.size() >= 3) {
-        ret.append(",0x").append(_data.mid(2).toHex());
+        ret.append(",0x");
+        std::stringstream ss;
+        ss << std::uppercase << std::setfill('0') << std::setw(2) << std::hex;
+        for (auto it = _data.begin() + 2; it < _data.end(); ++it) {
+            ss << static_cast<unsigned int>(*it);
+        }
     }
-    ret.append("] (").append(QString::number(_data.length())).append(")");
+    ret.append("] (");
+    ret.append(std::to_string(_data.size()));
+    ret.append(")");
     return ret;
 }
 
-uint16_t RC::Message::crc16(QByteArray packet)
+uint16_t Message::crc16(std::vector<std::byte> packet)
 {
-    uint16_t crc = 0;
-    for (int byte = 0; byte < packet.size(); byte++) {
-        crc = crc ^ (static_cast<uint16_t>(packet[byte]) << 8);
+    unsigned int crc = 0;
+    for (std::byte b : packet) {
+        unsigned int value = static_cast<unsigned int>(b);
+        crc = crc ^ (value << 8);
         for (unsigned char bit = 0; bit < 8; bit++) {
             if (crc & 0x8000) {
-                crc = static_cast<uint16_t>((crc << 1) ^ 0x1021);
+                crc = (crc << 1) ^ 0x1021;
             } else {
-                crc = static_cast<uint16_t>(crc << 1);
+                crc = crc << 1;
             }
         }
     }
-    return crc;
+    return static_cast<uint16_t>(crc);
+}
 }

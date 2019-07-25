@@ -5,7 +5,7 @@ WristFlexor::WristFlexor()
 {
     connect("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M2);
 
-    _menu->set_description(QString("Wrist Flexor - ") + read_firmware_version());
+    _menu->set_description(QString::fromStdString("Wrist Flexor - " + read_firmware_version()));
     _menu->set_code(QString("flex"));
 
     read_params_limits(-35., 20.);
