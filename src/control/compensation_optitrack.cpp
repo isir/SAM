@@ -46,7 +46,7 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     _menu->add_item("Display law parameters", "disp", [this](QString) { this->display_parameters(); });
     _menu->add_item("Display Arduino data", "ard", [this](QString) { this->displayArduino(); });
     _menu->add_item("Display anatomical lengths", "al", [this](QString) { this->display_lengths(); });
-    _menu.addItem(ConsoleMenuItem("Tare IMUs", "tare", [this](QString) { this->tareIMU(); }));
+    _menu->add_item("Tare IMUs", "tare", [this](QString) { this->tareIMU(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
