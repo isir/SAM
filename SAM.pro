@@ -1,7 +1,7 @@
 QT -= gui
 QT += network mqtt
 
-CONFIG += console
+CONFIG += console c++1z
 CONFIG -= app_bundle
 
 DEFINES += QT_DEPRECATED_WARNINGS
@@ -116,7 +116,7 @@ SOURCES += \
 
 INCLUDEPATH += src/
 
-QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard -std=c++17
+QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard
 
 LIBS += -lwiringPi -li2c -lboost_thread -lboost_system -lespeak
 
