@@ -6,7 +6,7 @@
 class ShoulderRotator : public Actuator {
 
 public:
-    ShoulderRotator(std::shared_ptr<QMqttClient> mqtt);
+    ShoulderRotator();
 
     void set_velocity_safe(double deg_s);
 };

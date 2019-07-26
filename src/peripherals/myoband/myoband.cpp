@@ -1,20 +1,19 @@
 #include "myoband.h"
 #include <QDebug>
-#include <QMqttClient>
 #include <QMutexLocker>
 
-Myoband::Myoband(std::shared_ptr<QMqttClient> mqtt)
-    : BasicController(mqtt, 0.0025)
+Myoband::Myoband()
+    : ThreadedLoop("Myoband", 0.0025)
+    , MqttUser("Myoband")
     , _serial("/dev/myoband", 115200)
     , _client(nullptr)
-    , _mqtt(mqtt)
     , _acc(Eigen::Vector3d::Zero())
     , _gyro(Eigen::Vector3d::Zero())
 {
     enable_watchdog(10000);
 
-    _menu.set_title("Myoband");
-    _menu.set_code("mb");
+    _menu->set_description("Myoband");
+    _menu->set_code("mb");
 
     QObject::connect(&_mqtt_timer, &QTimer::timeout, this, &Myoband::mqtt_timer_callback);
     _mqtt_timer.start(30);
@@ -23,6 +22,9 @@ Myoband::Myoband(std::shared_ptr<QMqttClient> mqtt)
 Myoband::~Myoband()
 {
     stop();
+    if (!wait(1000)) {
+        terminate();
+    }
 }
 
 bool Myoband::setup()
@@ -72,7 +74,6 @@ bool Myoband::setup()
     _client->setMode(myolinux::myo::EmgMode::SendEmg, myolinux::myo::ImuMode::SendData, myolinux::myo::ClassifierMode::Disabled);
     _client->onEmg(emg_callback);
     _client->onImu(imu_callback);
-    _mqtt_timer.start(30);
 
     return true;
 }
@@ -111,6 +112,36 @@ bool Myoband::connected()
     }
 }
 
+QVector<qint8> Myoband::get_emgs()
+{
+    QMutexLocker lock(&_mutex);
+    return _emgs;
+}
+
+QVector<qint32> Myoband::get_emgs_rms()
+{
+    QMutexLocker lock(&_mutex);
+    return _emgs_rms;
+}
+
+Eigen::Quaterniond Myoband::get_imu()
+{
+    QMutexLocker lock(&_mutex);
+    return _imu;
+}
+
+Eigen::Vector3d Myoband::get_acc()
+{
+    QMutexLocker lock(&_mutex);
+    return _acc;
+}
+
+Eigen::Vector3d Myoband::get_gyro()
+{
+    QMutexLocker lock(&_mutex);
+    return _gyro;
+}
+
 void Myoband::mqtt_timer_callback()
 {
     if (connected()) {
@@ -121,15 +152,13 @@ void Myoband::mqtt_timer_callback()
             mqtt_payload.append(QByteArray::number(acc[i]) + " ");
         }
         mqtt_payload.chop(1);
-        _mqtt->publish(QString("sam/myoband/acc"), mqtt_payload);
+        _mqtt.publish(QString("sam/myoband/acc"), mqtt_payload);
 
         mqtt_payload.clear();
         foreach (qint32 rms, get_emgs_rms()) {
             mqtt_payload.append(QByteArray::number(rms) + " ");
         }
         mqtt_payload.chop(1);
-        _mqtt->publish(QString("sam/myoband/emg_rms"), mqtt_payload);
-    } else {
-        _mqtt_timer.stop();
+        _mqtt.publish(QString("sam/myoband/emg_rms"), mqtt_payload);
     }
 }

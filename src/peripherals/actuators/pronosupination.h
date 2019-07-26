@@ -6,7 +6,7 @@
 class PronoSupination : public Actuator {
     Q_OBJECT
 public:
-    PronoSupination(std::shared_ptr<QMqttClient> mqtt);
+    PronoSupination();
 
     void set_velocity_safe(double deg_s);
 };

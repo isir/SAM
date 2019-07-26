@@ -1,13 +1,13 @@
 #ifndef MATLABRECEIVER_H
 #define MATLABRECEIVER_H
 
-#include "ui/console_menu.h"
+#include "ui/menu_user.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QObject>
 #include <QUdpSocket>
 
-class MatlabReceiver : public QObject {
+class MatlabReceiver : public QObject, public MenuUser {
     Q_OBJECT
 public:
     enum Command {
@@ -36,16 +36,13 @@ public:
         REINITIALIZE_HAND_POSITION = 42
     };
 
-    explicit MatlabReceiver(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt, QObject* parent = nullptr);
+    explicit MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* parent = nullptr);
     ~MatlabReceiver();
-
-    ConsoleMenu& menu() { return _menu; }
 
 private:
     QUdpSocket _socket;
     Settings _settings;
-    SAM::Components _robot;
-    ConsoleMenu _menu;
+    std::shared_ptr<SAM::Components> _robot;
 
 private slots:
     void start();

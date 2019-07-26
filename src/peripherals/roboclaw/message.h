@@ -1,9 +1,8 @@
 #ifndef ROBOCLAWMESSAGE_H
 #define ROBOCLAWMESSAGE_H
 
-#include <QByteArray>
-#include <QMetaType>
-#include <QString>
+#include "answer.h"
+#include <memory>
 
 namespace RC {
 class Message {
@@ -11,30 +10,26 @@ class Message {
 
 public:
     explicit Message();
-    explicit Message(uint8_t address, uint8_t command, QByteArray payload = QByteArray(), QString regexp = QString(), bool append_crc = true);
+    explicit Message(uint8_t address, uint8_t command, std::shared_ptr<Answer::BaseAnswer> ans, std::vector<std::byte> payload = std::vector<std::byte>(), bool append_crc = true);
     Message(const Message& other)
     {
         _data = other._data;
         _answer = other._answer;
-        _regexp = other._regexp;
     }
 
     ~Message() {}
 
-    QByteArray data() const { return _data; }
-    QString regexp() const { return _regexp; }
+    static uint16_t crc16(std::vector<std::byte> packet);
 
-    QString toString() const;
+    std::vector<std::byte> data() const { return _data; }
+    std::shared_ptr<Answer::BaseAnswer> answer() const { return _answer; }
+
+    std::string to_string() const;
 
 private:
-    uint16_t crc16(QByteArray packet);
-
-    QByteArray _data;
-    QByteArray _answer;
-    QString _regexp;
+    std::vector<std::byte> _data;
+    std::shared_ptr<Answer::BaseAnswer> _answer;
 };
 }
-
-Q_DECLARE_METATYPE(RC::Message)
 
 #endif // ROBOCLAWMESSAGE_H

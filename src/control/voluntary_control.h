@@ -1,16 +1,16 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-#include "basic_controller.h"
+#include "threaded_loop.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 #include <QFile>
 
-class VoluntaryControl : public BasicController {
+class VoluntaryControl : public ThreadedLoop {
     Q_OBJECT
 public:
-    explicit VoluntaryControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    explicit VoluntaryControl(std::shared_ptr<SAM::Components> robot);
     ~VoluntaryControl();
 
 private:
@@ -18,7 +18,7 @@ private:
     void loop(double dt, double time);
     void cleanup();
 
-    SAM::Components _robot;
+    std::shared_ptr<SAM::Components> _robot;
     QFile _file;
     bool _need_to_write_header;
     Settings _settings;

@@ -1,13 +1,13 @@
 #ifndef DEMO_H
 #define DEMO_H
 
-#include "basic_controller.h"
+#include "threaded_loop.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
 
-class Demo : public BasicController {
+class Demo : public ThreadedLoop {
 public:
-    Demo(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    Demo(std::shared_ptr<SAM::Components> robot);
     ~Demo();
 
     bool setup();
@@ -15,7 +15,7 @@ public:
     void cleanup();
 
 private:
-    SAM::Components _robot;
+    std::shared_ptr<SAM::Components> _robot;
 
     Settings _settings;
     int _pin_up;

@@ -6,7 +6,7 @@
 class WristRotator : public Actuator {
 
 public:
-    WristRotator(std::shared_ptr<QMqttClient> mqtt);
+    WristRotator();
 
     void calibrate();
 };

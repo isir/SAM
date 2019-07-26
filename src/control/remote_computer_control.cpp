@@ -1,14 +1,19 @@
 #include "remote_computer_control.h"
+#include "utils/check_ptr.h"
 
-RemoteComputerControl::RemoteComputerControl(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt)
-    : BasicController(mqtt, .01)
+RemoteComputerControl::RemoteComputerControl(std::shared_ptr<SAM::Components> robot)
+    : ThreadedLoop("Remote computer control", .01)
     , _robot(robot)
 {
-    _menu.set_title("Remote control with keyboard");
-    _menu.set_code("key");
-    _menu.addItem(_robot.wrist_pronosup->menu());
-    _menu.addItem(_robot.elbow->menu());
-    _menu.addItem(_robot.hand->menu());
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {
+        throw std::runtime_error("Remote Computer Control is missing components");
+    }
+
+    _menu->set_description("Remote control with keyboard");
+    _menu->set_code("key");
+    _menu->add_item(_robot->joints.wrist_pronation->menu());
+    _menu->add_item(_robot->joints.elbow_flexion->menu());
+    _menu->add_item(_robot->joints.hand->menu());
 }
 
 RemoteComputerControl::~RemoteComputerControl()
@@ -18,25 +23,25 @@ RemoteComputerControl::~RemoteComputerControl()
 
 bool RemoteComputerControl::setup()
 {
-    _robot.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
+    _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
 
-    _robot.hand->setPosture(TouchBionicsHand::HAND_POSTURE);
+    _robot->joints.hand->setPosture(TouchBionicsHand::HAND_POSTURE);
     QThread::sleep(1);
 
-    _robot.hand->setSpeed(5);
-    _robot.hand->move(TouchBionicsHand::HAND_CLOSING);
+    _robot->joints.hand->setSpeed(5);
+    _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING);
     QThread::msleep(500);
 
-    _robot.hand->move(TouchBionicsHand::HAND_OPENING);
+    _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING);
     QThread::sleep(1);
-    _robot.hand->move(TouchBionicsHand::THUMB_INT_CLOSING);
+    _robot->joints.hand->move(TouchBionicsHand::THUMB_INT_CLOSING);
 
-    _robot.elbow->calibrate();
-    _robot.wrist_pronosup->set_encoder_position(0);
+    _robot->joints.elbow_flexion->calibrate();
+    _robot->joints.wrist_pronation->set_encoder_position(0);
 
-    _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
+    _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
     QThread::msleep(500);
-    _robot.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
+    _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
     QThread::msleep(500);
     return true;
 }
@@ -47,7 +52,7 @@ void RemoteComputerControl::loop(double, double)
 
 void RemoteComputerControl::cleanup()
 {
-    _robot.elbow->forward(0);
-    _robot.wrist_pronosup->forward(0);
-    _robot.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
+    _robot->joints.elbow_flexion->forward(0);
+    _robot->joints.wrist_pronation->forward(0);
+    _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
 }

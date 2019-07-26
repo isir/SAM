@@ -1,20 +1,20 @@
 #ifndef FACTORY_H
 #define FACTORY_H
 
-#include <QMap>
-#include <QString>
+#include <map>
+#include <string>
 
 #include "utils/serial_port.h"
 
 namespace RC {
 class Factory {
 public:
-    static std::shared_ptr<SerialPort> get(QString port_name, unsigned int baudrate);
+    static std::shared_ptr<SerialPort> get(std::string port_name, unsigned int baudrate);
 
 private:
     Factory();
 
-    static QMap<QString, std::shared_ptr<SerialPort>> _map;
+    static std::map<std::string, std::shared_ptr<SerialPort>> _map;
 };
 }
 

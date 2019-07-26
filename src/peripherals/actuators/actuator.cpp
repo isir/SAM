@@ -3,9 +3,8 @@
 #include <QDebug>
 #include <QTime>
 
-Actuator::Actuator(QString name, std::shared_ptr<QMqttClient> mqtt)
+Actuator::Actuator(QString name)
     : RoboClaw::RoboClaw()
-    , _menu(mqtt)
     , _name(name)
     , _connected(false)
     , _incs_per_deg(0)
@@ -13,29 +12,29 @@ Actuator::Actuator(QString name, std::shared_ptr<QMqttClient> mqtt)
 {
     _settings.beginGroup(_name);
 
-    QObject::connect(&_menu, &ConsoleMenu::finished, this, &Actuator::on_exit);
+    QObject::connect(_menu.get(), &MenuBackend::finished, this, &Actuator::on_exit);
 
-    _menu.addItem(ConsoleMenuItem("Forward (0-127)", "f", [this](QString args) { if(args.isEmpty()) args = "20"; forward(args.toUInt()); }));
-    _menu.addItem(ConsoleMenuItem("Backward (0-127)", "b", [this](QString args) { if(args.isEmpty()) args = "20"; backward(args.toUInt()); }));
-    _menu.addItem(ConsoleMenuItem("Print current", "pc", [this](QString) { qInfo() << "Current:" << read_current() << "A"; }));
-    _menu.addItem(ConsoleMenuItem("Print firmware version", "fw", [this](QString) { qInfo() << read_firmware_version(); }));
-    _menu.addItem(ConsoleMenuItem("Print encoder speed", "es", [this](QString) { qInfo() << "Speed:" << read_encoder_speed() << "steps/s"; }));
-    _menu.addItem(ConsoleMenuItem("Stop", "s", [this](QString) { forward(0); }));
-    _menu.addItem(ConsoleMenuItem("Calibrate", "calib", [this](QString) { calibrate(); }));
-    _menu.addItem(ConsoleMenuItem("Read encoder", "e", [this](QString) { qInfo() << "Position:" << read_encoder_position() << "steps"; }));
-    _menu.addItem(ConsoleMenuItem("Go to", "g", [this](QString args) { if(!args.isEmpty()) move_to(args.toDouble(), 10); }));
-    _menu.addItem(ConsoleMenuItem("Set velocity (deg/s)", "v", [this](QString args) { if(args.isEmpty()) args = "0"; set_velocity_safe(args.toInt()); }));
-    _menu.addItem(ConsoleMenuItem("Set encoder zero", "z", [this](QString) { set_encoder_position(0); }));
+    _menu->add_item("f", "Forward (0-127)", [this](QString args) { if(args.isEmpty()) args = "20"; forward(args.toUInt()); });
+    _menu->add_item("b", "Backward (0-127)", [this](QString args) { if (args.isEmpty()) args = "20";backward(args.toUInt()); });
+    _menu->add_item("pc", "Print current", [this](QString) { qInfo() << "Current:" << read_current() << "A"; });
+    _menu->add_item("fw", "Print firmware version", [this](QString) { qInfo() << QString::fromStdString(read_firmware_version()); });
+    _menu->add_item("es", "Print encoder speed", [this](QString) { qInfo() << "Speed:" << read_encoder_speed() << "steps/s"; });
+    _menu->add_item("s", "Stop", [this](QString) { forward(0); });
+    _menu->add_item("calib", "Calibrate", [this](QString) { calibrate(); });
+    _menu->add_item("e", "Read encoder", [this](QString) { qInfo() << "Position:" << read_encoder_position() << "steps"; });
+    _menu->add_item("g", "Go to", [this](QString args) {if (!args.isEmpty()) move_to(args.toDouble(), 10); });
+    _menu->add_item("v", "Set velocity (deg/s)", [this](QString args) { if (args.isEmpty()) args = "0"; set_velocity_safe(args.toInt()); });
+    _menu->add_item("z", "Set encoder zero", [this](QString) { set_encoder_position(0); });
 }
 
 void Actuator::connect(QString default_port_name, unsigned int default_baudrate, int default_address, RoboClaw::RoboClaw::Channel default_channel)
 {
-    int address = _settings.value("address", default_address).toInt();
+    uint8_t address = static_cast<uint8_t>(_settings.value("address", default_address).toUInt());
     Channel channel = static_cast<Channel>(_settings.value("channel", default_channel).toInt());
     QString port_name = _settings.value("port_name", default_port_name).toString();
     unsigned int baudrate = _settings.value("baudrate", default_baudrate).toUInt();
 
-    init(port_name, baudrate, address, channel);
+    init(port_name.toStdString(), baudrate, address, channel);
 
     _connected = true;
 }
@@ -66,7 +65,7 @@ void Actuator::move_to(double deg, double speed, bool block)
     if (block) {
         int threshold = 10000;
         do {
-            QThread::msleep(10);
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
             QCoreApplication::processEvents();
         } while ((qAbs(target - read_encoder_position()) > threshold));
     }
@@ -104,7 +103,7 @@ void Actuator::calibrate(double velocity_deg_s, double final_pos, double velocit
     }
 
     t.start();
-    while ((qAbs(read_encoder_speed()) < calib_velocity_threshold) && t.elapsed() < 500)
+    while ((qAbs(read_encoder_speed()) < calib_velocity_threshold) || t.elapsed() < 500)
         QCoreApplication::processEvents();
     while (qAbs(read_encoder_speed()) > calib_velocity_threshold)
         QCoreApplication::processEvents();
