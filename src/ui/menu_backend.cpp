@@ -65,8 +65,11 @@ void MenuBackend::activate_item(QString code, QString args)
         if (i->type() == SUBMENU) {
             std::shared_ptr<MenuBackend> m = std::dynamic_pointer_cast<MenuBackend>(i);
             m->set_parent(this);
+            m->execute(args);
+        } else {
+            i->execute(args);
+            emit show_menu(_description, _items);
         }
-        i->execute(args);
     }
 }
 
