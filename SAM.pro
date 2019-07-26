@@ -10,6 +10,8 @@ HEADERS += \
     src/control/algorithms/lawopti.h \
     src/control/algorithms/myocontrol.h \
     src/control/compensation_optitrack.h \
+    src/control/algorithms/lawimu.h \
+    src/control/compensation_imu.h \
     src/control/demo.h \
     src/control/matlab_receiver.h \
     src/control/remote_computer_control.h \
@@ -62,8 +64,7 @@ HEADERS += \
     src/utils/sam.h \
     src/utils/samanager.h \
     src/utils/serial_port.h \
-    src/control/algorithms/lawimu.h
-    src/control/compensation_imu.h \
+
 
 SOURCES += \
     src/control/threaded_loop.cpp \
@@ -71,6 +72,8 @@ SOURCES += \
     src/control/algorithms/lawopti.cpp \
     src/control/algorithms/myocontrol.cpp \
     src/control/compensation_optitrack.cpp \
+    src/control/algorithms/lawimu.cpp \
+    src/control/compensation_imu.cpp \
     src/control/demo.cpp \
     src/control/matlab_receiver.cpp \
     src/control/remote_computer_control.cpp \
@@ -113,7 +116,6 @@ SOURCES += \
     src/utils/serial_port.cpp \
         src/utils/settings.cpp \
     src/utils/system_monitor.cpp \
-    src/peripherals/actuators/shoulder_rotator.cpp
 
 INCLUDEPATH += src/
 
