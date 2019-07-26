@@ -90,9 +90,9 @@ void VoluntaryControl::loop(double, double)
     prev_pin_up_value = pin_up_value;
 
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
-    _robot.trunk_imu->get_quat(qTronc);
-    _robot.arm_imu->get_quat(qBras);
     double qBras[4], qTronc[4];
+    _robot->sensors.trunk_imu->get_quat(qTronc);
+    _robot->sensors.arm_imu->get_quat(qBras);
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
         _file.write("period, btnUp, btnDown, wristAngle,");
