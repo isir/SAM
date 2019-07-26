@@ -1,9 +1,8 @@
 #ifndef COMPENSATIONIMU_H
 #define COMPENSATIONIMU_H
 
-#include "basic_controller.h"
 #include "control/algorithms/lawimu.h"
-#include "ui/console_menu.h"
+#include "threaded_loop.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
 #include "utils/settings.h"
@@ -11,10 +10,10 @@
 #include <QTime>
 #include <QUdpSocket>
 
-class CompensationIMU : public BasicController {
+class CompensationIMU : public ThreadedLoop {
     Q_OBJECT
 public:
-    explicit CompensationIMU(SAM::Components robot, std::shared_ptr<QMqttClient> mqtt);
+    explicit CompensationIMU(std::shared_ptr<SAM::Components> robot);
     ~CompensationIMU();
 
 private:
@@ -25,7 +24,7 @@ private:
     void loop(double dt, double time);
     void cleanup();
 
-    SAM::Components _robot;
+    std::shared_ptr<SAM::Components> _robot;
     QUdpSocket _receiver;
     QFile _file;
     bool _need_to_write_header;
