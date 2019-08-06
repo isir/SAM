@@ -41,10 +41,10 @@ set(SOURCES
     src/ui/menu_item.cpp
     src/ui/menu_mqtt.cpp
     src/ui/menu_user.cpp
-    src/ui/mosquitto/client.cpp
-    src/ui/mosquitto/connect_helper.cpp
-    src/ui/mosquitto/library_wrapper.cpp
-    src/ui/mosquitto/subscription.cpp
+    src/ui/mosquittopp/client.cpp
+    src/ui/mosquittopp/connect_helper.cpp
+    src/ui/mosquittopp/library_wrapper.cpp
+    src/ui/mosquittopp/subscription.cpp
     src/ui/mqtt_user.cpp
     src/utils/log/logger.cpp
     src/utils/log/safe_stream.cpp

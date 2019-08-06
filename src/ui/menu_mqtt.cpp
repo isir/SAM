@@ -20,10 +20,10 @@ void MenuMQTT::show_menu(std::string title, std::map<std::string, std::shared_pt
     for (auto item : items) {
         buffer.append("[" + item.second->code() + "]" + " " + item.second->description() + "\r\n");
     }
-    _mqtt.publish("sam/menu/output", buffer, Mosquitto::Client::QoS0, true);
+    _mqtt.publish("sam/menu/output", buffer, Mosquittopp::Client::QoS0, true);
 }
 
 void MenuMQTT::show_message(std::string msg)
 {
-    _mqtt.publish("sam/menu/output", msg, Mosquitto::Client::QoS0, true);
+    _mqtt.publish("sam/menu/output", msg, Mosquittopp::Client::QoS0, true);
 }

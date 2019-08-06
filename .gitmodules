@@ -1,0 +1,3 @@
+[submodule "src/ui/mosquittopp"]
+	path = src/ui/mosquittopp
+	url = https://github.com/isir/mosquittopp.git

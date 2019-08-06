@@ -1,7 +1,7 @@
 #ifndef MQTT_USER_H
 #define MQTT_USER_H
 
-#include "mosquitto/client.h"
+#include "mosquittopp/client.h"
 #include "utils/named_object.h"
 
 class MqttUser {
@@ -11,7 +11,7 @@ public:
 protected:
     MqttUser();
 
-    Mosquitto::Client _mqtt;
+    Mosquittopp::Client _mqtt;
 };
 
 #endif // MQTT_USER_H
