@@ -1,52 +1,29 @@
 #include "menu_mqtt.h"
+#include "menu_backend.h"
 
 MenuMQTT::MenuMQTT()
     : MenuFrontend()
-    , MqttUser("menu_mqtt")
 {
     connect_to_backend();
-    QObject::connect(&_mqtt, &QMqttClient::connected, this, &MenuMQTT::mqtt_connected_callback);
+    _mqtt.subscribe("sam/menu/input")->add_callback(this, [](std::string s) { MenuBackend::broker.handle_input(s); });
 }
 
-void MenuMQTT::show_message(QByteArray msg)
+void MenuMQTT::show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items)
 {
-    _mqtt.publish(QString("sam/menu/output"), msg, 0, true);
-}
-
-void MenuMQTT::show_menu_callback(QString title, QMap<QString, std::shared_ptr<MenuItem>> items)
-{
-    QByteArray buffer;
-    QByteArray filler;
-    if (!title.isEmpty()) {
-        filler.fill('-', title.length() + 1);
+    std::string buffer;
+    std::string filler;
+    if (!title.empty()) {
+        filler.insert(filler.begin(), title.length() + 1, '-');
         buffer.append(title + ":\r\n");
         buffer.append(filler + "\r\n");
     }
-    foreach (std::shared_ptr<MenuItem> item, items) {
-        buffer.append("[" + item->code() + "]" + " " + item->description() + "\r\n");
+    for (auto item : items) {
+        buffer.append("[" + item.second->code() + "]" + " " + item.second->description() + "\r\n");
     }
-    if (_mqtt.state() == QMqttClient::Connected) {
-        _mqtt.publish(QString("sam/menu/output"), buffer, 0, true);
-    } else {
-        _unpublished_msg = buffer;
-    }
+    _mqtt.publish("sam/menu/output", buffer, Mosquitto::Client::QoS0, true);
 }
 
-void MenuMQTT::mqtt_connected_callback()
+void MenuMQTT::show_message(std::string msg)
 {
-    _mqtt.setWillTopic("sam/menu/output");
-    _mqtt.setWillRetain(true);
-    _mqtt.setWillMessage("The embedded program crashed.");
-
-    QMqttSubscription* sub = _mqtt.subscribe(QString("sam/menu/input"));
-    QObject::connect(sub, &QMqttSubscription::messageReceived, this, &MenuMQTT::mqtt_message_received_callback);
-
-    if (_unpublished_msg.size() > 0) {
-        _mqtt.publish(QString("sam/menu/output"), _unpublished_msg, 0, true);
-    }
-}
-
-void MenuMQTT::mqtt_message_received_callback(const QMqttMessage msg)
-{
-    emit input_received(QString::fromLatin1(msg.payload()));
+    _mqtt.publish("sam/menu/output", msg, Mosquitto::Client::QoS0, true);
 }

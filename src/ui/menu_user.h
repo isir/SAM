@@ -10,7 +10,7 @@ public:
     std::shared_ptr<MenuBackend> menu();
 
 protected:
-    MenuUser(QString code = QString(), QString description = QString());
+    MenuUser(std::string code = std::string(), std::string description = std::string(), std::function<void(void)> exit_callback = std::function<void(void)>());
 
     std::shared_ptr<MenuBackend> _menu;
 };

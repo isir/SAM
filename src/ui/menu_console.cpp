@@ -1,42 +1,63 @@
 #include "menu_console.h"
+#include "menu_backend.h"
+#include <fcntl.h>
 #include <iostream>
+#include <unistd.h>
 
 MenuConsole::MenuConsole()
 {
     connect_to_backend();
-
-    QObject::connect(&_input, &ConsoleInput::new_line, this, &MenuConsole::input_received);
-    QObject::connect(this, &MenuConsole::ready_to_read, &_input, &ConsoleInput::read_line);
-    _input.moveToThread(&_thread);
-    _thread.start();
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
 }
 
 MenuConsole::~MenuConsole()
 {
-    _thread.terminate();
+    if (_thread.joinable())
+        _thread.join();
 }
 
-void MenuConsole::show_menu_callback(QString title, QMap<QString, std::shared_ptr<MenuItem>> items)
+void MenuConsole::show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items)
 {
-    QByteArray buffer("\r\n");
-    QByteArray filler;
-    if (!title.isEmpty()) {
-        filler.fill('-', title.length() + 1);
+    std::string buffer("\r\n");
+    std::string filler;
+    if (title.length() > 0) {
+        filler.insert(0, title.length() + 1, '-');
         buffer.append(title + ":\r\n");
         buffer.append(filler + "\r\n");
     }
 
-    int max_key_length = 0;
-    foreach (std::shared_ptr<MenuItem> item, items) {
-        int length = item->code().length();
+    std::size_t max_key_length = 0;
+    for (auto item : items) {
+        std::size_t length = item.second->code().length();
         if (length > max_key_length)
             max_key_length = length;
     }
-    foreach (std::shared_ptr<MenuItem> item, items) {
+    for (auto item : items) {
         filler.clear();
-        filler.fill('.', max_key_length - item->code().length() + 3);
-        buffer.append("[" + item->code() + "]" + filler + " " + item->description() + "\r\n");
+        filler.insert(0, max_key_length - item.second->code().length() + 3, '.');
+        buffer += "[" + item.second->code() + "]" + filler + " " + item.second->description() + "\r\n";
     }
-    std::cout << buffer.toStdString() << std::flush;
-    emit ready_to_read();
+    std::cout << buffer << std::flush;
+
+    _thread = std::thread(&MenuConsole::read_line, this);
+}
+
+void MenuConsole::show_message(std::string msg)
+{
+    std::cout << msg << std::endl;
+}
+
+void MenuConsole::read_line()
+{
+    static char buffer[128];
+    int n = 0;
+
+    std::cout << "> " << std::flush;
+    do {
+        n = read(0, buffer, 128);
+    } while (n <= 0);
+
+    if (n > 0) {
+        MenuBackend::broker.handle_input(std::string(buffer, buffer + n - 1));
+    }
 }

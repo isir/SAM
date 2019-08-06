@@ -36,7 +36,7 @@ public:
     velocity_pid_params_t read_velocity_pid();
     void set_position_pid(position_pid_params_t params);
     position_pid_params_t read_position_pid();
-    void move_to(int32_t accel, uint32_t speed, uint32_t decel, int32_t pos);
+    void move_to(uint32_t accel, uint32_t speed, uint32_t decel, int32_t pos);
 
 private:
     std::vector<std::byte> send(const Message& msg);

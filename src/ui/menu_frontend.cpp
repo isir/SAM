@@ -11,6 +11,5 @@ MenuFrontend::~MenuFrontend()
 
 void MenuFrontend::connect_to_backend()
 {
-    QObject::connect(&MenuBackend::broker, &MenuBroker::show_menu, this, &MenuFrontend::show_menu_callback);
-    QObject::connect(this, &MenuFrontend::input_received, &MenuBackend::broker, &MenuBroker::handle_input);
+    MenuBackend::broker.register_frontend(this);
 }

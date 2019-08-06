@@ -1,13 +1,10 @@
 #ifndef LEDSTRIP_H
 #define LEDSTRIP_H
 
-#include <QObject>
-#include <QTimer>
-#include <QVector>
-#include <QtGlobal>
+#include <stdint.h>
+#include <vector>
 
-class LedStrip : public QObject {
-    Q_OBJECT
+class LedStrip {
 public:
     struct color {
         color()
@@ -17,7 +14,7 @@ public:
             , brightness(0)
         {
         }
-        color(quint8 r_, quint8 g_, quint8 b_, quint8 brightness_)
+        color(uint8_t r_, uint8_t g_, uint8_t b_, uint8_t brightness_)
             : r(r_)
             , g(g_)
             , b(b_)
@@ -25,33 +22,23 @@ public:
         {
         }
 
-        quint8 r;
-        quint8 g;
-        quint8 b;
-        quint8 brightness;
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+        uint8_t brightness;
     };
 
     static color white, red, green, blue, none;
 
     LedStrip();
     ~LedStrip();
-    void set(QVector<color> colors);
+    void set(std::vector<color> colors);
     void set(color c, unsigned int n);
-
-    void play_sequence(QVector<QVector<color>> sequence, unsigned int period_ms);
-    void stop_sequence();
 
 private:
     void send_opening_bytes();
     void send_closing_bytes();
     void send_color_bytes(color c);
-
-    QTimer _sequence_timer;
-    QVector<QVector<color>> _sequence;
-    int _sequence_idx;
-
-private slots:
-    void sequence_callback();
 };
 
 #endif // LEDSTRIP_H

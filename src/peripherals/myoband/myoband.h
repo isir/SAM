@@ -4,43 +4,39 @@
 #include "myoLinux/myoclient.h"
 #include "myoLinux/serial.h"
 #include "ui/mqtt_user.h"
-#include <QMqttClient>
-#include <QTimer>
-#include <QVector>
+#include "utils/watchdog.h"
 #include <control/threaded_loop.h>
 #include <eigen3/Eigen/Dense>
+#include <vector>
 
 class Myoband : public ThreadedLoop, public MqttUser {
-    Q_OBJECT
 public:
     Myoband();
-    ~Myoband();
+    ~Myoband() override;
 
     bool connected();
 
-    QVector<qint8> get_emgs();
-    QVector<qint32> get_emgs_rms();
-    Eigen::Quaterniond get_imu();
-    Eigen::Vector3d get_acc();
-    Eigen::Vector3d get_gyro();
+    std::vector<int8_t> get_emgs();
+    std::vector<int32_t> get_emgs_rms();
+    Eigen::Quaternionf get_imu();
+    Eigen::Vector3f get_acc();
+    Eigen::Vector3f get_gyro();
 
 private:
-    bool setup();
-    void loop(double dt, double time);
-    void cleanup();
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
 
     myolinux::Serial _serial;
     myolinux::myo::Client* _client;
-    QTimer _mqtt_timer;
 
-    QVector<qint8> _emgs;
-    QVector<qint32> _emgs_rms;
-    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> _acc;
-    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> _gyro;
-    Eigen::Quaternion<double, Eigen::DontAlign> _imu;
+    Watchdog _wd;
 
-private slots:
-    void mqtt_timer_callback();
+    std::vector<int8_t> _emgs;
+    std::vector<int32_t> _emgs_rms;
+    Eigen::Matrix<float, 3, 1, Eigen::DontAlign> _acc;
+    Eigen::Matrix<float, 3, 1, Eigen::DontAlign> _gyro;
+    Eigen::Quaternion<float, Eigen::DontAlign> _imu;
 };
 
 #endif // MYOBAND_H

@@ -1,14 +1,11 @@
-#ifndef MATLABRECEIVER_H
-#define MATLABRECEIVER_H
+#ifndef MATLAB_RECEIVER_H
+#define MATLAB_RECEIVER_H
 
-#include "ui/menu_user.h"
+#include "control/threaded_loop.h"
 #include "utils/sam.h"
-#include "utils/settings.h"
-#include <QObject>
-#include <QUdpSocket>
+#include "utils/socket.h"
 
-class MatlabReceiver : public QObject, public MenuUser {
-    Q_OBJECT
+class MatlabReceiver : public ThreadedLoop {
 public:
     enum Command {
         NONE = 0,
@@ -36,23 +33,18 @@ public:
         REINITIALIZE_HAND_POSITION = 42
     };
 
-    explicit MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* parent = nullptr);
-    ~MatlabReceiver();
+    explicit MatlabReceiver(std::shared_ptr<SAM::Components> robot);
+    ~MatlabReceiver() override;
 
 private:
-    QUdpSocket _socket;
-    Settings _settings;
-    std::shared_ptr<SAM::Components> _robot;
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
 
-private slots:
-    void start();
-    void stop();
-
-    void socket_callback();
     void handle_command(Command c);
 
-signals:
-    void command_received(Command c);
+    Socket _socket;
+    std::shared_ptr<SAM::Components> _robot;
 };
 
 #endif // MATLABRECEIVER_H

@@ -29,11 +29,12 @@ public:
 
     std::thread::id owner() { return _owner; }
 
-    std::vector<std::byte> read(size_t n);
+    std::vector<std::byte> read(std::size_t n);
     std::vector<std::byte> read_all();
 
     void write(std::vector<std::byte> data);
-    void write(const char* data, size_t n);
+    void write(std::string s);
+    void write(const char* data, std::size_t n);
 
 private:
     bool check_ownership();

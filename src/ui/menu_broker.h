@@ -1,29 +1,27 @@
 #ifndef MENU_BROKER_H
 #define MENU_BROKER_H
 
+#include "menu_frontend.h"
 #include "menu_item.h"
-#include <QMap>
-#include <QObject>
-#include <QString>
+#include <map>
 #include <memory>
+#include <mutex>
 
 class MenuBackend;
 
-class MenuBroker : public QObject {
-    Q_OBJECT
+class MenuBroker {
 public:
-    explicit MenuBroker(QObject* parent = nullptr);
+    explicit MenuBroker();
 
+    void register_frontend(MenuFrontend* f);
     void set_active_menu(MenuBackend* menu);
-
-public slots:
-    void handle_input(QString input);
+    void handle_input(std::string input);
+    void show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items);
 
 private:
     MenuBackend* _active_menu;
-
-signals:
-    void show_menu(QString title, QMap<QString, std::shared_ptr<MenuItem>> items);
+    std::vector<MenuFrontend*> _frontends;
+    std::mutex _mutex;
 };
 
 #endif // MENU_BROKER_H

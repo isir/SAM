@@ -1,25 +1,22 @@
 #ifndef MENU_CONSOLE_H
 #define MENU_CONSOLE_H
 
-#include "console_input.h"
 #include "menu_frontend.h"
-#include <QThread>
+#include <map>
+#include <string>
+#include <thread>
 
 class MenuConsole : public MenuFrontend {
-    Q_OBJECT
 public:
     MenuConsole();
-    ~MenuConsole();
+    ~MenuConsole() override;
 
-public slots:
-    void show_menu_callback(QString title, QMap<QString, std::shared_ptr<MenuItem>> items) override;
+    void show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items) override;
+    void show_message(std::string msg) override;
+    void read_line();
 
 private:
-    ConsoleInput _input;
-    QThread _thread;
-
-signals:
-    void ready_to_read();
+    std::thread _thread;
 };
 
 #endif // MENU_CONSOLE_H

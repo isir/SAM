@@ -35,6 +35,7 @@ std::string Message::to_string() const
         for (auto it = _data.begin() + 2; it < _data.end(); ++it) {
             ss << static_cast<unsigned int>(*it);
         }
+        ret.append(ss.str());
     }
     ret.append("] (");
     ret.append(std::to_string(_data.size()));

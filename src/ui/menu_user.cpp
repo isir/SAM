@@ -1,7 +1,7 @@
 #include "menu_user.h"
 
-MenuUser::MenuUser(QString code, QString description)
-    : _menu(std::make_shared<MenuBackend>(code, description))
+MenuUser::MenuUser(std::string code, std::string description, std::function<void(void)> exit_callback)
+    : _menu(std::make_shared<MenuBackend>(code, description, exit_callback))
 {
 }
 

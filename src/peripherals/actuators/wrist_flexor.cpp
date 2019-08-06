@@ -3,15 +3,15 @@
 WristFlexor::WristFlexor()
     : Actuator("Wrist Flexor")
 {
-    connect("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M2);
+    init("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M2);
 
-    _menu->set_description(QString::fromStdString("Wrist Flexor - " + read_firmware_version()));
-    _menu->set_code(QString("flex"));
+    _menu->set_description("Wrist Flexor - " + read_firmware_version());
+    _menu->set_code("flex");
 
-    read_params_limits(-35., 20.);
-    read_params_technical(12000, 100);
-    read_params_velocity(0.177, 0.012, 0, 335500);
-    read_params_position(20., 0., 0., 0., 0., -180., 180.);
+    set_params_limits(-35., 20.);
+    set_params_technical(12000, 100);
+    set_params_velocity(0.177f, 0.012f, 0, 335500);
+    set_params_position(20., 0., 0., 0., 0., -180., 180.);
 }
 
 void WristFlexor::calibrate()

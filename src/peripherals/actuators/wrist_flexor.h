@@ -4,7 +4,6 @@
 #include "actuator.h"
 
 class WristFlexor : public Actuator {
-    Q_OBJECT
 public:
     WristFlexor();
 

@@ -3,15 +3,15 @@
 OsmerElbow::OsmerElbow()
     : Actuator("Osmer")
 {
-    connect("/dev/ttyAMA0", B230400, 0x80, RoboClaw::M1);
+    init("/dev/ttyAMA0", B230400, 0x80, RoboClaw::M1);
 
-    _menu->set_description(QString::fromStdString("Custom Elbow - " + read_firmware_version()));
-    _menu->set_code(QString("elbow"));
+    _menu->set_description("Custom Elbow - " + read_firmware_version());
+    _menu->set_code("elbow");
 
-    read_params_limits(-100., 0.);
-    read_params_technical(23422, 100);
-    read_params_velocity(0.0387, 0.0029, 0, 1295000);
-    read_params_position(68., 0., 0., 0., 0., -180., 180.);
+    set_params_limits(-100., 0.);
+    set_params_technical(23422, 100);
+    set_params_velocity(0.0387f, 0.0029f, 0, 1295000);
+    set_params_position(68., 0., 0., 0., 0., -180., 180.);
 }
 
 void OsmerElbow::calibrate()

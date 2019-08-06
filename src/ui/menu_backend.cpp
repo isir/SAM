@@ -2,12 +2,14 @@
 
 MenuBroker MenuBackend::broker;
 
-MenuBackend::MenuBackend(QString code, QString description)
+MenuBackend::MenuBackend(std::string code, std::string description, std::function<void(void)> exit_callback)
     : MenuItem(
-        code, description, [this](QString) { activate(); }, SUBMENU)
+        code, description, [this](std::string) { activate(); }, SUBMENU)
     , _parent(nullptr)
+    , _activated_callback([] {})
+    , _exit_callback(exit_callback)
 {
-    add_item("exit", "Exit", [this](QString) { on_exit(); });
+    add_exit([this](std::string) { _exit_callback(); on_exit(); });
 }
 
 MenuBackend::~MenuBackend()
@@ -17,24 +19,24 @@ MenuBackend::~MenuBackend()
 void MenuBackend::add_item(std::shared_ptr<MenuItem> item)
 {
     if (item) {
-        _items.insert(item->code(), item);
+        _items[item->code()] = item;
     }
 }
 
-void MenuBackend::handle_input(QString input)
+void MenuBackend::handle_input(std::string input)
 {
-    QString key, args;
-    for (QMap<QString, std::shared_ptr<MenuItem>>::key_iterator i = _items.keyBegin(); i != _items.keyEnd(); ++i) {
-        key = (*i).split(' ', QString::SkipEmptyParts)[0];
+    std::string key, input_key, args;
+    for (auto i = _items.begin(); i != _items.end(); ++i) {
+        key = (*i).first.substr(0, (*i).first.find_first_of(' '));
+        input_key = input.substr(0, input.find_first_of(' '));
         if (key == input) {
             break;
-        } else if (input.startsWith(key + QString(" "))) {
-            args = input.mid(key.length() + 1);
+        } else if (key == input_key) {
+            args = input.substr(input.find_first_of(' ') + 1);
             break;
         }
         key = "";
     }
-
     activate_item(key, args);
 }
 
@@ -44,20 +46,24 @@ void MenuBackend::on_exit()
         _parent->activate();
     }
     _parent = nullptr;
-    emit finished();
+}
+
+void MenuBackend::set_activated_callback(std::function<void(void)> f)
+{
+    _activated_callback = f;
 }
 
 void MenuBackend::activate()
 {
     broker.set_active_menu(this);
-    emit show_menu(_description, _items);
-    emit activated();
+    broker.show_menu(_description, _items);
+    _activated_callback();
 }
 
-void MenuBackend::activate_item(QString code, QString args)
+void MenuBackend::activate_item(std::string code, std::string args)
 {
-    if (_items.contains(code)) {
-        std::shared_ptr<MenuItem> i = _items.value(code);
+    if (_items.find(code) != _items.end()) {
+        std::shared_ptr<MenuItem> i = _items.at(code);
         if (!i) {
             throw std::runtime_error("Trying to activate a null item");
         }
@@ -68,7 +74,9 @@ void MenuBackend::activate_item(QString code, QString args)
             m->execute(args);
         } else {
             i->execute(args);
-            emit show_menu(_description, _items);
+            if (i->type() != EXIT || _parent) {
+                broker.show_menu(_description, _items);
+            }
         }
     }
 }

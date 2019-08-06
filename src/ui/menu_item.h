@@ -1,8 +1,8 @@
 #ifndef MENU_ITEM_H
 #define MENU_ITEM_H
 
-#include <QString>
 #include <functional>
+#include <string>
 
 class MenuItem {
 public:
@@ -13,47 +13,36 @@ public:
         OTHER
     } ItemType;
 
-    virtual ~MenuItem() {}
+    virtual ~MenuItem();
 
-    void set_code(QString code) { _code = code; }
-    QString code() { return _code; }
+    inline void set_code(std::string code) { _code = code; }
+    inline std::string code() { return _code; }
+    inline void set_description(std::string description) { _description = description; }
+    inline std::string description() { return _description; }
+    inline ItemType type() { return _type; }
 
-    void set_description(QString description) { _description = description; }
-    QString description() { return _description; }
-
-    ItemType type() { return _type; }
-    void execute(QString args = QString()) { _callback(args); }
+    void execute(std::string args = std::string()) { _callback(args); }
 
 protected:
-    MenuItem(QString code, QString description, std::function<void(QString)> callback, ItemType type = STANDARD)
-        : _callback(callback)
-        , _type(type)
-        , _description(description)
-        , _code(code)
-    {
-    }
+    MenuItem(std::string code, std::string description, std::function<void(std::string)> callback, ItemType type = STANDARD);
 
-    std::function<void(QString)> _callback;
+    std::function<void(std::string)> _callback;
 
     ItemType _type;
-    QString _description;
-    QString _code;
+    std::string _description;
+    std::string _code;
 };
 
 class StandardItem : public MenuItem {
 public:
-    StandardItem(QString code, QString description, std::function<void(QString)> callback)
-        : MenuItem(code, description, callback, STANDARD)
-    {
-    }
+    StandardItem(std::string code, std::string description, std::function<void(std::string)> callback);
+    ~StandardItem();
 };
 
 class ExitItem : public MenuItem {
 public:
-    ExitItem(std::function<void(QString)> callback)
-        : MenuItem("exit", "Exit", callback, EXIT)
-    {
-    }
+    ExitItem(std::function<void(std::string)> callback);
+    ~ExitItem();
 };
 
 #endif // MENU_ITEM_H

@@ -3,16 +3,12 @@
 
 #include "peripherals/roboclaw/roboclaw.h"
 #include "ui/menu_user.h"
-#include "utils/settings.h"
-#include <QString>
+#include <string>
 
-class Actuator : public QObject, public RC::RoboClaw, public MenuUser {
-    Q_OBJECT
+class Actuator : public RC::RoboClaw, public MenuUser {
 public:
-    Actuator(QString name);
+    Actuator(std::string name);
     virtual ~Actuator() {}
-
-    void connect(QString default_port_name, unsigned int default_baudrate, int default_address, RC::RoboClaw::Channel default_channel);
 
     virtual void calibrate() {}
 
@@ -23,27 +19,22 @@ public:
     virtual void set_velocity_safe(double deg_s);
 
 protected:
-    void calibrate(double velocity_deg_s, double final_pos, double velocity_threshold_deg_s, bool use_velocity_control = true);
-    void read_params_limits(double default_lower_limit_deg, double default_upper_limit_deg);
-    void read_params_technical(unsigned int default_incs_per_deg, int default_deg_s2);
-    void read_params_velocity(double default_kp, double default_ki, double default_kd, unsigned int default_qpps);
-    void read_params_position(double default_kp, double default_ki, double default_kd, double default_i_max, int default_deadzone, int default_lower_limit, int default_upper_limit);
-
-    Settings _settings;
-
-protected slots:
     virtual void on_exit();
 
+    void calibrate(double velocity_deg_s, double final_pos, double velocity_threshold_deg_s, bool use_velocity_control = true);
+    void set_params_limits(double lower_limit_deg, double upper_limit_deg);
+    void set_params_technical(unsigned int incs_per_deg, unsigned int deg_s2);
+    void set_params_velocity(float kp, float ki, float kd, unsigned int qpps);
+    void set_params_position(float kp, float ki, float kd, uint32_t i_max, uint32_t deadzone, int32_t lower_limit, int32_t upper_limit);
+
 private:
-    QString _name;
+    std::string _name;
 
     bool _connected;
-
-    unsigned int _incs_per_deg;
-
     bool _calibrated;
 
-    int _acc;
+    uint32_t _incs_per_deg;
+    uint32_t _acc;
 
     double _min_angle;
     double _max_angle;

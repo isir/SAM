@@ -4,7 +4,6 @@
 #include "actuator.h"
 
 class CustomElbow : public Actuator {
-    Q_OBJECT
 public:
     CustomElbow();
 

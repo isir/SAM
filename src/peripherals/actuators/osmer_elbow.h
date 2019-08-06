@@ -4,7 +4,6 @@
 #include "actuator.h"
 
 class OsmerElbow : public Actuator {
-    Q_OBJECT
 public:
     OsmerElbow();
 

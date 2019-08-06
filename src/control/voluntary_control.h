@@ -4,24 +4,22 @@
 #include "threaded_loop.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
-#include "utils/settings.h"
-#include <QFile>
+#include <fstream>
 
 class VoluntaryControl : public ThreadedLoop {
-    Q_OBJECT
 public:
     explicit VoluntaryControl(std::shared_ptr<SAM::Components> robot);
-    ~VoluntaryControl();
+    ~VoluntaryControl() override;
 
 private:
-    bool setup();
-    void loop(double dt, double time);
-    void cleanup();
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
+
+    std::ofstream _file;
 
     std::shared_ptr<SAM::Components> _robot;
-    QFile _file;
     bool _need_to_write_header;
-    Settings _settings;
 
     int _pin_up;
     int _pin_down;

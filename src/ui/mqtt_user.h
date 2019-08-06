@@ -1,24 +1,17 @@
 #ifndef MQTT_USER_H
 #define MQTT_USER_H
 
+#include "mosquitto/client.h"
 #include "utils/named_object.h"
-#include <QMqttClient>
 
-class MqttUser : public NamedObject {
+class MqttUser {
 public:
-    typedef enum {
-        AUTOCONNECT,
-        NO_AUTOCONNECT
-    } Autoconnection;
-
-    virtual ~MqttUser();
-
-    void connect_to_mqtt_server();
+    virtual ~MqttUser() = 0;
 
 protected:
-    MqttUser(QString client_id, Autoconnection autoconnect = AUTOCONNECT, NamedObject* parent = nullptr);
+    MqttUser();
 
-    QMqttClient _mqtt;
+    Mosquitto::Client _mqtt;
 };
 
 #endif // MQTT_USER_H

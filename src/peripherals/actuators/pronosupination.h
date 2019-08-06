@@ -4,7 +4,6 @@
 #include "actuator.h"
 
 class PronoSupination : public Actuator {
-    Q_OBJECT
 public:
     PronoSupination();
 

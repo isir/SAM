@@ -3,15 +3,15 @@
 WristRotator::WristRotator()
     : Actuator("Wrist Rotator")
 {
-    Actuator::connect("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M1);
+    init("/dev/ttyAMA0", B230400, 0x81, RoboClaw::M1);
 
-    _menu->set_description(QString::fromStdString("Wrist Rotator - " + read_firmware_version()));
-    _menu->set_code(QString("pronosup"));
+    _menu->set_description("Wrist Rotator - " + read_firmware_version());
+    _menu->set_code("pronosup");
 
-    read_params_limits(-60., 35.);
-    read_params_technical(1000, 100);
-    read_params_velocity(0.23, 0.015, 0, 221000);
-    read_params_position(27., 0., 0., 0., 0., -180., 180.);
+    set_params_limits(-60., 35.);
+    set_params_technical(1000, 100);
+    set_params_velocity(0.23f, 0.015f, 0, 221000);
+    set_params_position(27., 0., 0., 0., 0., -180., 180.);
 }
 
 void WristRotator::calibrate()

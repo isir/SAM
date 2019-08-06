@@ -3,15 +3,15 @@
 CustomElbow::CustomElbow()
     : Actuator("Custom Elbow")
 {
-    connect("/dev/ttyAMA0", B230400, 0x82, RoboClaw::M1);
+    init("/dev/ttyAMA0", B230400, 0x82, RoboClaw::M1);
 
-    _menu->set_description(QString::fromStdString("Custom Elbow - " + read_firmware_version()));
-    _menu->set_code(QString("elbow"));
+    _menu->set_description("Custom Elbow - " + read_firmware_version());
+    _menu->set_code("elbow");
 
-    read_params_limits(-100., 0.);
-    read_params_technical(4065, 100);
-    read_params_velocity(0.199, 0.014, 0, 268700);
-    read_params_position(19.3, 0., 0., 0., 0., -180., 180.);
+    set_params_limits(-100., 0.);
+    set_params_technical(4065, 100);
+    set_params_velocity(0.199f, 0.014f, 0, 268700);
+    set_params_position(19.3f, 0., 0., 0., 0., -180., 180.);
 }
 
 void CustomElbow::calibrate()

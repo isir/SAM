@@ -1,9 +1,10 @@
 #ifndef OPTILISTENER_H
 #define OPTILISTENER_H
 
-#include <QObject>
-#include <QUdpSocket>
+#include "socket.h"
+#include <cstdint>
 #include <unistd.h>
+#include <vector>
 
 typedef struct {
     float posx;
@@ -34,7 +35,7 @@ typedef struct {
 // Skeletons (NatNet version 2.1 and later)
 typedef struct {
     int skeletonID;
-    int nRigidBodies;
+    unsigned int nRigidBodies;
     std::vector<optitrack_rigibody_t> rigidBodies;
 } optitrack_skeleton_t;
 
@@ -80,7 +81,7 @@ typedef struct {
     std::vector<optitrack_market_set_t> markerSets;
     int nOtherMarkers;
     std::vector<optitrack_marker_t> otherMarkers;
-    int nRigidBodies;
+    unsigned int nRigidBodies;
     std::vector<optitrack_rigibody_t> rigidBodies;
     int nSkeletons;
     std::vector<optitrack_skeleton_t> skeletons;
@@ -110,26 +111,19 @@ typedef struct {
     int eod;
 } optitrack_data_t;
 
-Q_DECLARE_METATYPE(optitrack_data_t)
-
-class OptiListener : public QObject {
-    Q_OBJECT
+class OptiListener {
 public:
     OptiListener();
     void begin(int port = 1511);
+
+    void update();
     optitrack_data_t get_last_data() { return _last_data; }
 
 private:
     optitrack_data_t unpack(char* pData);
     optitrack_data_t _last_data;
 
-    QUdpSocket _udpSocket;
-
-private slots:
-    void on_new_packet();
-
-signals:
-    void new_data(optitrack_data_t data);
+    Socket _socket;
 };
 
 #endif // OPTILISTENER_H

@@ -10,28 +10,24 @@
 #include "ui/menu_console.h"
 #include "ui/menu_mqtt.h"
 #include "ui/mqtt_user.h"
-#include "utils/logger.h"
 #include "utils/sam.h"
-#include "utils/settings.h"
 #include "utils/system_monitor.h"
-#include <QCoreApplication>
-#include <QObject>
+#include <condition_variable>
 
-class SAManager : public QObject, public MqttUser {
-    Q_OBJECT
+class SAManager : public MqttUser {
 public:
-    explicit SAManager(QCoreApplication* a, QObject* parent = nullptr);
+    explicit SAManager();
     ~SAManager();
 
-    static std::shared_ptr<Logger> log() { return _log; }
+    void run();
 
 private:
-    void internal_init();
     void fill_menus();
-    void instanciate_controllers();
+    void instantiate_controllers();
     void autostart_demo();
 
-    static std::shared_ptr<Logger> _log;
+    std::condition_variable _cv;
+    std::mutex _cv_mutex;
 
     std::unique_ptr<VoluntaryControl> _vc;
     std::unique_ptr<CompensationOptitrack> _opti;
@@ -45,11 +41,6 @@ private:
     std::unique_ptr<MenuConsole> _menu_console_binding;
 
     std::shared_ptr<SAM::Components> _robot;
-
-    Settings _settings;
-
-private slots:
-    void mqtt_connected_callback();
 };
 
 #endif // SAMANAGER_H

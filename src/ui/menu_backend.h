@@ -3,18 +3,22 @@
 
 #include "menu_broker.h"
 #include "menu_item.h"
-#include <QMap>
-#include <QObject>
-#include <QString>
+#include <functional>
+#include <map>
 #include <memory>
+#include <string>
 
-class MenuBackend : public QObject, public MenuItem {
-    Q_OBJECT
+class MenuBackend : public MenuItem {
 public:
-    MenuBackend(QString code = QString(), QString description = QString());
+    MenuBackend(
+        std::string code = std::string(), std::string description = std::string(), std::function<void(void)> exit_callback = [] {});
     ~MenuBackend();
 
-    inline void add_item(QString code, QString description, std::function<void(QString)> callback)
+    inline void add_exit(std::function<void(std::string)> callback)
+    {
+        add_item(std::make_shared<ExitItem>(callback));
+    }
+    inline void add_item(std::string code, std::string description, std::function<void(std::string)> callback)
     {
         add_item(std::make_shared<StandardItem>(code, description, callback));
     }
@@ -29,25 +33,24 @@ public:
     }
 
     static MenuBroker broker;
-    void handle_input(QString input);
+    void handle_input(std::string input);
 
-public slots:
+    void set_activated_callback(std::function<void(void)> f);
     void activate();
-    void activate_item(QString code, QString args = QString());
+    void activate_item(std::string code, std::string args = std::string());
 
 protected:
     virtual void on_exit();
 
 private:
     void set_parent(MenuBackend* parent);
+
     MenuBackend* _parent;
 
-    QMap<QString, std::shared_ptr<MenuItem>> _items;
+    std::function<void(void)> _activated_callback;
+    std::function<void(void)> _exit_callback;
 
-signals:
-    void activated();
-    void finished();
-    void show_menu(QString title, QMap<QString, std::shared_ptr<MenuItem>> items);
+    std::map<std::string, std::shared_ptr<MenuItem>> _items;
 };
 
 #endif // MENU_BACKEND_H

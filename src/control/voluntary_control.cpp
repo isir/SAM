@@ -1,10 +1,8 @@
 #include "voluntary_control.h"
 #include "peripherals/roboclaw/factory.h"
 #include "utils/check_ptr.h"
-
-#include "qmath.h"
-#include <QNetworkDatagram>
-#include <iostream>
+#include "utils/log/log.h"
+#include <filesystem>
 #include <wiringPi.h>
 
 VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
@@ -15,10 +13,9 @@ VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
         throw std::runtime_error("Volontary Control is missing components");
     }
 
-    _settings.beginGroup("VoluntaryControl");
-    _pin_up = _settings.value("pin_up", 24).toInt();
-    _pin_down = _settings.value("pin_down", 22).toInt();
-    set_period(_settings.value("period", 0.01).toDouble());
+    _pin_up = 24;
+    _pin_down = 22;
+    set_period(0.01);
 
     _menu->set_description("Voluntary Control");
     _menu->set_code("vc");
@@ -32,31 +29,32 @@ VoluntaryControl::~VoluntaryControl()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
-    stop();
+    stop_and_join();
 }
 
 bool VoluntaryControl::setup()
 {
     _robot->joints.wrist_pronation->set_encoder_position(0);
-    QString filename = QString("voluntary");
+    std::string filename("voluntary");
+    std::string suffix;
 
     int cnt = 0;
-    QString extension = QString(".txt");
+    std::string extension(".txt");
     do {
         ++cnt;
-        QString suffix = QString("_") + QString::number(cnt);
-        _file.setFileName(filename + suffix + extension);
-    } while (_file.exists());
+        suffix = "_" + std::to_string(cnt);
+    } while (std::filesystem::exists(filename + suffix + extension));
 
-    if (!_file.open(QIODevice::ReadWrite)) {
-        qCritical() << "Failed to open" << _file.fileName() << "-" << _file.errorString();
+    _file = std::ofstream(filename + suffix + extension);
+    if (!_file.good()) {
+        critical() << "Failed to open" << (filename + suffix + extension);
         return false;
     }
     _need_to_write_header = true;
     return true;
 }
 
-void VoluntaryControl::loop(double, double)
+void VoluntaryControl::loop(double, clock::time_point)
 {
     static int prev_pin_up_value = 1, prev_pin_down_value = 1;
     int pin_down_value = digitalRead(_pin_down);
@@ -92,24 +90,23 @@ void VoluntaryControl::loop(double, double)
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
-        _file.write("period, btnUp, btnDown, wristAngle");
+        _file << "period, btnUp, btnDown, wristAngle";
         for (int i = 0; i < data.nRigidBodies; i++) {
-            _file.write(", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z");
+            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
         }
-        _file.write("\r\n");
+        _file << std::endl;
         _need_to_write_header = false;
     }
 
-    QTextStream ts(&_file);
     //ts.setPadChar(' ');
     //    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
-    ts << period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
-    for (int i = 0; i < data.nRigidBodies; i++) {
-        ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        ts << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    _file << period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << wristAngle;
+    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
+        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
     }
-    ts << endl;
+    _file << std::endl;
 }
 
 void VoluntaryControl::cleanup()

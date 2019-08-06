@@ -1,36 +1,29 @@
-#ifndef DEBUG
-#define QT_NO_DEBUG_OUTPUT
-#endif
-
-#include "adafruit_ads1115.h"
-
 extern "C" {
 #include <i2c/smbus.h>
 }
 
-#include <time.h>
-
-// Errors
-#include <QCoreApplication>
+#include "adafruit_ads1115.h"
+#include "utils/log/log.h"
 #include <cstring>
 #include <sys/errno.h>
+#include <time.h>
 
 Adafruit_ADS1015::Adafruit_ADS1015(const char* deviceName, uint8_t i2cAddress)
 {
     fd = open(deviceName, O_RDWR);
     if (fd == -1) {
-        qCritical("ADS1115 ERROR : Failed to open I2C device %s. Error %d : %s.", deviceName, errno, strerror(errno));
+        critical() << "ADS1115 ERROR : Failed to open I2C device " << deviceName << ". Error " << errno << ": " << strerror(errno);
     } else {
-        qInfo("### ADS1115 : Open device %s", deviceName);
+        info() << "### ADS1115 : Open device " << deviceName;
     }
     if (ioctl(fd, I2C_SLAVE, i2cAddress) == -1) {
-        qCritical("ADS1115 ERROR : Failed to set address %d. Error %d : %s.", i2cAddress, errno, strerror(errno));
+        critical() << "ADS1115 ERROR : Failed to set address " << i2cAddress << ". Error " << errno << ": " << strerror(errno);
     }
     m_i2cAddress = i2cAddress;
     m_conversionDelay = ADS1015_CONVERSIONDELAY;
     m_bitShift = 4;
     m_gain = GAIN_TWOTHIRDS; /* +/- 6.144V range (limited to VDD +0.3V max!) */
-    qInfo("### ADS1115 : ADS1115 %s created at address %d.", deviceName, (int)i2cAddress);
+    info() << "### ADS1115 : ADS1115 " << deviceName << " created at address " << static_cast<int>(i2cAddress);
 }
 
 Adafruit_ADS1115::Adafruit_ADS1115(const char* deviceName, uint8_t i2cAddress)

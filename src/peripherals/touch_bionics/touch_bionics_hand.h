@@ -3,7 +3,6 @@
 
 #include "ui/menu_user.h"
 #include "utils/serial_port.h"
-#include "utils/settings.h"
 #include <memory>
 
 /**
@@ -55,8 +54,9 @@ public:
     void init_sequence();
     void move(int action);
     void setPosture(POSTURE posture);
-    int getSpeed() { return _speed; }
-    void setSpeed(int newSpeed) { _speed = newSpeed; }
+
+    int speed() { return _speed; }
+    void set_speed(int new_speed);
 
     void take_ownership() { _sp.take_ownership(); }
     void release_ownership() { _sp.release_ownership(); }
@@ -68,7 +68,6 @@ private:
     int _count;
     const int _NB_OF_CMD_TO_RESEND = 3;
 
-    Settings _settings;
     SerialPort _sp;
 };
 

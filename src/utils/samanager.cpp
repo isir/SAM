@@ -1,30 +1,16 @@
 #include "samanager.h"
-#include <unistd.h>
-#include <wiringPi.h>
-
 #include "peripherals/actuators/custom_elbow.h"
 #include "peripherals/actuators/osmer_elbow.h"
-
 #include "peripherals/actuators/pronosupination.h"
 #include "peripherals/actuators/shoulder_rotator.h"
 #include "peripherals/actuators/wrist_rotator.h"
+#include "utils/log/log.h"
+#include <unistd.h>
+#include <wiringPi.h>
 
-std::shared_ptr<Logger> SAManager::_log;
-
-static void message_handler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
+SAManager::SAManager()
+    : _main_menu(std::make_unique<MenuBackend>("main", "Main menu", [this] { _cv.notify_one(); }))
 {
-    SAManager::log()->async_handle_message(type, context, msg);
-}
-
-SAManager::SAManager(QCoreApplication* a, QObject* parent)
-    : QObject(parent)
-    , MqttUser("SAManager", AUTOCONNECT)
-    , _main_menu(std::make_unique<MenuBackend>("main", "Main menu"))
-{
-
-    QObject::connect(_main_menu.get(), &MenuBackend::finished, a, &QCoreApplication::quit, Qt::QueuedConnection);
-    QObject::connect(&_mqtt, &QMqttClient::connected, this, &SAManager::mqtt_connected_callback);
-
     wiringPiSetup();
 
     pinMode(SAM::Components::pin_demo, INPUT);
@@ -33,9 +19,12 @@ SAManager::SAManager(QCoreApplication* a, QObject* parent)
     if (isatty(fileno(stdin))) {
         _menu_console_binding = std::make_unique<MenuConsole>();
     } else {
-        qInfo() << "No TTY detected, console UI disabled.";
+        info() << "No TTY detected, console UI disabled.";
     }
     _menu_mqtt_binding = std::make_unique<MenuMQTT>();
+
+    _sm = std::make_unique<SystemMonitor>();
+    _sm->start();
 }
 
 SAManager::~SAManager()
@@ -45,22 +34,25 @@ SAManager::~SAManager()
         _robot->user_feedback.leds->set(LedStrip::none, 10);
 }
 
-void SAManager::internal_init()
+void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
-    _robot->user_feedback.leds->set(LedStrip::blue, 10);
+    _robot->user_feedback.leds->set(LedStrip::white, 10);
 
-    instanciate_controllers();
+    instantiate_controllers();
     fill_menus();
     autostart_demo();
+
+    std::unique_lock lock(_cv_mutex);
+    _cv.wait(lock);
 }
 
 void SAManager::fill_menus()
 {
     std::shared_ptr<MenuBackend> buzzer_submenu = std::make_shared<MenuBackend>("buzzer", "Buzzer submenu");
-    buzzer_submenu->add_item("sb", "Single Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ); });
-    buzzer_submenu->add_item("db", "Double Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ); });
-    buzzer_submenu->add_item("tb", "Triple Buzz", [this](QString) { _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ); });
+    buzzer_submenu->add_item("sb", "Single Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ); });
+    buzzer_submenu->add_item("db", "Double Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ); });
+    buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
@@ -77,7 +69,7 @@ void SAManager::fill_menus()
     _main_menu->activate();
 }
 
-void SAManager::instanciate_controllers()
+void SAManager::instantiate_controllers()
 {
     try {
         _vc = std::make_unique<VoluntaryControl>(_robot);
@@ -105,27 +97,11 @@ void SAManager::autostart_demo()
 {
     if (_demo) {
         if (digitalRead(SAM::Components::pin_demo)) {
-            _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::SHORT_BUZZ);
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
         } else {
-            _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::DOUBLE_BUZZ);
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
             _main_menu->activate_item("demo");
             _demo->start();
         }
     }
-}
-
-void SAManager::mqtt_connected_callback()
-{
-    qInfo() << "Connected to broker";
-    if (!_log) {
-        _log = std::make_shared<Logger>();
-    }
-    qInstallMessageHandler(&message_handler);
-
-    internal_init();
-
-    _sm = std::make_unique<SystemMonitor>();
-    _sm->start();
-
-    _robot->user_feedback.leds->set(LedStrip::white, 10);
 }

@@ -1,6 +1,5 @@
 #include "opti_listener.h"
-#include <QDebug>
-#include <QNetworkInterface>
+#include "utils/log/log.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,13 +7,21 @@
 
 OptiListener::OptiListener()
 {
-    QObject::connect(&_udpSocket, &QUdpSocket::readyRead, this, &OptiListener::on_new_packet);
 }
 
 void OptiListener::begin(int port)
 {
-    if (!_udpSocket.bind(QHostAddress::AnyIPv4, port)) {
-        qCritical() << _udpSocket.errorString();
+    if (!_socket.bind("0.0.0.0", port)) {
+        critical() << "OptiListener: Failed to bind socket";
+    }
+}
+
+void OptiListener::update()
+{
+    std::vector<std::byte> packet;
+    while (_socket.available()) {
+        packet = _socket.receive();
+        _last_data = unpack(reinterpret_cast<char*>(packet.data()));
     }
 }
 
@@ -58,7 +65,7 @@ optitrack_data_t OptiListener::unpack(char* pData)
             optitrack_market_set_t tmpMarkerSet;
             // Markerset name
             strcpy(tmpMarkerSet.name, ptr);
-            int nDataBytes = (int)strlen(tmpMarkerSet.name) + 1;
+            unsigned int nDataBytes = strlen(tmpMarkerSet.name) + 1;
             ptr += nDataBytes;
             //qDebug("Model Name: %s", tmpMarkerSet.name);
 
@@ -112,7 +119,7 @@ optitrack_data_t OptiListener::unpack(char* pData)
         memcpy(&tmpData.nRigidBodies, ptr, 4);
         ptr += 4;
         //qDebug("Rigid Body Count : %d", tmpData.nRigidBodies);
-        for (int j = 0; j < tmpData.nRigidBodies; j++) {
+        for (unsigned int j = 0; j < tmpData.nRigidBodies; j++) {
             optitrack_rigibody_t tmpRigidBody;
             // Rigid body position and orientation
             tmpRigidBody.ID = 0;
@@ -165,27 +172,14 @@ optitrack_data_t OptiListener::unpack(char* pData)
         } // Go to next rigid body
     } else if (tmpData.messageID == 5) // Data Descriptions
     {
-        qWarning() << "WARNING ID message : 5 -- Not yet integrated";
+        warning() << "WARNING ID message : 5 -- Not yet integrated";
     } else if (tmpData.messageID == 2) // skeleton
     {
-        qWarning() << "WARNING ID message : 2 -- Not yet integrated";
+        warning() << "WARNING ID message : 2 -- Not yet integrated";
     } else {
-        qWarning("Unrecognized Packet Type: %d.", tmpData.messageID);
+        warning() << "Unrecognized Packet Type: " << tmpData.messageID;
     }
 
     //    printf("From listener : nRB : %d\n", tmpData.nRigidBodies);
     return tmpData;
-}
-
-void OptiListener::on_new_packet()
-{
-    QByteArray dataToReceive;
-    while (_udpSocket.hasPendingDatagrams()) {
-        dataToReceive.resize(int(_udpSocket.pendingDatagramSize()));
-        QHostAddress hostAddress;
-        quint16 port;
-        _udpSocket.readDatagram(dataToReceive.data(), dataToReceive.size(), &hostAddress, &port);
-        _last_data = unpack(dataToReceive.data());
-        emit new_data(_last_data);
-    }
 }

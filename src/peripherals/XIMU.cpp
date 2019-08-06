@@ -25,13 +25,8 @@
 * Excellence Initiative.
 */
 
-// Error / debug handling
-#ifndef DEBUG
-#define QT_NO_DEBUG_OUTPUT
-#endif
 #include "XIMU.h"
-#include <QCoreApplication>
-#include <QDebug>
+#include "utils/log/log.h"
 
 #define RXBUFSIZE 256
 
@@ -44,8 +39,8 @@ XIMU::XIMU(const char* filename, int level, int baudrate)
     set_loglevel(level);
 
     if (!open_port(filename, baudrate)) {
-        throw std::runtime_error(std::string(filename) + ": " + std::string(strerror(errno)));
         _hasOpenPort = false;
+        throw std::runtime_error(std::string(filename) + ": " + std::string(strerror(errno)));
     } else {
         _hasOpenPort = true;
     }
@@ -100,17 +95,17 @@ int XIMU::detect_device()
     unsigned int fw_major, fw_minor, device_id;
 
     if (!get_register(REGISTER_ADDRESS_FirmwareVersionMajorNum, &fw_major)) {
-        qCritical("XIMU ERROR: no reply for firmware major register");
+        critical("XIMU ERROR: no reply for firmware major register");
         return 0;
     }
 
     if (!get_register(REGISTER_ADDRESS_FirmwareVersionMinorNum, &fw_minor)) {
-        qCritical("XIMU ERROR: no reply for firmware minor register");
+        critical("XIMU ERROR: no reply for firmware minor register");
         return 0;
     }
 
     if (!get_register(REGISTER_ADDRESS_DeviceID, &device_id)) {
-        qCritical("XIMU ERROR: no reply for device_id register");
+        critical("XIMU ERROR: no reply for device_id register");
         return 0;
     }
 
@@ -121,7 +116,7 @@ int XIMU::detect_device()
     //}
 
     //sucess!
-    qDebug("### XIMU :found XIMU with firmware %d.%d [deviceid 0x%02X]", fw_major, fw_minor, device_id);
+    debug() << "### XIMU :found XIMU with firmware " << fw_major << "." << fw_minor << " [deviceid 0x" << std::hex << device_id << "]";
     device_detected = true;
     return 1;
 }
@@ -145,7 +140,7 @@ void XIMU::comm_thread()
 
         for (int i = 0; i < rxcount; i++) {
             if (rx_packet_buffer_pos >= RX_PACKET_BUFFER_SIZE) {
-                qCritical("XIMU ERROR: buffer overflow");
+                critical("XIMU ERROR: buffer overflow");
             } else {
                 //copy to packetbuffer
                 rx_packet_buffer[rx_packet_buffer_pos++] = rxbuf[i];
@@ -286,7 +281,7 @@ void XIMU::process_packet(unsigned char* packet_ptr, int len)
 {
     //decode packet checks
     if ((len < 4) || (len > 30)) {
-        qDebug("### XIMU :packet len invalid (%d != [4...30])", len);
+        debug() << "### XIMU :packet len invalid (" << len << " != [4...30])";
     }
 
     //decode data (decoded data is stored in packet ptr & updated len
@@ -300,7 +295,7 @@ void XIMU::process_packet(unsigned char* packet_ptr, int len)
     }
 
     if (checksum != packet_ptr[len - 1]) {
-        qDebug("### XIMU :checksum mismatch, 0x%02X (!= 0x%02X) discarding packet", checksum, packet_ptr[len - 1]);
+        debug("### XIMU :checksum mismatch");
         return;
     }
 
@@ -344,7 +339,7 @@ void XIMU::process_packet(unsigned char* packet_ptr, int len)
         return;
 
     default:
-        qDebug("### XIMU :ERROR: invalid packet header type 0x%04X", packet_ptr[0]);
+        debug() << "### XIMU :ERROR: invalid packet header type 0x" << std::hex << packet_ptr[0];
         return;
     }
 }
@@ -356,7 +351,7 @@ int XIMU::get_register(unsigned int register_address, unsigned int* val)
     unsigned int timeout;
 
     if (register_address >= REGISTER_ADDRESS_NumRegisters) {
-        qDebug("### XIMU :ERROR: register address 0x%02X too large (>=0x%02X -> ignored)", register_address, REGISTER_ADDRESS_NumRegisters);
+        debug() << "### XIMU :ERROR: register address " << register_address << " too large (>=" << REGISTER_ADDRESS_NumRegisters << " -> ignored)";
         return 0;
     }
 
@@ -379,7 +374,7 @@ int XIMU::get_register(unsigned int register_address, unsigned int* val)
 
             if (!waiting_for_reply) {
                 //we received a reply -> process & return
-                qDebug("### XIMU :GOT REGISTER REPLY within %5.2fms", i * 100 + (1000 - timeout) / 10.0);
+                debug() << "### XIMU :GOT REGISTER REPLY within " << (i * 100 + (1000 - timeout) / 10.0) << "ms";
                 *val = register_raw_value[register_address];
                 return 1;
             }
@@ -387,7 +382,7 @@ int XIMU::get_register(unsigned int register_address, unsigned int* val)
             timeout--;
         }
 
-        qDebug("### XIMU :TIMEOUT: 100ms timeout during get register, retrying %d more times", XIMU_READ_REGISTER_TRIES - i);
+        debug() << "### XIMU :TIMEOUT: 100ms timeout during get register, retrying " << (XIMU_READ_REGISTER_TRIES - i) << " more times";
     }
 
     //last chance:
@@ -396,7 +391,7 @@ int XIMU::get_register(unsigned int register_address, unsigned int* val)
     scoped_lock.unlock();
 
     if (waiting_for_reply) {
-        qDebug("### XIMU :ERROR: request for register read 0x%02X timed out", register_address);
+        debug() << "### XIMU :ERROR: request for register read " << register_address << " timed out";
         return 0;
     }
 
@@ -670,7 +665,7 @@ void XIMU::process_packet_error_data(unsigned char* ptr, int len)
         error = "unknown errorcode";
         break;
     }
-    qDebug("### XIMU :ERRORCODE 0x%04X = %s", errorcode, error.c_str());
+    debug() << "### XIMU: ERROR: " << error;
 }
 
 void XIMU::process_packet_command_data(unsigned char* ptr, int len)
@@ -743,7 +738,7 @@ void XIMU::process_packet_command_data(unsigned char* ptr, int len)
         pending_command = -1;
     }
 
-    qDebug("### XIMU :COMMANDCODE 0x%04X = %s", code, command.c_str());
+    debug() << "### XIMU :COMMANDCODE 0x" << std::hex << code << " = " << command;
 }
 
 void XIMU::process_packet_write_register(unsigned char* ptr, int len)
@@ -757,7 +752,7 @@ void XIMU::process_packet_write_register(unsigned char* ptr, int len)
 
     //value too big -> ignore
     if (hi >= REGISTER_ADDRESS_NumRegisters) {
-        qDebug("### XIMU :ERROR: reply for register address 0x%02X too large (>=0x%02X -> ignored)", hi, REGISTER_ADDRESS_NumRegisters);
+        debug() << "### XIMU :ERROR: reply for register address 0x" << std::hex << hi << " too large (>=0x" << REGISTER_ADDRESS_NumRegisters << " -> ignored)";
         return;
     }
 
@@ -767,7 +762,7 @@ void XIMU::process_packet_write_register(unsigned char* ptr, int len)
     register_raw_pending[hi] = false; //no longer pending as we received a reply
     scoped_lock.unlock();
 
-    qInfo("XIMU INFO : WRITE REGISTER 0x%04X%04X", hi, lo);
+    info() << "XIMU INFO : WRITE REGISTER 0x" << std::hex << hi << lo;
 }
 
 void XIMU::process_packet_write_datetime(unsigned char* ptr, int len)

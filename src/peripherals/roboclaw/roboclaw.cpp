@@ -46,7 +46,7 @@ int32_t RC::RoboClaw::read_encoder_speed()
 
 void RC::RoboClaw::set_velocity(int32_t value)
 {
-    send(Message(_address, get_fn_code(36, 36), ff_answer, CastHelper::from(value)));
+    send(Message(_address, get_fn_code(35, 36), ff_answer, CastHelper::from(value)));
 }
 
 std::string RC::RoboClaw::read_firmware_version()
@@ -147,7 +147,7 @@ RC::position_pid_params_t RC::RoboClaw::read_position_pid()
     return ret;
 }
 
-void RC::RoboClaw::move_to(int32_t accel, uint32_t speed, uint32_t decel, int32_t pos)
+void RC::RoboClaw::move_to(uint32_t accel, uint32_t speed, uint32_t decel, int32_t pos)
 {
     std::vector<std::byte> tmp, payload;
     tmp = CastHelper::from(accel);
@@ -158,14 +158,14 @@ void RC::RoboClaw::move_to(int32_t accel, uint32_t speed, uint32_t decel, int32_
     payload.insert(payload.end(), tmp.begin(), tmp.end());
     tmp = CastHelper::from(pos);
     payload.insert(payload.end(), tmp.begin(), tmp.end());
-    CastHelper::from<uint8_t>(1);
+    tmp = CastHelper::from<uint8_t>(1);
     payload.insert(payload.end(), tmp.begin(), tmp.end());
     send(Message(_address, get_fn_code(65, 66), ff_answer, payload));
 }
 
 std::vector<std::byte> RC::RoboClaw::send(const Message& msg)
 {
-    static const int to = 20;
+    static const int to = 100;
     std::vector<std::byte> ret;
 
     _serial_port->take_ownership();
@@ -178,11 +178,13 @@ std::vector<std::byte> RC::RoboClaw::send(const Message& msg)
     while (true) {
         std::vector<std::byte> tmp = _serial_port->read_all();
         ret.insert(ret.end(), tmp.begin(), tmp.end());
+
         if (msg.answer()->try_match(ret, msg.data())) {
             break;
         }
 
         auto elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+
         if (elapsed_ms >= to) {
             _serial_port->release_ownership();
             throw std::runtime_error("Request timed out: " + msg.to_string());
