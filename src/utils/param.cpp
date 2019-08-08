@@ -31,8 +31,8 @@ BaseParam::BaseParam(std::string name, NamedObject* parent)
         _mqtt.publish(_topic_prefix + "/list", param_list_string);
     }
 
-    auto cb = [this](std::string s) {
-        _assign_raw(s);
+    auto cb = [this](Mosquittopp::Message msg) {
+        _assign_raw(msg.payload());
     };
 
     _mqtt.subscribe(_topic_name)->add_callback(this, cb);

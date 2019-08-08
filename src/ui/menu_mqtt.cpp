@@ -5,7 +5,7 @@ MenuMQTT::MenuMQTT()
     : MenuFrontend()
 {
     connect_to_backend();
-    _mqtt.subscribe("sam/menu/input")->add_callback(this, [](std::string s) { MenuBackend::broker.handle_input(s); });
+    _mqtt.subscribe("sam/menu/input")->add_callback(this, [](Mosquittopp::Message msg) { MenuBackend::broker.handle_input(msg.payload()); });
 }
 
 void MenuMQTT::show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items)
