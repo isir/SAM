@@ -29,6 +29,8 @@ protected:
     template <typename T>
     void _assign(T v)
     {
+        static bool first_assignment = true;
+
         T old_value = _to<T>();
 
         std::stringstream stream;
@@ -39,8 +41,9 @@ protected:
             _storage = stream.str();
         }
 
-        if (v != old_value) {
+        if (v != old_value || first_assignment) {
             _value_changed = true;
+            first_assignment = false;
             _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
         }
     }
