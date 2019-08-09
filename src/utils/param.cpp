@@ -7,13 +7,10 @@ const std::string BaseParam::_topic_prefix = "param/";
 BaseParam::BaseParam(std::string name, NamedObject* parent)
     : NamedObject(name, parent)
     , _storage(" ")
+    , _first_assignment(true)
     , _value_changed(true)
 {
-    _topic_name = _topic_prefix;
-    for (std::string n : _parents) {
-        _topic_name += n + "/";
-    }
-    _topic_name += _name;
+    _topic_name = _topic_prefix + full_name();
 
     {
         std::string param_list_string;
@@ -35,7 +32,7 @@ BaseParam::BaseParam(std::string name, NamedObject* parent)
         _assign_raw(msg.payload());
     };
 
-    _mqtt.subscribe(_topic_name)->add_callback(this, cb);
+    _mqtt.subscribe(_topic_name, Mosquittopp::Client::QoS1)->add_callback(this, cb);
 }
 
 BaseParam::~BaseParam()

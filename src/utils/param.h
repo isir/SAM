@@ -29,22 +29,19 @@ protected:
     template <typename T>
     void _assign(T v)
     {
-        static bool first_assignment = true;
-
         T old_value = _to<T>();
 
         std::stringstream stream;
         stream << v;
 
         {
-            std::lock_guard<std::mutex> lock(_storage_mutex);
-            _storage = stream.str();
+            _assign_raw(stream.str());
         }
 
-        if (v != old_value || first_assignment) {
+        if (v != old_value || _first_assignment) {
             _value_changed = true;
-            first_assignment = false;
-            _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
+            _first_assignment = false;
+            _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1);
         }
     }
 
@@ -55,13 +52,8 @@ protected:
 
         {
             std::lock_guard<std::mutex> lock(_storage_mutex);
-            if (!_storage.empty()) {
-                std::stringstream stream(_storage);
-                stream >> ret;
-            } else {
-                std::stringstream stream;
-                stream >> ret;
-            }
+            std::stringstream stream(_storage);
+            stream >> ret;
         }
         _value_changed = false;
 
@@ -72,6 +64,8 @@ protected:
     std::mutex _storage_mutex;
 
 private:
+    bool _first_assignment;
+
     static std::vector<BaseParam*> _param_list;
     static std::mutex _param_list_mutex;
 
@@ -99,8 +93,7 @@ public:
     {
     }
 
-    inline void
-    operator=(T v)
+    inline void operator=(T v)
     {
         _assign<T>(v);
     }
