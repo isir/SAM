@@ -47,6 +47,7 @@ set(SOURCES
     src/ui/mosquittopp/library_wrapper.cpp
     src/ui/mosquittopp/message.cpp
     src/ui/mosquittopp/subscription.cpp
+    src/ui/mosquittopp/subscription_factory.cpp
     src/ui/mqtt_user.cpp
     src/utils/log/logger.cpp
     src/utils/log/safe_stream.cpp
