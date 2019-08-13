@@ -17,7 +17,6 @@ public:
 
 private:
     Logger::MessageType _t;
-    static std::mutex _mutex;
 };
 }
 
