@@ -26,7 +26,8 @@ void MenuBackend::add_item(std::shared_ptr<MenuItem> item)
 void MenuBackend::handle_input(std::string input)
 {
     std::string key, input_key, args;
-    for (auto i = _items.begin(); i != _items.end(); ++i) {
+    auto i = _items.begin();
+    for (; i != _items.end(); ++i) {
         key = (*i).first.substr(0, (*i).first.find_first_of(' '));
         input_key = input.substr(0, input.find_first_of(' '));
         if (key == input) {
@@ -37,15 +38,19 @@ void MenuBackend::handle_input(std::string input)
         }
         key = "";
     }
-    activate_item(key, args);
+    if (i != _items.end()) {
+        activate_item(key, args);
+    } else {
+        broker.show_menu(_description, _items);
+    }
 }
 
 void MenuBackend::on_exit()
 {
     if (_parent) {
         _parent->activate();
+        _parent = nullptr;
     }
-    _parent = nullptr;
 }
 
 void MenuBackend::set_activated_callback(std::function<void(void)> f)
@@ -67,7 +72,6 @@ void MenuBackend::activate_item(std::string code, std::string args)
         if (!i) {
             throw std::runtime_error("Trying to activate a null item");
         }
-
         if (i->type() == SUBMENU) {
             std::shared_ptr<MenuBackend> m = std::dynamic_pointer_cast<MenuBackend>(i);
             m->set_parent(this);

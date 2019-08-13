@@ -2,21 +2,18 @@
 #define MENU_CONSOLE_H
 
 #include "menu_frontend.h"
-#include <map>
-#include <string>
-#include <thread>
+#include "utils/worker.h"
 
-class MenuConsole : public MenuFrontend {
+class MenuConsole : public MenuFrontend, public Worker {
 public:
     MenuConsole();
     ~MenuConsole() override;
 
     void show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items) override;
     void show_message(std::string msg) override;
-    void read_line();
 
 private:
-    std::thread _thread;
+    void work() override;
 };
 
 #endif // MENU_CONSOLE_H

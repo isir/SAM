@@ -5,6 +5,7 @@
 #include <unistd.h>
 
 MenuConsole::MenuConsole()
+    : Worker("read_line")
 {
     connect_to_backend();
     fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
@@ -12,8 +13,6 @@ MenuConsole::MenuConsole()
 
 MenuConsole::~MenuConsole()
 {
-    if (_thread.joinable())
-        _thread.join();
 }
 
 void MenuConsole::show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items)
@@ -39,7 +38,7 @@ void MenuConsole::show_menu(std::string title, std::map<std::string, std::shared
     }
     std::cout << buffer << std::flush;
 
-    _thread = std::thread(&MenuConsole::read_line, this);
+    do_work();
 }
 
 void MenuConsole::show_message(std::string msg)
@@ -47,15 +46,16 @@ void MenuConsole::show_message(std::string msg)
     std::cout << msg << std::endl;
 }
 
-void MenuConsole::read_line()
+void MenuConsole::work()
 {
-    static char buffer[128];
+    char buffer[128];
     int n = 0;
 
     std::cout << "> " << std::flush;
+
     do {
         n = read(0, buffer, 128);
-    } while (n <= 0);
+    } while (n <= 0 && _worker_loop_condition);
 
     if (n > 0) {
         MenuBackend::broker.handle_input(std::string(buffer, buffer + n - 1));

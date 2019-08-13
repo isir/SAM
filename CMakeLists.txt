@@ -60,6 +60,7 @@ set(SOURCES
     src/utils/socket.cpp
     src/utils/system_monitor.cpp
     src/utils/watchdog.cpp
+    src/utils/worker.cpp
     )
 
     include_directories(src/)
