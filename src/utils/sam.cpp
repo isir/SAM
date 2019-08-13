@@ -33,7 +33,7 @@ Sensors::Sensors()
 UserFeedback::UserFeedback()
 {
     buzzer = std::make_unique<Buzzer>(Components::pin_buzzer);
-    buzzer->set_prio(80);
+    buzzer->set_prio(90);
     buzzer->set_preferred_cpu(2);
 
     leds = std::make_unique<LedStrip>();
