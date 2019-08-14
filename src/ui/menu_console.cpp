@@ -53,9 +53,13 @@ void MenuConsole::work()
 
     std::cout << "> " << std::flush;
 
-    do {
+    while (true) {
         n = read(0, buffer, 128);
-    } while (n <= 0 && _worker_loop_condition);
+        if (n > 0 || !_worker_loop_condition) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
 
     if (n > 0) {
         MenuBackend::broker.handle_input(std::string(buffer, buffer + n - 1));
