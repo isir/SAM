@@ -24,6 +24,11 @@ Worker::Worker(std::string thread_name)
 
 Worker::~Worker()
 {
+    stop();
+}
+
+void Worker::stop()
+{
     _worker_loop_condition = false;
     if (_worker_thread.joinable()) {
         _worker_cv_check = true;
@@ -34,7 +39,6 @@ Worker::~Worker()
 
 void Worker::do_work()
 {
-    std::lock_guard lock(_worker_mutex);
     _worker_cv_check = true;
     _worker_cv.notify_one();
 }

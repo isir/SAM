@@ -1,18 +1,18 @@
 #ifndef WORKER_H
 #define WORKER_H
 
+#include <atomic>
 #include <condition_variable>
 #include <mutex>
-#include <thread>
-#include <atomic>
 #include <string>
+#include <thread>
 
-class Worker
-{
+class Worker {
 public:
     Worker(std::string thread_name = std::string());
     virtual ~Worker();
 
+    void stop();
     void do_work();
 
 protected:

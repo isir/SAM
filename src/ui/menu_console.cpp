@@ -8,11 +8,14 @@ MenuConsole::MenuConsole()
     : Worker("read_line")
 {
     connect_to_backend();
-    fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK);
+    if (fcntl(0, F_SETFL, fcntl(0, F_GETFL) | O_NONBLOCK) < 0)
+        std::cerr << "fcntl failed with error " << errno << std::endl;
 }
 
 MenuConsole::~MenuConsole()
 {
+    stop();
+    fcntl(0, F_SETFL, fcntl(0, F_GETFL) & (~O_NONBLOCK));
 }
 
 void MenuConsole::show_menu(std::string title, std::map<std::string, std::shared_ptr<MenuItem>> items)
@@ -37,6 +40,7 @@ void MenuConsole::show_menu(std::string title, std::map<std::string, std::shared
         buffer += "[" + item.second->code() + "]" + filler + " " + item.second->description() + "\r\n";
     }
     std::cout << buffer << std::flush;
+    std::cout << "> " << std::flush;
 
     do_work();
 }
@@ -50,8 +54,6 @@ void MenuConsole::work()
 {
     char buffer[128];
     int n = 0;
-
-    std::cout << "> " << std::flush;
 
     while (true) {
         n = read(0, buffer, 128);

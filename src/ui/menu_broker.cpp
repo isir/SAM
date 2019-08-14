@@ -26,8 +26,10 @@ void MenuBroker::set_active_menu(MenuBackend* menu)
 
 void MenuBroker::handle_input(std::string input)
 {
-    std::lock_guard<std::mutex> lock(_mutex);
+    std::unique_lock<std::mutex> lock(_mutex);
     _inputs.push(input);
+    lock.unlock();
+
     do_work();
 }
 
@@ -41,7 +43,7 @@ void MenuBroker::show_menu(std::string title, std::map<std::string, std::shared_
 void MenuBroker::work()
 {
     std::unique_lock<std::mutex> lock(_mutex);
-    if (!_inputs.empty()) {
+    while (!_inputs.empty()) {
         std::string input = _inputs.front();
         _inputs.pop();
         if (_active_menu) {
