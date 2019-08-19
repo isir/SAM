@@ -41,7 +41,7 @@ protected:
         if (v != old_value || _first_assignment) {
             _value_changed = true;
             _first_assignment = false;
-            _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1);
+            _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
         }
     }
 
