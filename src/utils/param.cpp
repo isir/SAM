@@ -48,7 +48,6 @@ BaseParam::~BaseParam()
 
 bool BaseParam::changed()
 {
-    std::lock_guard<std::mutex> lock(_storage_mutex);
     return _value_changed;
 }
 
@@ -61,4 +60,13 @@ BaseParam* BaseParam::from_topic_name(std::string topic_name)
         }
     }
     return nullptr;
+}
+
+void BaseParam::_assign_raw(std::string v)
+{
+    std::lock_guard<std::mutex> lock(_storage_mutex);
+    if (v != _storage) {
+        _storage = v;
+        _value_changed = true;
+    }
 }

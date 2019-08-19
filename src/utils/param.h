@@ -17,29 +17,17 @@ public:
     static BaseParam* from_topic_name(std::string topic_name);
 
 protected:
-    void _assign_raw(std::string v)
-    {
-        std::lock_guard<std::mutex> lock(_storage_mutex);
-        if (v != _storage) {
-            _storage = v;
-            _value_changed = true;
-        }
-    }
+    void _assign_raw(std::string v);
 
     template <typename T>
     void _assign(T v)
     {
-        T old_value = _to<T>();
-
         std::stringstream stream;
         stream << v;
 
-        {
-            _assign_raw(stream.str());
-        }
+        _assign_raw(stream.str());
 
-        if (v != old_value || _first_assignment) {
-            _value_changed = true;
+        if (_value_changed || _first_assignment) {
             _first_assignment = false;
             _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
         }
