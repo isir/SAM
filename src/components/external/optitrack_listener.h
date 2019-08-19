@@ -1,7 +1,7 @@
-#ifndef OPTILISTENER_H
-#define OPTILISTENER_H
+#ifndef OPTITRACK_LISTENER_H
+#define OPTITRACK_LISTENER_H
 
-#include "socket.h"
+#include "utils/socket.h"
 #include <cstdint>
 #include <unistd.h>
 #include <vector>
@@ -126,4 +126,4 @@ private:
     Socket _socket;
 };
 
-#endif // OPTILISTENER_H
+#endif // OPTITRACK_LISTENER_H

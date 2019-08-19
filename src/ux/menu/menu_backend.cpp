@@ -16,6 +16,16 @@ MenuBackend::~MenuBackend()
 {
 }
 
+void MenuBackend::add_exit(std::function<void(std::string)> callback)
+{
+    add_item(std::make_shared<ExitItem>(callback));
+}
+
+void MenuBackend::add_item(std::string code, std::string description, std::function<void(std::string)> callback)
+{
+    add_item(std::make_shared<StandardItem>(code, description, callback));
+}
+
 void MenuBackend::add_item(std::shared_ptr<MenuItem> item)
 {
     if (item) {

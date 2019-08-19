@@ -25,7 +25,7 @@
 * Excellence Initiative.
 */
 
-#include "XIMU.h"
+#include "ximu.h"
 #include "utils/log/log.h"
 
 #define RXBUFSIZE 256

@@ -1,8 +1,8 @@
 #ifndef REMOTECOMPUTERCONTROL_H
 #define REMOTECOMPUTERCONTROL_H
 
-#include "threaded_loop.h"
-#include "utils/sam.h"
+#include "sam/sam.h"
+#include "utils/threaded_loop.h"
 
 class RemoteComputerControl : public ThreadedLoop {
 public:

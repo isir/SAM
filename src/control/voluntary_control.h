@@ -1,9 +1,9 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-#include "threaded_loop.h"
-#include "utils/opti_listener.h"
-#include "utils/sam.h"
+#include "components/external/optitrack_listener.h"
+#include "sam/sam.h"
+#include "utils/threaded_loop.h"
 #include <fstream>
 
 class VoluntaryControl : public ThreadedLoop {

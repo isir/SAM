@@ -1,9 +1,4 @@
 #include "samanager.h"
-#include "peripherals/actuators/custom_elbow.h"
-#include "peripherals/actuators/osmer_elbow.h"
-#include "peripherals/actuators/pronosupination.h"
-#include "peripherals/actuators/shoulder_rotator.h"
-#include "peripherals/actuators/wrist_rotator.h"
 #include "utils/log/log.h"
 #include <unistd.h>
 #include <wiringPi.h>
@@ -55,16 +50,16 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
-    _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
-    _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
-    _main_menu->add_submenu_from_user(_robot->joints.wrist_pronation);
-    _main_menu->add_submenu_from_user(_robot->joints.elbow_flexion);
-    _main_menu->add_submenu_from_user(_robot->joints.hand);
-    _main_menu->add_submenu_from_user(_vc);
-    _main_menu->add_submenu_from_user(_rm);
-    _main_menu->add_submenu_from_user(_mr);
-    _main_menu->add_submenu_from_user(_opti);
-    _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_item(_robot->joints.wrist_flexion->menu());
+    _main_menu->add_item(_robot->joints.shoulder_medial_rotation->menu());
+    _main_menu->add_item(_robot->joints.wrist_pronation->menu());
+    _main_menu->add_item(_robot->joints.elbow_flexion->menu());
+    _main_menu->add_item(_robot->joints.hand->menu());
+    _main_menu->add_item(_vc->menu());
+    _main_menu->add_item(_rm->menu());
+    _main_menu->add_item(_mr->menu());
+    _main_menu->add_item(_opti->menu());
+    _main_menu->add_item(_demo->menu());
 
     _main_menu->activate();
 }

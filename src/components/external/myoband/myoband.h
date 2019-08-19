@@ -3,9 +3,9 @@
 
 #include "myoLinux/myoclient.h"
 #include "myoLinux/serial.h"
-#include "ui/mqtt_user.h"
+#include "utils/interfaces/mqtt_user.h"
 #include "utils/watchdog.h"
-#include <control/threaded_loop.h>
+#include <utils/threaded_loop.h>
 #include <eigen3/Eigen/Dense>
 #include <vector>
 

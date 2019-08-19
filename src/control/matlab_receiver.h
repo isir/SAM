@@ -1,9 +1,9 @@
 #ifndef MATLAB_RECEIVER_H
 #define MATLAB_RECEIVER_H
 
-#include "control/threaded_loop.h"
-#include "utils/sam.h"
+#include "sam/sam.h"
 #include "utils/socket.h"
+#include "utils/threaded_loop.h"
 
 class MatlabReceiver : public ThreadedLoop {
 public:

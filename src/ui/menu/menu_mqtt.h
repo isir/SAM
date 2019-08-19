@@ -2,7 +2,7 @@
 #define MENU_MQTT_H
 
 #include "menu_frontend.h"
-#include "mqtt_user.h"
+#include "utils/interfaces/mqtt_user.h"
 
 class MenuMQTT : public MenuFrontend, public MqttUser {
 public:

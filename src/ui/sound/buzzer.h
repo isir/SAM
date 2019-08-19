@@ -1,7 +1,7 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
-#include "control/threaded_loop.h"
+#include "utils/threaded_loop.h"
 #include "wiringPi.h"
 
 /**

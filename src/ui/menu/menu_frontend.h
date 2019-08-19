@@ -1,7 +1,7 @@
-#ifndef MENUFRONTEND_H
-#define MENUFRONTEND_H
+#ifndef MENU_FRONTEND_H
+#define MENU_FRONTEND_H
 
-#include "menu_item.h"
+#include "ux/menu/menu_item.h"
 #include <map>
 #include <memory>
 
@@ -17,4 +17,4 @@ protected:
     void connect_to_backend();
 };
 
-#endif // MENUFRONTEND_H
+#endif // MENU_FRONTEND_H

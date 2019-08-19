@@ -1,7 +1,7 @@
 #ifndef TOUCHBIONICSHAND_H
 #define TOUCHBIONICSHAND_H
 
-#include "ui/menu_user.h"
+#include "utils/interfaces/menu_user.h"
 #include "utils/serial_port.h"
 #include <memory>
 

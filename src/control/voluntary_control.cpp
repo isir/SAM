@@ -1,5 +1,4 @@
 #include "voluntary_control.h"
-#include "peripherals/roboclaw/factory.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include <filesystem>

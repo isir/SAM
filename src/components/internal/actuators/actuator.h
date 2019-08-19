@@ -1,8 +1,8 @@
 #ifndef ACTUATOR_H
 #define ACTUATOR_H
 
-#include "peripherals/roboclaw/roboclaw.h"
-#include "ui/menu_user.h"
+#include "components/internal/roboclaw/roboclaw.h"
+#include "utils/interfaces/menu_user.h"
 #include <string>
 
 class Actuator : public RC::RoboClaw, public MenuUser {

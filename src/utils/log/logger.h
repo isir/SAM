@@ -1,8 +1,8 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 
-#include "control/threaded_loop.h"
-#include "ui/mqtt_user.h"
+#include "utils/interfaces/mqtt_user.h"
+#include "utils/threaded_loop.h"
 #include <map>
 #include <memory>
 #include <queue>

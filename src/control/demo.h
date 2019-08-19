@@ -1,8 +1,8 @@
 #ifndef DEMO_H
 #define DEMO_H
 
-#include "threaded_loop.h"
-#include "utils/sam.h"
+#include "sam/sam.h"
+#include "utils/threaded_loop.h"
 
 class Demo : public ThreadedLoop {
 public:

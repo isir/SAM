@@ -1,7 +1,7 @@
 #ifndef PARAM_H
 #define PARAM_H
 
-#include "ui/mqtt_user.h"
+#include "utils/interfaces/mqtt_user.h"
 #include "utils/named_object.h"
 #include <atomic>
 #include <mutex>

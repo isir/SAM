@@ -1,4 +1,4 @@
-#include "utils/samanager.h"
+#include "sam/samanager.h"
 #include <espeak/speak_lib.h>
 #include <malloc.h>
 #include <sys/mman.h>

@@ -1,12 +1,12 @@
-#ifndef COMPENSATIONOPTITRACK_H
-#define COMPENSATIONOPTITRACK_H
+#ifndef COMPENSATION_OPTITRACK_H
+#define COMPENSATION_OPTITRACK_H
 
-#include "algorithms/lawopti.h"
-#include "control/threaded_loop.h"
-#include "ui/menu_user.h"
-#include "utils/opti_listener.h"
-#include "utils/sam.h"
+#include "algo/lawopti.h"
+#include "components/external/optitrack_listener.h"
+#include "sam/sam.h"
+#include "utils/interfaces/menu_user.h"
 #include "utils/socket.h"
+#include "utils/threaded_loop.h"
 #include <fstream>
 
 class CompensationOptitrack : public ThreadedLoop {
@@ -65,4 +65,4 @@ private:
     int _pin_down;
 };
 
-#endif // COMPENSATIONOPTITRACK_H
+#endif // COMPENSATION_OPTITRACK_H

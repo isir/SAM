@@ -1,7 +1,7 @@
 #ifndef WATCHDOG_H
 #define WATCHDOG_H
 
-#include "control/threaded_loop.h"
+#include "utils/threaded_loop.h"
 #include <chrono>
 
 class Watchdog : public ThreadedLoop {

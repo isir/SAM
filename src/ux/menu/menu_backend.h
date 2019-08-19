@@ -14,23 +14,9 @@ public:
         std::string code = std::string(), std::string description = std::string(), std::function<void(void)> exit_callback = [] {});
     ~MenuBackend();
 
-    inline void add_exit(std::function<void(std::string)> callback)
-    {
-        add_item(std::make_shared<ExitItem>(callback));
-    }
-    inline void add_item(std::string code, std::string description, std::function<void(std::string)> callback)
-    {
-        add_item(std::make_shared<StandardItem>(code, description, callback));
-    }
+    void add_exit(std::function<void(std::string)> callback);
+    void add_item(std::string code, std::string description, std::function<void(std::string)> callback);
     void add_item(std::shared_ptr<MenuItem> item);
-
-    template <typename T>
-    void add_submenu_from_user(const std::unique_ptr<T>& obj)
-    {
-        if (obj) {
-            add_item(obj->menu());
-        }
-    }
 
     static MenuBroker broker;
     void handle_input(std::string input);

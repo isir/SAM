@@ -6,12 +6,12 @@
 #include "control/matlab_receiver.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
-#include "ui/menu_backend.h"
-#include "ui/menu_console.h"
-#include "ui/menu_mqtt.h"
-#include "ui/mqtt_user.h"
-#include "utils/sam.h"
-#include "utils/system_monitor.h"
+#include "sam/sam.h"
+#include "sam/system_monitor.h"
+#include "ui/menu/menu_console.h"
+#include "ui/menu/menu_mqtt.h"
+#include "utils/interfaces/mqtt_user.h"
+#include "ux/menu/menu_backend.h"
 #include <condition_variable>
 
 class SAManager : public MqttUser {

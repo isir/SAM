@@ -1,8 +1,8 @@
 #ifndef MENU_BROKER_H
 #define MENU_BROKER_H
 
-#include "menu_frontend.h"
 #include "menu_item.h"
+#include "ui/menu/menu_frontend.h"
 #include "utils/worker.h"
 #include <condition_variable>
 #include <map>

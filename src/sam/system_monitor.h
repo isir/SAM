@@ -1,8 +1,8 @@
 #ifndef SYSTEMMONITOR_H
 #define SYSTEMMONITOR_H
 
-#include "control/threaded_loop.h"
-#include "ui/mqtt_user.h"
+#include "utils/threaded_loop.h"
+#include "utils/interfaces/mqtt_user.h"
 #include <fstream>
 #include <memory>
 

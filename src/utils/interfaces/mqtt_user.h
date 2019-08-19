@@ -1,7 +1,7 @@
 #ifndef MQTT_USER_H
 #define MQTT_USER_H
 
-#include "mosquittopp/client.h"
+#include "ux/mosquittopp/client.h"
 #include "utils/named_object.h"
 
 class MqttUser {

@@ -1,6 +1,6 @@
 #include "demo.h"
-#include "algorithms/myocontrol.h"
-#include "peripherals/ledstrip.h"
+#include "algo/myocontrol.h"
+#include "ui/visual/ledstrip.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 

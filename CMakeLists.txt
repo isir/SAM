@@ -1,73 +1,79 @@
 project(SAM CXX)
 cmake_minimum_required(VERSION 3.0)
 
-message("arch= ${CMAKE_SYSTEM_PROCESSOR}")
-
 set(SOURCES
-    src/control/threaded_loop.cpp
-    src/main.cpp
-    src/control/algorithms/lawopti.cpp
-    src/control/algorithms/myocontrol.cpp
+    # cmake-format: sortable
+    src/components/external/myoband/myoLinux/gattclient.cpp
+    src/components/external/myoband/myoLinux/myoclient.cpp
+    src/components/external/myoband/myoLinux/serial.cpp
+    src/components/external/myoband/myoband.cpp
+    src/components/external/optitrack_listener.cpp
+    src/components/external/ximu.cpp
+    src/components/internal/actuators/actuator.cpp
+    src/components/internal/actuators/custom_elbow.cpp
+    src/components/internal/actuators/osmer_elbow.cpp
+    src/components/internal/actuators/pronosupination.cpp
+    src/components/internal/actuators/shoulder_rotator.cpp
+    src/components/internal/actuators/wrist_flexor.cpp
+    src/components/internal/actuators/wrist_rotator.cpp
+    src/components/internal/adafruit_ads1115.cpp
+    src/components/internal/mcp4728.cpp
+    src/components/internal/roboclaw/answer.cpp
+    src/components/internal/roboclaw/factory.cpp
+    src/components/internal/roboclaw/message.cpp
+    src/components/internal/roboclaw/roboclaw.cpp
+    src/components/internal/touch_bionics/touch_bionics_hand.cpp
+    src/control/algo/lawopti.cpp
+    src/control/algo/myocontrol.cpp
     src/control/compensation_optitrack.cpp
     src/control/demo.cpp
     src/control/matlab_receiver.cpp
     src/control/remote_computer_control.cpp
     src/control/voluntary_control.cpp
-    src/peripherals/actuators/actuator.cpp
-    src/peripherals/actuators/custom_elbow.cpp
-    src/peripherals/actuators/osmer_elbow.cpp
-    src/peripherals/actuators/pronosupination.cpp
-    src/peripherals/actuators/shoulder_rotator.cpp
-    src/peripherals/actuators/wrist_flexor.cpp
-    src/peripherals/actuators/wrist_rotator.cpp
-    src/peripherals/adafruit_ads1115.cpp
-    src/peripherals/buzzer.cpp
-    src/peripherals/ledstrip.cpp
-    src/peripherals/mcp4728.cpp
-    src/peripherals/myoband/myoLinux/gattclient.cpp
-    src/peripherals/myoband/myoLinux/myoclient.cpp
-    src/peripherals/myoband/myoLinux/serial.cpp
-    src/peripherals/myoband/myoband.cpp
-    src/peripherals/roboclaw/answer.cpp
-    src/peripherals/roboclaw/factory.cpp
-    src/peripherals/roboclaw/message.cpp
-    src/peripherals/roboclaw/roboclaw.cpp
-    src/peripherals/touch_bionics/touch_bionics_hand.cpp
-    src/peripherals/XIMU.cpp
-    src/ui/menu_backend.cpp
-    src/ui/menu_broker.cpp
-    src/ui/menu_console.cpp
-    src/ui/menu_frontend.cpp
-    src/ui/menu_item.cpp
-    src/ui/menu_mqtt.cpp
-    src/ui/menu_user.cpp
-    src/ui/mosquittopp/client.cpp
-    src/ui/mosquittopp/connect_factory.cpp
-    src/ui/mosquittopp/connect_helper.cpp
-    src/ui/mosquittopp/library_wrapper.cpp
-    src/ui/mosquittopp/message.cpp
-    src/ui/mosquittopp/subscription.cpp
-    src/ui/mosquittopp/subscription_factory.cpp
-    src/ui/mqtt_user.cpp
+    src/main.cpp
+    src/sam/sam.cpp
+    src/sam/samanager.cpp
+    src/sam/system_monitor.cpp
+    src/ui/menu/menu_console.cpp
+    src/ui/menu/menu_frontend.cpp
+    src/ui/menu/menu_mqtt.cpp
+    src/ui/sound/buzzer.cpp
+    src/ui/visual/ledstrip.cpp
+    src/utils/interfaces/menu_user.cpp
+    src/utils/interfaces/mqtt_user.cpp
     src/utils/log/logger.cpp
     src/utils/log/safe_stream.cpp
     src/utils/named_object.cpp
-    src/utils/opti_listener.cpp
     src/utils/param.cpp
-    src/utils/sam.cpp
-    src/utils/samanager.cpp
     src/utils/serial_port.cpp
     src/utils/socket.cpp
-    src/utils/system_monitor.cpp
+    src/utils/threaded_loop.cpp
     src/utils/watchdog.cpp
     src/utils/worker.cpp
-    )
+    src/ux/menu/menu_backend.cpp
+    src/ux/menu/menu_broker.cpp
+    src/ux/menu/menu_item.cpp
+    src/ux/mosquittopp/client.cpp
+    src/ux/mosquittopp/connect_factory.cpp
+    src/ux/mosquittopp/connect_helper.cpp
+    src/ux/mosquittopp/library_wrapper.cpp
+    src/ux/mosquittopp/message.cpp
+    src/ux/mosquittopp/subscription.cpp
+    src/ux/mosquittopp/subscription_factory.cpp)
 
-    include_directories(src/)
+include_directories(src/)
 
-    set(CC_FLAGS "-O2 -mcpu=cortex-a53 -mfloat-abi=hard -std=gnu++17")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CC_FLAGS}")
+set(CC_FLAGS "-O2 -mcpu=cortex-a53 -mfloat-abi=hard -std=gnu++17")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CC_FLAGS}")
 
-    add_executable(SAM ${SOURCES})
+add_executable(sam ${SOURCES})
 
-    target_link_libraries(SAM -lwiringPi -li2c -lboost_thread -lboost_system -lespeak -lmosquitto -lpthread -lstdc++fs)
+target_link_libraries(sam
+                      -lwiringPi
+                      -li2c
+                      -lboost_thread
+                      -lboost_system
+                      -lespeak
+                      -lmosquitto
+                      -lpthread
+                      -lstdc++fs)
