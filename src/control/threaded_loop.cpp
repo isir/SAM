@@ -1,6 +1,7 @@
 #include "threaded_loop.h"
 #include <QDebug>
 #include <QMutexLocker>
+#include <QtGlobal>
 
 static double timespec_diff(struct timespec* start, struct timespec* stop)
 {
