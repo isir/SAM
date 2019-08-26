@@ -14,10 +14,9 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     , _Lt(40)
     , _Lua(0.)
     , _Lfa(0.)
-    , _l(0.)
+    , _lhand(0.)
     , _lambdaW(0)
     , _lambda(0)
-    , _thresholdW(5.)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.wrist_flexion, _robot->sensors.optitrack)) {
         throw std::runtime_error("General Formulation Control is missing components");
@@ -44,6 +43,13 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     _pin_down = _settings.value("pin_down", 22).toInt();
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
+
+    for (int i = 1; i < nbLinks; i++) {
+        _threshold[i] = 0.;
+    }
+    l[0] = _lhand;
+    l[1] = _Lfa;
+    l[2] = _Lua;
 }
 
 GeneralFormulation::~GeneralFormulation()
@@ -56,12 +62,6 @@ GeneralFormulation::~GeneralFormulation()
 
 void GeneralFormulation::tare_IMU()
 {
-    //    double qFA[4];
-    //    _robot->sensors.arm_imu->get_quat(qFA);
-    //    qDebug("qarm: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
-    //    _robot->sensors.fa_imu->get_quat(qFA);
-    //    qDebug("qFA: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
-
     _robot->sensors.arm_imu->send_command_algorithm_init_then_tare();
     _robot->sensors.trunk_imu->send_command_algorithm_init_then_tare();
 
@@ -71,10 +71,6 @@ void GeneralFormulation::tare_IMU()
 
     usleep(6 * 1000000);
     _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
-    //    _robot->sensors.arm_imu->get_quat(qFA);
-    //    qDebug("qarm after tare: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
-    //    _robot->sensors.fa_imu->get_quat(qFA);
-    //    qDebug("qFA after tare: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
 }
 
 void GeneralFormulation::receiveData()
@@ -86,26 +82,29 @@ void GeneralFormulation::receiveData()
         int tmp;
 
         ts >> tmp;
-        _Lua = tmp;
+        l[2] = tmp; // _Lua
 
         ts >> tmp;
-        _Lfa = tmp;
+        l[1] = tmp; // _Lfa
 
         ts >> tmp;
-        _l = tmp;
+        l[0] = tmp; // _lhand
 
         ts >> tmp;
         _lambda = tmp;
 
         ts >> tmp;
         _lambdaW = tmp;
-
-        ts >> tmp;
-        _threshold = tmp * M_PI / 180.; // dead zone limit for beta change, in rad.
-
-        ts >> tmp;
-        _thresholdW = tmp * M_PI / 180; // dead zone limit for wrist angle change, in rad.
         printf("lambdaW:%d\n", _lambdaW);
+
+        ts >> tmp;
+        _threshold[0] = tmp * M_PI / 180.; // dead zone limit for pronosup, in rad.
+
+        ts >> tmp;
+        _threshold[1] = tmp * M_PI / 180; // dead zone limit for wrist flex, in rad.
+
+        ts >> tmp;
+        _threshold[2] = tmp * M_PI / 180; // dead zone limit for elbow flex, in rad.
     }
 }
 
@@ -177,14 +176,42 @@ void GeneralFormulation::loop(double, double)
         _need_to_write_header = false;
     }
 
-    /// CONTROL LOOP
-
     ///GET DATA
+    /// OPTITRACK
+    int index_acromion = -1, index_hip = -1;
+    Eigen::Vector3d posA = Eigen::Vector3d::Zero(), posHip = Eigen::Vector3d::Zero();
+    Eigen::Quaterniond qHip;
+    qHip.w() = 0.;
+    qHip.x() = 0.;
+    qHip.y() = 0.;
+    qHip.z() = 0.;
+
+    for (int i = 0; i < data.nRigidBodies; i++) {
+        if (data.rigidBodies[i].ID == _settings.value("acromion_id", 3).toInt()) {
+            posA[0] = data.rigidBodies[i].x * 100;
+            posA[1] = data.rigidBodies[i].y * 100;
+            posA[2] = data.rigidBodies[i].z * 100;
+            index_acromion = i;
+        } else if (data.rigidBodies[i].ID == _settings.value("hip_id", 10).toInt()) {
+            posHip[0] = data.rigidBodies[i].x * 100;
+            posHip[1] = data.rigidBodies[i].y * 100;
+            posHip[2] = data.rigidBodies[i].z * 100;
+            qHip.w() = data.rigidBodies[i].qw;
+            qHip.x() = data.rigidBodies[i].qx;
+            qHip.y() = data.rigidBodies[i].qy;
+            qHip.z() = data.rigidBodies[i].z;
+            index_hip = i;
+        }
+    }
+
     /// WRIST
     double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
     double wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
+    theta[0] = pronoSupEncoder;
+    theta[1] = wristFlexEncoder;
+    theta[2] = elbowEncoder;
     /// IMU
     double qBras[4], qTronc[4], qFA[4];
     _robot->sensors.arm_imu->get_quat(qBras);
@@ -194,13 +221,29 @@ void GeneralFormulation::loop(double, double)
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
 
+    /// CONTROL LOOP
+    if (_cnt == 0) {
+        _lawJ.initialization(posA, qHip, 1 / period());
+    } else if (_cnt <= init_cnt) {
+        _lawJ.initialPositions(posA, posHip, qHip, _cnt, init_cnt);
+    } else {
+        _lawJ.updateFrames(theta, l);
+        _lawJ.controlLaw(posA, _lambda, _threshold);
+        Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
+        _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[0]);
+        _robot->joints.wrist_flexion->set_velocity_safe(thetaDot_toSend[1]);
+        _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[2]);
+    }
+
+    _lawJ.writeDebugData(debugData, theta);
+    /// WRITE DATA
     QTextStream ts(&_file);
     ts << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
     ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     ts << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     /// A COMPLETER !!!!
     ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
-    ts << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
+    ts << ' ' << _lambdaW << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2] << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
     ts << ' ' << data.nRigidBodies;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
@@ -216,9 +259,10 @@ void GeneralFormulation::loop(double, double)
 
 void GeneralFormulation::cleanup()
 {
-    _robot.elbow->forward(0);
     _robot->joints.wrist_pronation->forward(0);
     _robot->joints.wrist_flexion->forward(0);
+    _robot->joints.elbow_flexion->move_to(0, 20);
+    _robot->joints.hand->release_ownership();
     QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
     QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
     _file.close();
