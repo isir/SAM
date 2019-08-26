@@ -105,7 +105,7 @@ void CompensationOptitrack::display_lengths()
     _ind = 0;
     qInfo("Wait for Optitrack data");
     printf("Wait for Optitrack data");
-    QObject::connect(_robot->sensors.optitrack->get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::connect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 }
 
 void CompensationOptitrack::read_optiData(optitrack_data_t data)
@@ -213,9 +213,9 @@ void CompensationOptitrack::start(QString filename = QString())
     QObject::connect(&_receiverArduino, &QUdpSocket::readyRead, this, &CompensationOptitrack::listenArduino);
 
     if (filename == QString("comp")) {
-        QObject::connect(_robot->sensors.optitrack->get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+        QObject::connect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
     } else if (filename == QString("vol")) {
-        QObject::connect(_robot->sensors.optitrack->get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+        QObject::connect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
     } else {
         qDebug("Filename does not correspond to one of the control mode.\n 'n' for natural; 'b' for blocked; 'opti' for compensation control; 'vol', for voluntary");
     }
@@ -223,9 +223,9 @@ void CompensationOptitrack::start(QString filename = QString())
 
 void CompensationOptitrack::stop()
 {
-    QObject::disconnect(_robot->sensors.optitrack->get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
-    QObject::disconnect(_robot->sensors.optitrack->get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
-    QObject::disconnect(_robot->sensors.optitrack->get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
+    QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_compensation);
+    QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::on_new_data_vol);
+    QObject::disconnect(_robot->sensors.optitrack.get(), &OptiListener::new_data, this, &CompensationOptitrack::read_optiData);
 
     _infoSent = 0;
     _robot->joints.elbow_flexion->forward(0);
@@ -375,7 +375,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data)
     ts << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];
     ts << ' ' << debugData[3] << ' ' << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
     ts << ' ' << debugData[9] << ' ' << debugData[10] << ' ' << debugData[11] << ' ' << debugData[12] << ' ' << _lambda << ' ' << _threshold << ' ' << data.nRigidBodies;
-    ts << ' ' << debugData[13] << ' ' << debugData[14] << ' ' << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
+    ts << ' ' << debugData[13] << ' ' << debugData[14] << ' ' << debugData[15] << ' ' << debugData[16] << ' ' << _lambdaW << ' ' << _thresholdW; // << ' ' << wristAngleEncoder;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
         ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
