@@ -24,6 +24,12 @@ Sensors::Sensors()
         qCritical() << "Couldn't access the white IMU -" << e.what();
     }
 
+    try {
+        fa_imu = std::make_unique<XIMU>("/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+    } catch (std::exception& e) {
+        qCritical() << "Couldn't access the yellow IMU -" << e.what();
+    }
+
     adc = std::make_unique<Adafruit_ADS1115>("/dev/i2c-1", 0x48);
 
     Settings s;
@@ -91,5 +97,4 @@ Joints::Joints()
 }
 
 Components::Components() {}
-
 }
