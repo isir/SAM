@@ -20,7 +20,7 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _lambda(0)
     , _thresholdW(5.)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation), _robot->sensors.fa_imu) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.fa_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
