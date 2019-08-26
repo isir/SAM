@@ -1,7 +1,7 @@
 QT -= gui
 QT += network mqtt
 
-CONFIG += console c++14
+CONFIG += console c++1z
 CONFIG -= app_bundle
 
 DEFINES += QT_DEPRECATED_WARNINGS
@@ -64,6 +64,10 @@ HEADERS += \
     src/utils/sam.h \
     src/utils/samanager.h \
     src/utils/serial_port.h \
+    src/utils/settings.h \
+    src/utils/system_monitor.h \
+    src/control/general_formulation.h \
+    src/control/algorithms/lawjacobian.h
 
 
 SOURCES += \
@@ -116,10 +120,12 @@ SOURCES += \
     src/utils/serial_port.cpp \
         src/utils/settings.cpp \
     src/utils/system_monitor.cpp \
+    src/control/general_formulation.cpp \
+    src/control/algorithms/lawjacobian.cpp
 
 INCLUDEPATH += src/
 
-QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard -std=c++17
+QMAKE_CXXFLAGS += -O2 -mfloat-abi=hard
 
 LIBS += -lwiringPi -li2c -lboost_thread -lboost_system -lespeak
 
