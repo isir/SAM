@@ -1,6 +1,7 @@
 #ifndef GENERAL_FORMULATION_H
 #define GENERAL_FORMULATION_H
 
+#include "algorithms/lawjacobian.h"
 #include "threaded_loop.h"
 #include "utils/opti_listener.h"
 #include "utils/sam.h"
@@ -31,14 +32,17 @@ private:
     int _cnt;
     QTime _time;
 
+    LawJacobian _lawJ;
     int _Lt;
     double _Lua;
     double _Lfa;
-    double _l;
+    double _lhand;
+    double l[nbLinks];
     int _lambdaW, _lambda;
-    double _thresholdW, _threshold;
     int _pin_up;
     int _pin_down;
+    double theta[nbLinks];
+    double _threshold[nbLinks];
 };
 
 #endif // GENERAL_FORMULATION_H
