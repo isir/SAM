@@ -3,7 +3,7 @@
         "child1": {
             "directory": "",
             "height": 1394,
-            "overrideCommand": "ssh -t root@192.168.0.130 \/opt\/SAM\/bin\/SAM",
+            "overrideCommand": "ssh -t root@192.168.0.140 \/opt\/SAM\/bin\/SAM",
             "profile": "2b7c4080-0ddd-46c5-8f23-563fd3ba789d",
             "readOnly": false,
             "synchronizedInput": true,
@@ -16,7 +16,7 @@
             "child1": {
                 "directory": "",
                 "height": 697,
-                "overrideCommand": "ssh root@192.168.0.130 '\/bin\/sleep 2s; tail -f \/var\/log\/sam_info'",
+                "overrideCommand": "ssh root@192.168.0.140 '\/bin\/sleep 2s; tail -f \/var\/log\/sam_info'",
                 "profile": "2b7c4080-0ddd-46c5-8f23-563fd3ba789d",
                 "readOnly": false,
                 "synchronizedInput": true,
@@ -28,7 +28,7 @@
             "child2": {
                 "directory": "",
                 "height": 696,
-                "overrideCommand": "ssh root@192.168.0.130 '\/bin\/sleep 2s; tail -f \/var\/log\/sam_err'",
+                "overrideCommand": "ssh root@192.168.0.140 '\/bin\/sleep 2s; tail -f \/var\/log\/sam_err'",
                 "profile": "2b7c4080-0ddd-46c5-8f23-563fd3ba789d",
                 "readOnly": false,
                 "synchronizedInput": true,
