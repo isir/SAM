@@ -4,6 +4,7 @@
 #include "control/compensation_imu.h"
 #include "control/compensation_optitrack.h"
 #include "control/demo.h"
+#include "control/general_formulation.h"
 #include "control/matlab_receiver.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
@@ -31,6 +32,7 @@ private:
     std::mutex _cv_mutex;
 
     std::unique_ptr<VoluntaryControl> _vc;
+    std::unique_ptr<GeneralFormulation> _galf;
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
     std::unique_ptr<MatlabReceiver> _mr;

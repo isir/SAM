@@ -1,4 +1,5 @@
 #include "menu_backend.h"
+#include "utils/log/log.h"
 
 MenuBroker MenuBackend::broker;
 
@@ -35,6 +36,7 @@ void MenuBackend::add_item(std::shared_ptr<MenuItem> item)
 
 void MenuBackend::handle_input(std::string input)
 {
+    debug() << "Input received: " << input;
     std::string key, input_key, args;
     auto i = _items.begin();
     for (; i != _items.end(); ++i) {

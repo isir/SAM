@@ -15,9 +15,9 @@ Socket::Socket()
 bool Socket::bind(std::string address, int port)
 {
     struct sockaddr_in s;
-    s.sin_addr.s_addr = inet_addr(address.c_str());
+    s.sin_addr.s_addr = htonl(inet_addr(address.c_str()));
     s.sin_family = AF_INET;
-    s.sin_port = static_cast<in_port_t>(port);
+    s.sin_port = htons(static_cast<in_port_t>(port));
 
     return ::bind(_sock_fd, reinterpret_cast<struct sockaddr*>(&s), sizeof(s)) == 0;
 }

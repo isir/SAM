@@ -46,7 +46,7 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     delta[0] = 0;
     delta[1] = 0;
     delta[2] = 0;
-    R = Eigen::Matrix3d::Zero();
+    Rhip = Eigen::Matrix3d::Zero();
     Rframe = Eigen::Matrix3d::Zero();
     thetaNew = Eigen::MatrixXd::Zero(nbFrames, 1);
     thetaDot = Eigen::MatrixXd::Zero(nbFrames, 1);
@@ -92,7 +92,7 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
  * @param qHip quaternions of the hip cluster
  * @param qFA_record quaternions of the forearm cluster
  */
-void LawJacobian::rotationMatrices(Eigen::Quaterniond qHip, int initCounter, int initCounts)
+void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts)
 {
     qHip_filt.w() = qHip_filt_old.w() + coeff * (qHip.w() - qHip_filt_old.w());
     qHip_filt.x() = qHip_filt_old.x() + coeff * (qHip.x() - qHip_filt_old.x());
@@ -113,9 +113,9 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHip, int initCounter, int
     //    R33 = 2* qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.z()*qHip_relative.z();
     /// For optitrack quaternion definition
     if (initCounter == initCounts) {
-        R = qHip0.toRotationMatrix();
+        Rhip = qHip0.toRotationMatrix();
     } else {
-        R = qHip_filt.toRotationMatrix();
+        Rhip = qHip_filt.toRotationMatrix();
     }
 }
 
@@ -130,9 +130,9 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHip, int initCounter, int
 void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
     // project in hip frame
-    posAinHip = R.transpose() * (posA - posHip);
+    posAinHip = Rhip.transpose() * (posA - posHip);
     if (initCounter == initCounts) {
-        posA0inHip = R.transpose() * (posA0 - posHip0);
+        posA0inHip = Rhip.transpose() * (posA0 - posHip0);
     }
 }
 

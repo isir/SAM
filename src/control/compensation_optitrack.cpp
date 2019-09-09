@@ -5,7 +5,7 @@
 #include <filesystem>
 
 CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("compensation_optitrack", 0.1)
+    : ThreadedLoop("compensation_optitrack", 0.01)
     , _robot(robot)
     , _Lt(40)
     , _Lua(0.)
@@ -31,10 +31,10 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
 
     _menu->set_description("Control with optitrack recording");
     _menu->set_code("opti");
-    _menu->add_item("Start (+ filename [comp for compensation, vol for voluntary control])", "1", [this](std::string args) { this->start(args); });
-    _menu->add_item("Back to 0°", "zero", [this](std::string) { this->zero(); });
-    _menu->add_item("Display law parameters", "disp", [this](std::string) { this->display_parameters(); });
-    _menu->add_item("Display anatomical lengths", "al", [this](std::string) { this->display_lengths(); });
+    _menu->add_item("1", "Start (+ filename [comp for compensation, vol for voluntary control])", [this](std::string args) { this->start(args); });
+    _menu->add_item("zero", "Back to 0°", [this](std::string) { this->zero(); });
+    _menu->add_item("disp", "Display law parameters", [this](std::string) { this->display_parameters(); });
+    _menu->add_item("al", "Display anatomical lengths", [this](std::string) { this->display_lengths(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
@@ -220,11 +220,13 @@ void CompensationOptitrack::stop()
 
 bool CompensationOptitrack::setup()
 {
+    on_def();
     return true;
 }
 
 void CompensationOptitrack::loop(double dt, clock::time_point time)
 {
+    listenArduino();
     _robot->sensors.optitrack->update();
 
     if (_mode == COMP) {
@@ -464,8 +466,13 @@ void CompensationOptitrack::on_def()
 {
     while (_receiver.available()) {
         auto data = _receiver.receive();
+
         std::string buf;
-        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
+        buf.resize(data.size());
+        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) -> char { return static_cast<char>(b); });
+
+        debug() << buf;
+
         std::istringstream ts(buf);
         int tmp;
 

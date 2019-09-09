@@ -17,7 +17,7 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     , _pin_up(24)
     , _pin_down(22)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.wrist_flexion, _robot->sensors.optitrack)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.wrist_flexion)) { //}, _robot->sensors.optitrack)) {
         throw std::runtime_error("General Formulation Control is missing components");
     }
 
@@ -116,9 +116,7 @@ bool GeneralFormulation::setup()
     _robot->joints.hand->take_ownership();
     _robot->joints.hand->init_sequence();
     _robot->joints.elbow_flexion->calibrate();
-    if (_robot->joints.wrist_flexion) {
-        _robot->joints.wrist_flexion->calibrate();
-    }
+    _robot->joints.wrist_flexion->calibrate();
     _robot->joints.wrist_pronation->calibrate();
 
     _robot->joints.wrist_pronation->set_encoder_position(0);
@@ -139,6 +137,12 @@ bool GeneralFormulation::setup()
     }
     _need_to_write_header = true;
     _start_time = clock::now();
+
+    _cnt = 0;
+    theta[0] = 0.;
+    theta[1] = 0.;
+    theta[2] = 0.;
+    theta[3] = 0.;
     return true;
 }
 
@@ -170,13 +174,18 @@ void GeneralFormulation::loop(double, clock::time_point time)
 
     ///GET DATA
     /// OPTITRACK
-    int index_acromion = -1, index_hip = -1;
+    int index_acromion = -1, index_hip = -1, index_hand = -1;
     Eigen::Vector3d posA = Eigen::Vector3d::Zero(), posHip = Eigen::Vector3d::Zero();
     Eigen::Quaterniond qHip;
     qHip.w() = 0.;
     qHip.x() = 0.;
     qHip.y() = 0.;
     qHip.z() = 0.;
+    Eigen::Quaterniond qHand;
+    qHand.w() = 0.;
+    qHand.x() = 0.;
+    qHand.y() = 0.;
+    qHand.z() = 0.;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
         if (data.rigidBodies[i].ID == 3) {
@@ -193,6 +202,12 @@ void GeneralFormulation::loop(double, clock::time_point time)
             qHip.y() = data.rigidBodies[i].qy;
             qHip.z() = data.rigidBodies[i].z;
             index_hip = i;
+        } else if (data.rigidBodies[i].ID == 1) {
+            qHand.w() = data.rigidBodies[i].qw;
+            qHand.x() = data.rigidBodies[i].qx;
+            qHand.y() = data.rigidBodies[i].qy;
+            qHand.z() = data.rigidBodies[i].z;
+            index_hand = i;
         }
     }
 
@@ -201,9 +216,10 @@ void GeneralFormulation::loop(double, clock::time_point time)
     double wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
-    theta[0] = pronoSupEncoder;
-    theta[1] = wristFlexEncoder;
-    theta[2] = elbowEncoder;
+    theta[1] = pronoSupEncoder;
+    theta[2] = wristFlexEncoder;
+    theta[3] = elbowEncoder;
+    debug() << "theta: " << theta[0] << "," << theta[1] << "," << theta[2] << "\r\n";
     /// IMU
     double qBras[4], qTronc[4], qFA[4];
     _robot->sensors.arm_imu->get_quat(qBras);
@@ -219,12 +235,13 @@ void GeneralFormulation::loop(double, clock::time_point time)
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, qHip, _cnt, init_cnt);
     } else {
+        _lawJ.rotationMatrices(qHand, qHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta, l);
         _lawJ.controlLaw(posA, _lambda, _threshold);
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
-        _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[0]);
-        _robot->joints.wrist_flexion->set_velocity_safe(thetaDot_toSend[1]);
-        _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[2]);
+        _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
+        _robot->joints.wrist_flexion->set_velocity_safe(thetaDot_toSend[2]);
+        _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[3]);
     }
 
     _lawJ.writeDebugData(debugData, theta);

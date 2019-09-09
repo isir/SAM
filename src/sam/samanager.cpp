@@ -60,6 +60,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_submenu_from_user(_galf);
 
     _main_menu->activate();
 }
@@ -84,6 +85,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _demo = std::make_unique<Demo>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _galf = std::make_unique<GeneralFormulation>(_robot);
     } catch (std::exception&) {
     }
 }
