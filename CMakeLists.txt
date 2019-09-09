@@ -77,3 +77,5 @@ target_link_libraries(sam
                       -lmosquitto
                       -lpthread
                       -lstdc++fs)
+
+install(TARGETS sam RUNTIME DESTINATION /home/root/)
