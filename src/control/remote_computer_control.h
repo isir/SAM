@@ -1,18 +1,18 @@
 #ifndef REMOTECOMPUTERCONTROL_H
 #define REMOTECOMPUTERCONTROL_H
 
-#include "threaded_loop.h"
-#include "utils/sam.h"
+#include "sam/sam.h"
+#include "utils/threaded_loop.h"
 
 class RemoteComputerControl : public ThreadedLoop {
 public:
     explicit RemoteComputerControl(std::shared_ptr<SAM::Components> robot);
-    ~RemoteComputerControl();
+    ~RemoteComputerControl() override;
 
 private:
-    bool setup();
-    void loop(double dt, double time);
-    void cleanup();
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
 
     std::shared_ptr<SAM::Components> _robot;
 };

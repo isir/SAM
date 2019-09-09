@@ -1,41 +1,56 @@
-#ifndef COMPENSATIONOPTITRACK_H
-#define COMPENSATIONOPTITRACK_H
+#ifndef COMPENSATION_OPTITRACK_H
+#define COMPENSATION_OPTITRACK_H
 
-#include "algorithms/lawopti.h"
-#include "ui/menu_user.h"
-#include "utils/opti_listener.h"
-#include "utils/sam.h"
-#include "utils/settings.h"
-#include <QFile>
-#include <QTime>
-#include <QUdpSocket>
+#include "algo/lawopti.h"
+#include "components/external/optitrack_listener.h"
+#include "sam/sam.h"
+#include "utils/socket.h"
+#include "utils/threaded_loop.h"
+#include <fstream>
 
-class CompensationOptitrack : public QObject, public MenuUser {
-    Q_OBJECT
+class CompensationOptitrack : public ThreadedLoop {
 public:
     explicit CompensationOptitrack(std::shared_ptr<SAM::Components> robot);
-    ~CompensationOptitrack();
+    ~CompensationOptitrack() override;
 
-    void start(QString filename);
+    void start(std::string filename = std::string());
     void stop();
     void zero();
+    void tareIMU();
     void display_parameters();
     void display_lengths();
-    void displayArduino();
 
 private:
-    std::shared_ptr<SAM::Components> _robot;
-    QUdpSocket _receiver;
-    QUdpSocket _receiverArduino;
+    enum Mode {
+        COMP,
+        VOL
+    };
 
-    QTime _abs_time;
-    QTime _time;
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
+
+    void on_activated();
+    void on_new_data_compensation(optitrack_data_t data, double dt, clock::time_point time);
+    void on_new_data_vol(optitrack_data_t data, double dt, clock::time_point time);
+    void read_optiData(optitrack_data_t data);
+    void on_def();
+    void listenArduino();
+
+    std::shared_ptr<SAM::Components> _robot;
+    Socket _receiver;
+    Socket _receiverArduino;
+
     int _previous_elapsed;
     double _old_time;
 
-    QFile _file;
+    Mode _mode;
+
+    clock::time_point _abs_time_start;
+    clock::time_point _time_start;
+
+    std::ofstream _file;
     bool _need_to_write_header;
-    Settings _settings;
     LawOpti _lawopti;
     unsigned int _cnt;
     unsigned int _ind;
@@ -51,15 +66,6 @@ private:
     int _pinArduino;
     int _pin_up;
     int _pin_down;
-
-private slots:
-    void on_activated();
-    void on_new_data_compensation(optitrack_data_t data);
-    void on_new_data_vol(optitrack_data_t data);
-    void read_optiData(optitrack_data_t data);
-    void on_def();
-    void listenArduino();
-    void tareIMU();
 };
 
-#endif // COMPENSATIONOPTITRACK_H
+#endif // COMPENSATION_OPTITRACK_H

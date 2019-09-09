@@ -87,7 +87,7 @@ void SerialPort::release_ownership()
     }
 }
 
-std::vector<std::byte> SerialPort::read(size_t n)
+std::vector<std::byte> SerialPort::read(std::size_t n)
 {
     std::lock_guard<std::mutex> lock(_mutex);
 
@@ -96,7 +96,7 @@ std::vector<std::byte> SerialPort::read(size_t n)
         throw std::runtime_error("SerialPort::read called from a thread that is not the current owner of this SerialPort");
     }
 
-    const size_t buf_sz = 256;
+    const std::size_t buf_sz = 256;
     std::byte buf[buf_sz];
 
     auto start = std::chrono::steady_clock::now();
@@ -119,7 +119,7 @@ std::vector<std::byte> SerialPort::read_all()
         throw std::runtime_error("SerialPort::read_all called from a thread that is not the current owner of this SerialPort");
     }
 
-    const size_t buf_sz = 256;
+    const std::size_t buf_sz = 256;
     std::byte buf[buf_sz];
 
     int cnt = ::read(_fd, &buf, buf_sz);
@@ -135,7 +135,12 @@ void SerialPort::write(std::vector<std::byte> data)
     write(reinterpret_cast<const char*>(data.data()), data.size());
 }
 
-void SerialPort::write(const char* data, size_t n)
+void SerialPort::write(std::string s)
+{
+    write(s.data(), s.length());
+}
+
+void SerialPort::write(const char* data, std::size_t n)
 {
     std::lock_guard<std::mutex> lock(_mutex);
 
@@ -143,7 +148,7 @@ void SerialPort::write(const char* data, size_t n)
         throw std::runtime_error("SerialPort::write called from a thread that is not the current owner of this SerialPort");
     }
     ssize_t w = ::write(_fd, data, n);
-    if (w < 0 || static_cast<size_t>(w) < n) {
+    if (w < 0 || static_cast<std::size_t>(w) < n) {
         throw std::runtime_error(port_name() + "::write: " + strerror(errno));
     }
 }

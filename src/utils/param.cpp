@@ -1,44 +1,60 @@
 #include "param.h"
 
-QList<BaseParam*> BaseParam::_param_list;
-const QString BaseParam::_topic_suffix = "param/";
+std::vector<BaseParam*> BaseParam::_param_list;
+std::mutex BaseParam::_param_list_mutex;
+const std::string BaseParam::_topic_prefix = "param/";
 
-BaseParam::BaseParam(QString name, NamedObject* parent)
-    : MqttUser(name, AUTOCONNECT, parent)
+BaseParam::BaseParam(std::string name, NamedObject* parent)
+    : NamedObject(name, parent)
     , _storage(" ")
+    , _first_assignment(true)
     , _value_changed(true)
 {
-    _topic_name = "";
-    foreach (QString n, _parents) {
-        _topic_name += n + "/";
-    }
-    _topic_name += _topic_suffix;
-    _topic_name += _name;
+    _topic_name = _topic_prefix + full_name();
 
-    foreach (BaseParam* p, _param_list) {
-        if (p->_topic_name == _topic_name) {
-            throw std::runtime_error("A Parameter with the same name already exists");
+    {
+        std::string param_list_string;
+        std::lock_guard<std::mutex> lock(_param_list_mutex);
+        for (BaseParam* p : _param_list) {
+            if (p) {
+                param_list_string += p->_topic_name + ",";
+                if (p->_topic_name == _topic_name) {
+                    throw std::runtime_error("A Parameter with the same name (" + _topic_name + ") already exists");
+                }
+            }
         }
+        _param_list.push_back(this);
+        param_list_string += _topic_name;
+        _mqtt.publish(_topic_prefix + "/list", param_list_string);
     }
 
-    QObject::connect(&_mqtt, &QMqttClient::connected, this, &BaseParam::mqtt_connected_callback);
+    auto cb = [this](Mosquittopp::Message msg) {
+        _assign_raw(msg.payload());
+    };
 
-    _param_list.append(this);
+    _mqtt.subscribe(_topic_name, Mosquittopp::Client::QoS1)->add_callback(this, cb);
 }
 
 BaseParam::~BaseParam()
 {
+    _mqtt.subscribe(_topic_name)->remove_callbacks(this);
+    std::lock_guard<std::mutex> lock(_param_list_mutex);
+    for (auto it = _param_list.begin(); it < _param_list.end(); ++it) {
+        if (*it == this) {
+            _param_list.erase(it);
+        }
+    }
 }
 
 bool BaseParam::changed()
 {
-    QMutexLocker lock(&_mutex);
     return _value_changed;
 }
 
-BaseParam* BaseParam::from_topic_name(QString topic_name)
+BaseParam* BaseParam::from_topic_name(std::string topic_name)
 {
-    foreach (BaseParam* p, _param_list) {
+    std::lock_guard<std::mutex> lock(_param_list_mutex);
+    for (BaseParam* p : _param_list) {
         if (p->_topic_name == topic_name) {
             return p;
         }
@@ -46,17 +62,11 @@ BaseParam* BaseParam::from_topic_name(QString topic_name)
     return nullptr;
 }
 
-void BaseParam::message_received_callback(const QMqttMessage& msg)
+void BaseParam::_assign_raw(std::string v)
 {
-    _assign_raw(msg.payload());
-}
-
-void BaseParam::mqtt_connected_callback()
-{
-    QMqttSubscription* sub = _mqtt.subscribe(_topic_name);
-    QObject::disconnect(sub, &QMqttSubscription::messageReceived, this, &BaseParam::message_received_callback);
-    QObject::connect(sub, &QMqttSubscription::messageReceived, this, &BaseParam::message_received_callback);
-
-    QMutexLocker lock(&_mutex);
-    _mqtt.publish(_topic_name, _storage, 1, true);
+    std::lock_guard<std::mutex> lock(_storage_mutex);
+    if (v != _storage) {
+        _storage = v;
+        _value_changed = true;
+    }
 }

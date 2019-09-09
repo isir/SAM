@@ -1,9 +1,8 @@
 #include "demo.h"
-#include "algorithms/myocontrol.h"
-#include "peripherals/ledstrip.h"
+#include "algo/myocontrol.h"
+#include "ui/visual/ledstrip.h"
 #include "utils/check_ptr.h"
-#include <QDebug>
-#include <QTime>
+#include "utils/log/log.h"
 
 #define FULL_MYO 0
 #define IMU_ELBOW 1
@@ -29,10 +28,8 @@ Demo::Demo(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
 
-    _settings.beginGroup("Demo");
-    _pin_up = _settings.value("pin_up", 24).toInt();
-    _pin_down = _settings.value("pin_down", 22).toInt();
-    _settings.endGroup();
+    _pin_up = 24;
+    _pin_down = 22;
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
@@ -40,7 +37,7 @@ Demo::Demo(std::shared_ptr<SAM::Components> robot)
 
 Demo::~Demo()
 {
-    stop();
+    stop_and_join();
 }
 
 bool Demo::setup()
@@ -56,7 +53,7 @@ bool Demo::setup()
     return true;
 }
 
-void Demo::loop(double, double)
+void Demo::loop(double, clock::time_point)
 {
     static std::unique_ptr<MyoControl::Classifier> myocontrol;
 
@@ -92,7 +89,7 @@ void Demo::loop(double, double)
 
     static LedStrip::color current_color = LedStrip::none;
 
-    volatile double emg[2];
+    int emg[2];
 
     static bool first = true;
     if (first) {
@@ -102,7 +99,7 @@ void Demo::loop(double, double)
         first = false;
     }
 
-    Eigen::Vector3d acc;
+    Eigen::Vector3f acc = Eigen::Vector3f::Zero();
 
     emg[0] = 0;
     emg[1] = 0;
@@ -112,22 +109,22 @@ void Demo::loop(double, double)
 
         if (_robot->sensors.myoband->connected()) {
             if ((acc.squaredNorm() > max_acc_change_mode) && counter_auto_control == 0) {
-                control_mode = (control_mode + 1) % 3;
-                _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
+                control_mode = (control_mode + 1) % 2;
+                _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
                 _robot->joints.elbow_flexion->set_velocity_safe(0);
                 counter_auto_control = 100;
 
                 if (control_mode == FULL_MYO) {
-                    qInfo() << "Full myo";
+                    info() << "Full myo";
                     current_color = LedStrip::green;
                     myocontrol = std::make_unique<MyoControl::BubbleCocoClassifier>(s1, thresholds, counts_after_mode_change, counts_cocontraction, counts_before_bubble, counts_after_bubble);
                 } else if (control_mode == IMU_ELBOW) {
-                    qInfo() << "IMU Elbow";
+                    info() << "IMU Elbow";
                     current_color = LedStrip::red;
                     myocontrol = std::make_unique<MyoControl::BubbleCocoClassifier>(s2, thresholds, counts_after_mode_change, counts_cocontraction, counts_before_bubble, counts_after_bubble);
                 }
             } else {
-                QVector<qint32> rms = _robot->sensors.myoband->get_emgs_rms();
+                std::vector<int32_t> rms = _robot->sensors.myoband->get_emgs_rms();
                 if (rms.size() < 8)
                     return;
                 emg[0] = rms[3];
@@ -146,11 +143,10 @@ void Demo::loop(double, double)
     myocontrol->process(emg[0], emg[1]);
 
     if (myocontrol->has_changed_mode()) {
-        _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::STANDARD_BUZZ);
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
     }
 
-    QVector<LedStrip::color> colors;
-    colors.fill(current_color, 10);
+    std::vector<LedStrip::color> colors(10, current_color);
     switch (myocontrol->current_index()) {
     case 0:
         colors[4] = LedStrip::color(80, 30, 0, 1);
@@ -174,11 +170,11 @@ void Demo::loop(double, double)
         counter_auto_control--;
     } else {
         if (control_mode == IMU_ELBOW) {
-            if (acc[1] > 0.2 || acc[1] < -0.2) {
+            if (acc[1] > 0.2f || acc[1] < -0.2f) {
                 if (move_elbow_counter > 10) { // remove acc jump (due to cocontraction for example...)
-                    if (acc[1] > 0.2) {
+                    if (acc[1] > 0.2f) {
                         _robot->joints.elbow_flexion->set_velocity_safe(35);
-                    } else if (acc[1] < -0.2) {
+                    } else if (acc[1] < -0.2f) {
                         _robot->joints.elbow_flexion->set_velocity_safe(-35);
                     }
                 } else {
@@ -193,9 +189,6 @@ void Demo::loop(double, double)
 
 void Demo::cleanup()
 {
-    if (_robot->sensors.myoband) {
-        _robot->sensors.myoband->stop();
-    }
     _robot->joints.wrist_pronation->forward(0);
     _robot->joints.elbow_flexion->move_to(0, 20);
     _robot->user_feedback.leds->set(LedStrip::white, 10);

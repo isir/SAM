@@ -1,15 +1,12 @@
 #include "general_formulation.h"
-#include "peripherals/roboclaw/factory.h"
 #include "utils/check_ptr.h"
-
-#include "qmath.h"
+#include "utils/log/log.h"
 #include "wiringPi.h"
-#include <QDir>
-#include <QNetworkDatagram>
+#include <filesystem>
 #include <iostream>
 
 GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("General Formulation")
+    : ThreadedLoop("General Formulation", 0.01)
     , _robot(robot)
     , _Lt(40)
     , _Lua(0.)
@@ -17,30 +14,26 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     , _lhand(0.)
     , _lambdaW(0)
     , _lambda(0)
+    , _pin_up(24)
+    , _pin_down(22)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.wrist_flexion)) { //}, _robot->sensors.optitrack)) {
         throw std::runtime_error("General Formulation Control is missing components");
     }
 
-    _settings.beginGroup("GeneralFormulation");
-    set_period(_settings.value("period", 0.01).toDouble());
-
-    QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
-    if (!_receiver.bind(QHostAddress::AnyIPv4, 45454)) {
-        qCritical() << _receiver.errorString();
+    if (!_receiver.bind("0.0.0.0", 45454)) {
+        critical() << "CompensationOptitrack: Failed to bind receiver";
     }
 
     _menu->set_description("GeneralFormulation");
     _menu->set_code("gf");
-    _menu->add_item("Tare IMUs", "tare", [this](QString) { this->tare_IMU(); });
+    _menu->add_item("Tare IMUs", "tare", [this](std::string) { this->tare_IMU(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
 
-    _pin_up = _settings.value("pin_up", 24).toInt();
-    _pin_down = _settings.value("pin_down", 22).toInt();
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
 
@@ -56,8 +49,7 @@ GeneralFormulation::~GeneralFormulation()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
-    stop();
-    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
+    stop_and_join();
 }
 
 void GeneralFormulation::tare_IMU()
@@ -67,18 +59,20 @@ void GeneralFormulation::tare_IMU()
 
     _robot->sensors.fa_imu->send_command_algorithm_init_then_tare();
 
-    qDebug("Wait ...");
+    debug("Wait ...");
 
     usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 }
 
 void GeneralFormulation::receiveData()
 {
     printf("in receiveData \n");
-    while (_receiver.hasPendingDatagrams()) {
-        QByteArray dataReceived = _receiver.receiveDatagram().data();
-        QTextStream ts(&dataReceived);
+    while (_receiver.available()) {
+        auto data = _receiver.receive();
+        std::string buf;
+        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
+        std::istringstream ts(buf);
         int tmp;
 
         ts >> tmp;
@@ -112,8 +106,8 @@ void GeneralFormulation::displayPin()
 {
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
-    qDebug() << "PinUp: " << pin_up_value;
-    qDebug() << "PinDown: " << pin_down_value;
+    debug() << "PinUp: " << pin_up_value;
+    debug() << "PinDown: " << pin_down_value;
 }
 
 bool GeneralFormulation::setup()
@@ -126,55 +120,55 @@ bool GeneralFormulation::setup()
     _robot->joints.wrist_pronation->calibrate();
 
     _robot->joints.wrist_pronation->set_encoder_position(0);
-
-    // File of recorded data
-    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
-
-    QString filename = QString("GalF");
+    std::string filename("GalF");
+    std::string suffix;
 
     int cnt = 0;
-    QString extension = QString(".txt");
+    std::string extension(".txt");
     do {
         ++cnt;
-        QString suffix = QString("_") + QString::number(cnt);
-        _file.setFileName(filename + suffix + extension);
-    } while (_file.exists());
+        suffix = "_" + std::to_string(cnt);
+    } while (std::filesystem::exists(filename + suffix + extension));
 
-    if (!_file.open(QIODevice::ReadWrite)) {
-        qCritical() << "Failed to open" << _file.fileName() << "-" << _file.errorString();
+    _file = std::ofstream(filename + suffix + extension);
+    if (!_file.good()) {
+        critical() << "Failed to open" << (filename + suffix + extension);
         return false;
     }
     _need_to_write_header = true;
+    _start_time = clock::now();
 
     _cnt = 0;
     theta[0] = 0.;
     theta[1] = 0.;
     theta[2] = 0.;
     theta[3] = 0.;
-    _time.start();
     return true;
 }
 
-void GeneralFormulation::loop(double, double)
+void GeneralFormulation::loop(double, clock::time_point time)
 {
     int init_cnt = 10;
-    QTime t;
-    t.start();
-    double timeWithDelta = _time.elapsed() / 1000.;
+    double timeWithDelta = (time - _start_time).count();
+
+    receiveData();
+
+    _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+
     double debugData[10];
 
     /// WRITE FILE HEADERS
     if (_need_to_write_header) {
-        _file.write(" time, pinUp, pinDown,");
-        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,");
-        _file.write(" qFA.w, qFA.x, qFA.y, qFA.z,");
-        _file.write(" to complete");
-        _file.write(" nbRigidBodies");
+        _file << " time, pinUp, pinDown,";
+        _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
+        _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
+        _file << " to complete";
+        _file << " nbRigidBodies";
         for (int i = 0; i < data.nRigidBodies; i++) {
-            _file.write(", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z");
+            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
         }
-        _file.write("\r\n");
+        _file << "\r\n";
         _need_to_write_header = false;
     }
 
@@ -194,12 +188,12 @@ void GeneralFormulation::loop(double, double)
     qHand.z() = 0.;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
-        if (data.rigidBodies[i].ID == _settings.value("acromion_id", 3).toInt()) {
+        if (data.rigidBodies[i].ID == 3) {
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
             index_acromion = i;
-        } else if (data.rigidBodies[i].ID == _settings.value("hip_id", 10).toInt()) {
+        } else if (data.rigidBodies[i].ID == 10) {
             posHip[0] = data.rigidBodies[i].x * 100;
             posHip[1] = data.rigidBodies[i].y * 100;
             posHip[2] = data.rigidBodies[i].z * 100;
@@ -208,7 +202,7 @@ void GeneralFormulation::loop(double, double)
             qHip.y() = data.rigidBodies[i].qy;
             qHip.z() = data.rigidBodies[i].z;
             index_hip = i;
-        } else if (data.rigidBodies[i].ID == _settings.value("hand_id", 1).toInt()) {
+        } else if (data.rigidBodies[i].ID == 1) {
             qHand.w() = data.rigidBodies[i].qw;
             qHand.x() = data.rigidBodies[i].qx;
             qHand.y() = data.rigidBodies[i].qy;
@@ -225,7 +219,7 @@ void GeneralFormulation::loop(double, double)
     theta[1] = pronoSupEncoder;
     theta[2] = wristFlexEncoder;
     theta[3] = elbowEncoder;
-    qDebug("theta: %lf, %lf, %lf\n", theta[0], theta[1], theta[2]);
+    debug() << "theta: " << theta[0] << "," << theta[1] << "," << theta[2] << "\r\n";
     /// IMU
     double qBras[4], qTronc[4], qFA[4];
     _robot->sensors.arm_imu->get_quat(qBras);
@@ -252,24 +246,23 @@ void GeneralFormulation::loop(double, double)
 
     _lawJ.writeDebugData(debugData, theta);
     /// WRITE DATA
-    QTextStream ts(&_file);
-    ts << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
-    ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    ts << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
+    _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
+    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     /// A COMPLETER !!!!
-    ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
-    ts << ' ' << _lambdaW << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2] << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
-    ts << ' ' << data.nRigidBodies;
+    _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
+    _file << ' ' << _lambdaW << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2] << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
+    _file << ' ' << data.nRigidBodies;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
-        ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        ts << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
     }
-    ts << endl;
+    _file << std::endl;
 
     ++_cnt;
-    std::cout << QTime::currentTime().toString("mm:ss:zzz").toStdString() << " comp // " << t.elapsed() << "ms" << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void GeneralFormulation::cleanup()
@@ -278,7 +271,5 @@ void GeneralFormulation::cleanup()
     _robot->joints.wrist_flexion->forward(0);
     _robot->joints.elbow_flexion->move_to(0, 20);
     _robot->joints.hand->release_ownership();
-    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
-    QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &GeneralFormulation::receiveData);
     _file.close();
 }

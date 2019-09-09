@@ -1,23 +1,21 @@
 #ifndef DEMO_H
 #define DEMO_H
 
-#include "threaded_loop.h"
-#include "utils/sam.h"
-#include "utils/settings.h"
+#include "sam/sam.h"
+#include "utils/threaded_loop.h"
 
 class Demo : public ThreadedLoop {
 public:
     Demo(std::shared_ptr<SAM::Components> robot);
-    ~Demo();
+    ~Demo() override;
 
-    bool setup();
-    void loop(double dt, double time);
-    void cleanup();
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
 
 private:
     std::shared_ptr<SAM::Components> _robot;
 
-    Settings _settings;
     int _pin_up;
     int _pin_down;
 };

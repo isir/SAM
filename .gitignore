@@ -1,1 +1,7 @@
 SAM.pro.user
+
+*.kdev4
+
+*.user
+
+Makefile

@@ -1,22 +1,24 @@
 #ifndef NAMED_OBJECT_H
 #define NAMED_OBJECT_H
 
-#include <QList>
-#include <QString>
+#include <string>
+#include <vector>
 
 class NamedObject {
 public:
-    NamedObject(QString name, const NamedObject* parent = nullptr);
-    virtual ~NamedObject();
+    NamedObject(std::string name, const NamedObject* parent = nullptr);
+    virtual ~NamedObject() = 0;
 
-    inline QString name()
+    std::string full_name();
+
+    inline std::string name()
     {
         return _name;
     }
 
 protected:
-    QString _name;
-    QList<QString> _parents;
+    std::string _name;
+    std::vector<std::string> _parents;
 };
 
 #endif // NAMED_OBJECT_H

@@ -1,99 +1,85 @@
 #ifndef PARAM_H
 #define PARAM_H
 
-#include "ui/mqtt_user.h"
+#include "utils/interfaces/mqtt_user.h"
 #include "utils/named_object.h"
-#include <QMutex>
-#include <QObject>
-#include <QTextStream>
+#include <atomic>
+#include <mutex>
+#include <sstream>
 
-class BaseParam : public QObject, public MqttUser {
-    Q_OBJECT
+class BaseParam : public MqttUser, public NamedObject {
 public:
-    BaseParam(QString name, NamedObject* parent = nullptr);
-    virtual ~BaseParam();
+    BaseParam(std::string name, NamedObject* parent = nullptr);
+    virtual ~BaseParam() override = 0;
 
     bool changed();
 
-    static BaseParam* from_topic_name(QString topic_name);
+    static BaseParam* from_topic_name(std::string topic_name);
 
 protected:
-    void _assign_raw(const QByteArray& v)
-    {
-        QMutexLocker lock(&_mutex);
-        if (v != _storage) {
-            _storage = v;
-            _value_changed = true;
-            emit value_changed();
-        }
-    }
+    void _assign_raw(std::string v);
 
     template <typename T>
     void _assign(T v)
     {
-        T old_value = _to<T>();
-
-        QMutexLocker lock(&_mutex);
-
-        _storage.clear();
-        QTextStream stream(&_storage, QIODevice::ReadWrite);
+        std::stringstream stream;
         stream << v;
 
-        if (v != old_value) {
-            _value_changed = true;
-            if (_mqtt.state() == QMqttClient::Connected)
-                _mqtt.publish(_topic_name, _storage, 1, true);
-            emit value_changed();
+        _assign_raw(stream.str());
+
+        if (_value_changed || _first_assignment) {
+            _first_assignment = false;
+            _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
         }
     }
 
     template <typename T>
     T _to()
     {
-        T ret;
+        T ret = T(0);
 
-        QMutexLocker lock(&_mutex);
-
-        if (!_storage.isEmpty()) {
-            QTextStream stream(_storage, QIODevice::ReadOnly);
+        {
+            std::lock_guard<std::mutex> lock(_storage_mutex);
+            std::stringstream stream(_storage);
             stream >> ret;
-            _value_changed = false;
         }
+        _value_changed = false;
 
         return ret;
     }
 
-    QByteArray _storage;
-    QMutex _mutex;
+    std::string _storage;
+    std::mutex _storage_mutex;
 
 private:
-    static QList<BaseParam*> _param_list;
+    bool _first_assignment;
 
-    QString _topic_name;
-    static const QString _topic_suffix;
-    bool _value_changed;
+    static std::vector<BaseParam*> _param_list;
+    static std::mutex _param_list_mutex;
 
-signals:
-    void value_changed();
+    static const std::string _topic_prefix;
 
-private slots:
-    void message_received_callback(const QMqttMessage& msg);
-    void mqtt_connected_callback();
+    std::string _topic_name;
+    std::atomic<bool> _value_changed;
 };
 
 template <typename T>
 class Param : public BaseParam {
 public:
-    Param(QString name, NamedObject* parent)
+    Param(std::string name, NamedObject* parent)
         : BaseParam(name, parent)
     {
     }
-    Param(QString name, NamedObject* parent, T default_value)
+
+    Param(std::string name, NamedObject* parent, T default_value)
         : BaseParam(name, parent)
     {
         assign(default_value);
     }
-    ~Param() = default;
+
+    ~Param() override
+    {
+    }
 
     inline void operator=(T v)
     {

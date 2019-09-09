@@ -1,16 +1,11 @@
 #include "compensation_imu.h"
-#include "peripherals/roboclaw/factory.h"
 #include "utils/check_ptr.h"
-
-#include "control/algorithms/lawimu.h"
-#include "qmath.h"
+#include "utils/log/log.h"
 #include "wiringPi.h"
-#include <QDir>
-#include <QNetworkDatagram>
-#include <iostream>
+#include <filesystem>
 
 CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Compensation IMU")
+    : ThreadedLoop("Compensation IMU", 0.01)
     , _robot(robot)
     , _Lt(40)
     , _Lua(0.)
@@ -19,29 +14,25 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _lambdaW(0)
     , _lambda(0)
     , _thresholdW(5.)
+    , _pin_up(24)
+    , _pin_down(22)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.fa_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
-    _settings.beginGroup("CompensationIMU");
-    set_period(_settings.value("period", 0.01).toDouble());
-
-    QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
-    if (!_receiver.bind(QHostAddress::AnyIPv4, 45454)) {
-        qCritical() << _receiver.errorString();
+    if (!_receiver.bind("0.0.0.0", 45454)) {
+        critical() << "CompensationOptitrack: Failed to bind receiver";
     }
 
     _menu->set_description("CompensationIMU");
     _menu->set_code("imu");
-    _menu->add_item("Tare IMUs", "tare", [this](QString) { this->tare_IMU(); });
-    _menu->add_item("Display Pin data", "pin", [this](QString) { this->displayPin(); });
+    _menu->add_item("Tare IMUs", "tare", [this](std::string) { this->tare_IMU(); });
+    _menu->add_item("Display Pin data", "pin", [this](std::string) { this->displayPin(); });
 
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
 
-    _pin_up = _settings.value("pin_up", 24).toInt();
-    _pin_down = _settings.value("pin_down", 22).toInt();
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
 }
@@ -50,8 +41,7 @@ CompensationIMU::~CompensationIMU()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
-    stop();
-    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
+    stop_and_join();
 }
 
 void CompensationIMU::tare_IMU()
@@ -67,10 +57,10 @@ void CompensationIMU::tare_IMU()
 
     _robot->sensors.fa_imu->send_command_algorithm_init_then_tare();
 
-    qDebug("Wait ...");
+    debug("Wait ...");
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(BuzzerConfig::TRIPLE_BUZZ);
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
     //    _robot->sensors.arm_imu->get_quat(qFA);
     //    qDebug("qarm after tare: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
     //    _robot->sensors.fa_imu->get_quat(qFA);
@@ -80,9 +70,11 @@ void CompensationIMU::tare_IMU()
 void CompensationIMU::receiveData()
 {
     printf("in receiveData \n");
-    while (_receiver.hasPendingDatagrams()) {
-        QByteArray dataReceived = _receiver.receiveDatagram().data();
-        QTextStream ts(&dataReceived);
+    while (_receiver.available()) {
+        auto data = _receiver.receive();
+        std::string buf;
+        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
+        std::istringstream ts(buf);
         int tmp;
 
         ts >> tmp;
@@ -113,58 +105,59 @@ void CompensationIMU::displayPin()
 {
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
-    qDebug() << "PinUp: " << pin_up_value;
-    qDebug() << "PinDown: " << pin_down_value;
+    debug() << "PinUp: " << pin_up_value;
+    debug() << "PinDown: " << pin_down_value;
 }
 
 bool CompensationIMU::setup()
 {
-    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
     //    if (_robot.elbow) {
     //        _robot.elbow->calibrate();
     //    }
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
-    QString filename = QString("compensationIMU");
+    std::string filename("compensationIMU");
+    std::string suffix;
 
     int cnt = 0;
-    QString extension = QString(".txt");
+    std::string extension(".txt");
     do {
         ++cnt;
-        QString suffix = QString("_") + QString::number(cnt);
-        _file.setFileName(filename + suffix + extension);
-    } while (_file.exists());
+        suffix = "_" + std::to_string(cnt);
+    } while (std::filesystem::exists(filename + suffix + extension));
 
-    if (!_file.open(QIODevice::ReadWrite)) {
-        qCritical() << "Failed to open" << _file.fileName() << "-" << _file.errorString();
+    _file = std::ofstream(filename + suffix + extension);
+    if (!_file.good()) {
+        critical() << "Failed to open" << (filename + suffix + extension);
         return false;
     }
     _need_to_write_header = true;
-
-    _cnt = 0;
-    _time.start();
+    _start_time = clock::now();
     return true;
 }
 
-void CompensationIMU::loop(double, double)
+void CompensationIMU::loop(double dt, clock::time_point time)
 {
     int init_cnt = 10;
-    QTime t;
-    t.start();
-    double timeWithDelta = _time.elapsed() / 1000.;
+    double timeWithDelta = (time - _start_time).count();
+
+    receiveData();
+
+    _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+
     double debugData[10];
 
     if (_need_to_write_header) {
-        _file.write(" time, pinUp, pinDown,");
-        _file.write(" qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,");
-        _file.write(" qFA.w, qFA.x, qFA.y, qFA.z,");
-        _file.write(" phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,");
-        _file.write(" nbRigidBodies");
+        _file << " time, pinUp, pinDown,";
+        _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
+        _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
+        _file << " phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,";
+        _file << " nbRigidBodies";
         for (int i = 0; i < data.nRigidBodies; i++) {
-            _file.write(", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z");
+            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
         }
-        _file.write("\r\n");
+        _file << "\r\n";
         _need_to_write_header = false;
     }
 
@@ -200,7 +193,7 @@ void CompensationIMU::loop(double, double)
             _robot->joints.wrist_pronation->forward(0);
         }
 
-        if (_cnt % _settings.value("display_count", 50).toInt() == 0) {
+        if (_cnt % 50 == 0) {
             _lawimu.displayData();
             // qDebug("lambdaW: %d", _lambdaW);
             //            printf("lambdaW: %d\n", _lambdaW);
@@ -212,30 +205,27 @@ void CompensationIMU::loop(double, double)
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
 
-    QTextStream ts(&_file);
-    ts << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
-    ts << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    ts << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
-    ts << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
-    ts << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
-    ts << ' ' << data.nRigidBodies;
+    _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
+    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
+    _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
+    _file << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
+    _file << ' ' << data.nRigidBodies;
 
     for (int i = 0; i < data.nRigidBodies; i++) {
-        ts << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        ts << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        ts << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
     }
-    ts << endl;
+    _file << std::endl;
 
     ++_cnt;
-    std::cout << QTime::currentTime().toString("mm:ss:zzz").toStdString() << " comp // " << t.elapsed() << "ms" << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void CompensationIMU::cleanup()
 {
     //    _robot.elbow->forward(0);
     _robot->joints.wrist_pronation->forward(0);
-    QObject::disconnect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
-    QObject::connect(&_receiver, &QUdpSocket::readyRead, this, &CompensationIMU::receiveData);
     _file.close();
 }

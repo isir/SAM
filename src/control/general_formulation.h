@@ -1,36 +1,32 @@
 #ifndef GENERAL_FORMULATION_H
 #define GENERAL_FORMULATION_H
 
-#include "algorithms/lawjacobian.h"
-#include "threaded_loop.h"
-#include "utils/opti_listener.h"
-#include "utils/sam.h"
-#include "utils/settings.h"
-#include <QFile>
-#include <QTime>
-#include <QUdpSocket>
+#include "algo/lawjacobian.h"
+#include "components/external/optitrack_listener.h"
+#include "sam/sam.h"
+#include "utils/socket.h"
+#include "utils/threaded_loop.h"
+#include <fstream>
 
 class GeneralFormulation : public ThreadedLoop {
-    Q_OBJECT
 public:
     explicit GeneralFormulation(std::shared_ptr<SAM::Components> robot);
-    ~GeneralFormulation();
+    ~GeneralFormulation() override;
 
 private:
     void tare_IMU();
     void receiveData();
     void displayPin();
-    bool setup();
-    void loop(double dt, double time);
-    void cleanup();
+    bool setup() override;
+    void loop(double dt, clock::time_point time) override;
+    void cleanup() override;
 
     std::shared_ptr<SAM::Components> _robot;
-    QUdpSocket _receiver;
-    QFile _file;
+    Socket _receiver;
+    std::ofstream _file;
     bool _need_to_write_header;
-    Settings _settings;
     int _cnt;
-    QTime _time;
+    clock::time_point _start_time;
 
     LawJacobian _lawJ;
     int _Lt;

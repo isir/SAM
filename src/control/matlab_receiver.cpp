@@ -1,9 +1,9 @@
 #include "matlab_receiver.h"
 #include "utils/check_ptr.h"
-#include <QNetworkDatagram>
+#include "utils/log/log.h"
 
-MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* parent)
-    : QObject(parent)
+MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot)
+    : ThreadedLoop("matlab_receiver", 0.1)
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {
@@ -13,15 +13,11 @@ MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* 
     _menu->set_description("Matlab receiver");
     _menu->set_code("mr");
 
-    _settings.beginGroup("MatlabReceiver");
-    int port = _settings.value("port", 45456).toInt();
-    if (!_socket.bind(QHostAddress::AnyIPv4, port)) { //}, QUdpSocket::ShareAddress)) {
-        qCritical() << "Failed to bind on port" << port;
+    int port = 45456;
+    if (!_socket.bind("0.0.0.0", 45456)) {
+        critical() << "Failed to bind on port" << port;
     }
-    QObject::connect(&_socket, &QUdpSocket::readyRead, this, &MatlabReceiver::socket_callback);
 
-    _menu->add_item("Start", "start", [this](QString) { this->start(); });
-    _menu->add_item("Stop", "stop", [this](QString) { this->stop(); });
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.hand->menu());
@@ -29,42 +25,38 @@ MatlabReceiver::MatlabReceiver(std::shared_ptr<SAM::Components> robot, QObject* 
 
 MatlabReceiver::~MatlabReceiver()
 {
-    stop();
+    stop_and_join();
 }
 
-void MatlabReceiver::start()
+bool MatlabReceiver::setup()
 {
-    _robot->joints.hand->take_ownership();
-    QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
-    QObject::connect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
-
     _robot->joints.elbow_flexion->calibrate();
+    _robot->joints.hand->take_ownership();
     _robot->joints.hand->init_sequence();
-
-    qInfo() << "MatlabReceiver: Starting";
+    info() << "MatlabReceiver: Starting";
+    return true;
 }
 
-void MatlabReceiver::stop()
+void MatlabReceiver::loop(double, clock::time_point)
 {
-    QObject::disconnect(this, &MatlabReceiver::command_received, this, &MatlabReceiver::handle_command);
+    if (_socket.available()) {
+        std::vector<std::byte> buf = _socket.receive();
+        if (buf.size() > 3) {
+            handle_command(static_cast<Command>(buf[3]));
+        }
+    }
+}
+
+void MatlabReceiver::cleanup()
+{
     _robot->joints.hand->release_ownership();
     _robot->joints.wrist_pronation->forward(0);
     _robot->joints.elbow_flexion->set_velocity_safe(0);
 }
 
-void MatlabReceiver::socket_callback()
-{
-    while (_socket.hasPendingDatagrams()) {
-        QNetworkDatagram datagram = _socket.receiveDatagram();
-        if (datagram.data().size() >= 4) {
-            emit command_received(static_cast<Command>(datagram.data().at(3)));
-        }
-    }
-}
-
 void MatlabReceiver::handle_command(Command c)
 {
-    qDebug() << static_cast<Command>(c);
+    debug() << static_cast<Command>(c);
     bool is_hand_command = true, is_wrist_command = false, is_elbow_command = false;
     switch (c) {
     case HAS_NOT_RECEIVE_FIRST_DATA:
@@ -143,9 +135,6 @@ void MatlabReceiver::handle_command(Command c)
         is_elbow_command = true;
         is_hand_command = false;
         _robot->joints.elbow_flexion->set_velocity_safe(30);
-        break;
-    default:
-        is_hand_command = false;
         break;
     }
 
