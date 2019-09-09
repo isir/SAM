@@ -1,6 +1,7 @@
 #include "optitrack_listener.h"
 #include "utils/log/log.h"
 #include <inttypes.h>
+#include <iostream>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>

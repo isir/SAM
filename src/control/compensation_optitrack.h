@@ -4,7 +4,6 @@
 #include "algo/lawopti.h"
 #include "components/external/optitrack_listener.h"
 #include "sam/sam.h"
-#include "utils/interfaces/menu_user.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
 #include <fstream>
@@ -17,6 +16,7 @@ public:
     void start(std::string filename = std::string());
     void stop();
     void zero();
+    void tareIMU();
     void display_parameters();
     void display_lengths();
 
@@ -32,7 +32,7 @@ private:
 
     void on_activated();
     void on_new_data_compensation(optitrack_data_t data, double dt, clock::time_point time);
-    void on_new_data_vol(optitrack_data_t data);
+    void on_new_data_vol(optitrack_data_t data, double dt, clock::time_point time);
     void read_optiData(optitrack_data_t data);
     void on_def();
     void listenArduino();
@@ -40,6 +40,9 @@ private:
     std::shared_ptr<SAM::Components> _robot;
     Socket _receiver;
     Socket _receiverArduino;
+
+    int _previous_elapsed;
+    double _old_time;
 
     Mode _mode;
 

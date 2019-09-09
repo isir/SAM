@@ -1,6 +1,7 @@
 #ifndef SAMANAGER_H
 #define SAMANAGER_H
 
+#include "control/compensation_imu.h"
 #include "control/compensation_optitrack.h"
 #include "control/demo.h"
 #include "control/matlab_receiver.h"

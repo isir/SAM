@@ -60,6 +60,22 @@ void CompensationOptitrack::zero()
     _robot->joints.elbow_flexion->move_to(0, 10, true);
 }
 
+void CompensationOptitrack::tareIMU()
+{
+    _robot->sensors.arm_imu->send_command_algorithm_init_then_tare();
+    _robot->sensors.trunk_imu->send_command_algorithm_init_then_tare();
+    debug("Wait for triple bip");
+
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qBras[4], qTronc[4];
+    _robot->sensors.arm_imu->get_quat(qBras);
+    _robot->sensors.trunk_imu->get_quat(qTronc);
+    debug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
+    debug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
+}
+
 void CompensationOptitrack::display_parameters()
 {
     debug() << "lambda: " << _lambda;
@@ -214,7 +230,7 @@ void CompensationOptitrack::loop(double dt, clock::time_point time)
     if (_mode == COMP) {
         on_new_data_compensation(_robot->sensors.optitrack->get_last_data(), dt, time);
     } else if (_mode == VOL) {
-        on_new_data_vol(_robot->sensors.optitrack->get_last_data());
+        on_new_data_vol(_robot->sensors.optitrack->get_last_data(), dt, time);
     }
 }
 
@@ -313,16 +329,16 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
         if (_cnt == init_cnt) {
             /// Computation posA0 in hip frame and move posA0 in prosthetic arm plane
             _lawopti.rotationMatrices(qHip, qFA_record, _cnt, init_cnt);
-            _lawopti.computeEEfromFA(posFA, _l, qFA_record);
-            _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
+            //            _lawopti.computeEEfromFA(posFA, _l, qFA_record);
+            //            _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
             _lawopti.bufferingOldValues();
         }
         _lawopti.filter_optitrackData(posA, posEE);
     } else {
         _lawopti.rotationMatrices(qHip, qFA_record, _cnt, init_cnt);
-        _lawopti.computeEEfromFA(posFA, _l, qFA_record);
-        _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
-        _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _l, _lambda, _threshold);
+        //        _lawopti.computeEEfromFA(posFA, _l, qFA_record);
+        //        _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
+        //        _lawopti.controlLaw(posEE, beta, _Lua, _Lfa, _l, _lambda, _threshold);
         _lawopti.controlLawWrist(_lambdaW, _thresholdW);
         _robot->joints.elbow_flexion->set_velocity_safe(_lawopti.returnBetaDot_deg());
 
@@ -366,10 +382,19 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     _file << std::endl;
 
     ++_cnt;
+
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
-void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
+void CompensationOptitrack::on_new_data_vol(optitrack_data_t data, double dt, clock::time_point time)
 {
+    double timeWithDelta = (time - _time_start).count();
+
+    // buzzer after 1s, to indicate the start of the task
+    if (_cnt == 50) {
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+    }
+    _old_time = timeWithDelta;
     static int prev_pin_up_value = 1, prev_pin_down_value = 1;
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
@@ -406,7 +431,7 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
     _robot->sensors.trunk_imu->get_quat(qTronc);
     if (_need_to_write_header) {
         //        _file.write("period, btnUp, btnDown, beta");
-        _file << "btnUp, btnDown, pinArduino, wristAngle,";
+        _file << "time, btnUp, btnDown, pinArduino, wristAngle,";
         _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z";
         _file << " nbRigid Bodies";
         for (unsigned int i = 0; i < data.nRigidBodies; i++) {
@@ -417,7 +442,7 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data)
     }
 
     //    ts << return_period() << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << beta;
-    _file << pin_up_value << ' ' << pin_down_value << ' ' << _pinArduino << ' ' << wristAngle;
+    _file << timeWithDelta << ' ' << pin_up_value << ' ' << pin_down_value << ' ' << _pinArduino << ' ' << wristAngle;
     _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     _file << ' ' << data.nRigidBodies;
 

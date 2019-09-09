@@ -23,10 +23,14 @@ set(SOURCES
     src/components/internal/roboclaw/message.cpp
     src/components/internal/roboclaw/roboclaw.cpp
     src/components/internal/touch_bionics/touch_bionics_hand.cpp
+    src/control/algo/lawimu.cpp
+    src/control/algo/lawjacobian.cpp
     src/control/algo/lawopti.cpp
     src/control/algo/myocontrol.cpp
+    src/control/compensation_imu.cpp
     src/control/compensation_optitrack.cpp
     src/control/demo.cpp
+    src/control/general_formulation.cpp
     src/control/matlab_receiver.cpp
     src/control/remote_computer_control.cpp
     src/control/voluntary_control.cpp

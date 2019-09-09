@@ -25,6 +25,7 @@ public:
     std::unique_ptr<Myoband> myoband;
     std::unique_ptr<XIMU> arm_imu;
     std::unique_ptr<XIMU> trunk_imu;
+    std::unique_ptr<XIMU> fa_imu;
     std::unique_ptr<Adafruit_ADS1115> adc;
     std::unique_ptr<OptiListener> optitrack;
 };
