@@ -6,9 +6,9 @@
 #include <eigen3/Eigen/Geometry>
 #include <string.h>
 
-static const int nbFrames = 4;
-static const int nbLinks = 3;
-static const std::string rel = "0yxz";
+static const int nbFrames = 5;
+static const int nbLinks = 4;
+static const std::string rel = "0zyyz";
 
 class LawJacobian {
 public:
@@ -16,7 +16,7 @@ public:
     ~LawJacobian();
     void initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, unsigned int freq);
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, int initCounter, int initCounts);
-    void rotationMatrices(Eigen::Quaterniond qHip, int initCounter, int initCounts);
+    void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void bufferingOldValues();
     void updateFrames(double theta[], double l[]);
@@ -29,7 +29,7 @@ public:
 
 private:
     Eigen::Matrix<double, 3, nbFrames, Eigen::DontAlign> x, y, z; // frames
-    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J; // jacobian patrix
+    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J, pinvJ; // jacobian patrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
@@ -41,7 +41,7 @@ private:
     double coeff; // coefficient for low-pass filtering
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot;
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> R, Rframe; // term of rotation matrix of hip frame in initial hip frame
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rhand, Rframe; // term of rotation matrix of hip frame in initial hip frame
     double R11, R12, R13, R21, R22, R23, R31, R32, R33;
 };
 
