@@ -1,9 +1,4 @@
-#include <fcntl.h>
-#include <linux/i2c-dev.h>
 #include <stdint.h>
-#include <stdio.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 
 /*=========================================================================
     I2C ADDRESS/BITS

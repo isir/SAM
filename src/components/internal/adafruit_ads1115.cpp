@@ -5,8 +5,12 @@ extern "C" {
 #include "adafruit_ads1115.h"
 #include "utils/log/log.h"
 #include <cstring>
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
 #include <sys/errno.h>
+#include <sys/ioctl.h>
 #include <time.h>
+#include <unistd.h>
 
 Adafruit_ADS1015::Adafruit_ADS1015(const char* deviceName, uint8_t i2cAddress)
 {
