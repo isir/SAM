@@ -10,7 +10,10 @@ MenuBackend::MenuBackend(std::string code, std::string description, std::functio
     , _activated_callback([] {})
     , _exit_callback(exit_callback)
 {
-    add_exit([this](std::string) { _exit_callback(); on_exit(); });
+    add_exit([this](std::string) {
+        _exit_callback();
+        on_exit();
+    });
 }
 
 MenuBackend::~MenuBackend()
