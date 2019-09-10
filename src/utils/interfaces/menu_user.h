@@ -10,7 +10,10 @@ public:
     std::shared_ptr<MenuBackend> menu();
 
 protected:
-    MenuUser(std::string code = std::string(), std::string description = std::string(), std::function<void(void)> exit_callback = std::function<void(void)>());
+    MenuUser(
+        std::string code = std::string(),
+        std::string description = std::string(),
+        std::function<void(void)> exit_callback = [] {});
 
     std::shared_ptr<MenuBackend> _menu;
 };
