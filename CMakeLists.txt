@@ -75,8 +75,6 @@ add_executable(sam ${SOURCES})
 target_link_libraries(sam
                       -lwiringPi
                       -li2c
-                      -lboost_thread
-                      -lboost_system
                       -lespeak
                       -lmosquitto
                       -lpthread
