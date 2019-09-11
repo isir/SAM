@@ -11,7 +11,9 @@
 class MenuBackend : public MenuItem {
 public:
     MenuBackend(
-        std::string code = std::string(), std::string description = std::string(), std::function<void(void)> exit_callback = [] {});
+        std::string code = std::string(),
+        std::string description = std::string(),
+        std::function<void(void)> exit_callback = [] {});
     ~MenuBackend();
 
     void add_exit(std::function<void(std::string)> callback);
