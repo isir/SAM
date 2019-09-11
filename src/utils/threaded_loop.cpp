@@ -59,6 +59,10 @@ bool ThreadedLoop::setup()
     return true;
 }
 
+void ThreadedLoop::cleanup()
+{
+}
+
 void ThreadedLoop::_set_prio_internal(int prio)
 {
     struct sched_param sp = {};
