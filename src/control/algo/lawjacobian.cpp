@@ -1,6 +1,8 @@
 #include "lawjacobian.h"
 #include "utils/log/log.h"
+#include "utils/pseudoinverse.h"
 #include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/QR>
 #include <iostream>
 #include <math.h>
 #include <string.h>
@@ -48,8 +50,11 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     delta[2] = 0;
     Rhip = Eigen::Matrix3d::Zero();
     Rframe = Eigen::Matrix3d::Zero();
-    thetaNew = Eigen::MatrixXd::Zero(nbFrames, 1);
-    thetaDot = Eigen::MatrixXd::Zero(nbFrames, 1);
+    thetaNew = Eigen::MatrixXd::Zero(nbLinks, 1);
+    thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
+    J = Eigen::MatrixXd::Zero(3, nbLinks);
+    pinvJ = Eigen::MatrixXd::Zero(nbLinks, 3);
+    OO = Eigen::MatrixXd::Zero(3, nbLinks);
 }
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
@@ -194,20 +199,33 @@ void LawJacobian::updateFrames(double theta[], double l[])
         z(0, i) = Rframe(2, 0) * x(0, i - 1) + Rframe(2, 1) * y(0, i - 1) + Rframe(2, 2) * z(0, i - 1);
         z(1, i) = Rframe(2, 0) * x(1, i - 1) + Rframe(2, 1) * y(1, i - 1) + Rframe(2, 2) * z(1, i - 1);
         z(2, i) = Rframe(2, 0) * x(2, i - 1) + Rframe(2, 1) * y(2, i - 1) + Rframe(2, 2) * z(2, i - 1);
+
+        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
+        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
+        debug() << "z" << i << ": " << z(0, i) << "; " << z(1, i) << "; " << z(2, i) << "\n";
     }
 
     /// UPDATE POSITIONS OF CENTERS OF FRAMES
-    OO(0, 0) = l[0] * y(0, 1) + l[1] * x(0, 2) + l[3] * x(0, 3);
-    OO(1, 0) = l[0] * y(1, 1) + l[1] * x(1, 2) + l[3] * x(1, 3);
-    OO(2, 0) = l[0] * y(2, 1) + l[1] * x(2, 2) + l[3] * x(2, 3);
+    OO(0, 0) = -l[0] * y(0, 1) + l[1] * z(0, 2) + l[2] * y(0, 3) + l[3] * y(0, 4);
+    OO(1, 0) = -l[0] * y(1, 1) + l[1] * z(1, 2) + l[2] * y(1, 3) + l[3] * y(1, 4);
+    OO(2, 0) = -l[0] * y(2, 1) + l[1] * z(2, 2) + l[2] * y(2, 3) + l[3] * y(2, 4);
 
-    OO(0, 1) = l[1] * x(0, 2) + l[3] * x(0, 3);
-    OO(1, 1) = l[1] * x(1, 2) + l[3] * x(1, 3);
-    OO(2, 1) = l[1] * x(2, 2) + l[3] * x(2, 3);
+    OO(0, 1) = l[1] * z(0, 2) + l[2] * y(0, 3) + l[3] * y(0, 4);
+    OO(1, 1) = l[1] * z(1, 2) + l[2] * y(1, 3) + l[3] * y(1, 4);
+    OO(2, 1) = l[1] * z(2, 2) + l[2] * y(2, 3) + l[3] * y(2, 4);
 
-    OO(0, 2) = l[3] * x(0, 3);
-    OO(1, 2) = l[3] * x(1, 3);
-    OO(2, 2) = l[3] * x(2, 3);
+    OO(0, 2) = l[2] * y(0, 3) + l[3] * y(0, 4);
+    OO(1, 2) = l[2] * y(1, 3) + l[3] * y(1, 4);
+    OO(2, 2) = l[2] * y(2, 3) + l[3] * y(2, 4);
+
+    OO(0, 3) = l[3] * y(0, 4);
+    OO(1, 3) = l[3] * y(1, 4);
+    OO(2, 3) = l[3] * y(2, 4);
+
+    debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
+    debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
+    debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
+    debug() << "OO 34: " << OO(0, 3) << "; " << OO(1, 3) << "; " << OO(2, 3) << "\n";
 }
 
 void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[])
@@ -216,10 +234,20 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
-    /// COMPUTE delta, position error of acromion
-    delta = posA - posA0;
     debug() << "nb of rows J: " << J.RowsAtCompileTime << "\r\n";
     debug() << "nb of col J: " << J.ColsAtCompileTime << "\r\n";
+    debug() << "J(0,:) : " << J(0, 0) << ';' << J(0, 1) << ';' << J(0, 2) << ';' << J(0, 3) << "\n";
+    debug() << "J(1,:) " << J(1, 0) << ';' << J(1, 1) << ';' << J(1, 2) << ';' << J(1, 3) << "\n";
+    debug() << "J(2,:) " << J(2, 0) << ';' << J(2, 1) << ';' << J(2, 2) << ';' << J(2, 3);
+    /// COMPUTE delta, position error of acromion
+    delta = posA - posA0;
+    debug() << "nb of rows delta: " << delta.RowsAtCompileTime << "\r\n";
+    debug() << "nb of col delta: " << delta.ColsAtCompileTime << "\r\n";
+    pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
+    debug() << "pinvJ(0,:) : " << pinvJ.coeff(0, 0) << ';' << pinvJ.coeff(0, 1) << ';' << pinvJ.coeff(0, 2) << "\n";
+    debug() << "pinvJ(1,:) " << pinvJ.coeff(1, 0) << ';' << pinvJ.coeff(1, 1) << ';' << pinvJ.coeff(1, 2) << "\n";
+    debug() << "pinvJ(2,:) " << pinvJ.coeff(2, 0) << ';' << pinvJ.coeff(2, 1) << ';' << pinvJ.coeff(2, 2) << "\n";
+    debug() << "pinvJ(3,:) " << pinvJ.coeff(3, 0) << ';' << pinvJ.coeff(3, 1) << ';' << pinvJ.coeff(3, 2) << "\n";
     /// COMPUTE ANG. VELOCITIES
     //    thetaNew = (J.completeOrthogonalDecomposition().pseudoInverse()) * delta;
     //    thetaNew = (J.pseudoInverse()) * delta;
