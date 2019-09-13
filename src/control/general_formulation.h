@@ -17,6 +17,7 @@ private:
     void tare_IMU();
     void receiveData();
     void displayPin();
+    void calibrations();
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
     void cleanup() override;
@@ -25,6 +26,7 @@ private:
     Socket _receiver;
     std::ofstream _file;
     bool _need_to_write_header;
+    //    bool is_calibrated;
     int _cnt;
     clock::time_point _start_time;
 
@@ -33,12 +35,23 @@ private:
     double _Lua;
     double _Lfa;
     double _lhand;
+    double _lwrist;
     double l[nbLinks];
     int _lambdaW, _lambda;
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
     double _threshold[nbLinks];
+
+    //    Param<double> _lua;
+    //    Param<double> _lfa;
+    //    Param<double> _lhand;
+    //    Param<int> _lambdaE;
+    //    Param<int> _lambdaWF;
+    //    Param<int> _lambdaWPS;
+    //    Param<double> _thresholdE;
+    //    Param<double> _thresholdWF;
+    //    Param<double> _thresholWPS;
 };
 
 #endif // GENERAL_FORMULATION_H
