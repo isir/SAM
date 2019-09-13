@@ -28,7 +28,9 @@ public:
 
 private:
     Eigen::Matrix<double, 3, nbFrames, Eigen::DontAlign> x, y, z; // frames
-    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J, pinvJ; // jacobian patrix
+    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J; // jacobian matrix
+    Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> pinvJ; // pseudo inverse of jacobian matrix
+    //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
