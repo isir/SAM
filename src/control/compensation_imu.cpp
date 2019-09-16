@@ -17,11 +17,11 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _pin_up(24)
     , _pin_down(22)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.fa_imu)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.yellow_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
-    if (!_receiver.bind("0.0.0.0", 45454)) {
+    if (!_receiver.bind("0.0.0.0", 45453)) {
         critical() << "CompensationOptitrack: Failed to bind receiver";
     }
 
@@ -46,25 +46,15 @@ CompensationIMU::~CompensationIMU()
 
 void CompensationIMU::tare_IMU()
 {
-    //    double qFA[4];
-    //    _robot->sensors.arm_imu->get_quat(qFA);
-    //    qDebug("qarm: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
-    //    _robot->sensors.fa_imu->get_quat(qFA);
-    //    qDebug("qFA: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
+    _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+    _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
 
-    _robot->sensors.arm_imu->send_command_algorithm_init_then_tare();
-    _robot->sensors.trunk_imu->send_command_algorithm_init_then_tare();
-
-    _robot->sensors.fa_imu->send_command_algorithm_init_then_tare();
+    _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
     debug("Wait ...");
 
     std::this_thread::sleep_for(std::chrono::seconds(6));
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
-    //    _robot->sensors.arm_imu->get_quat(qFA);
-    //    qDebug("qarm after tare: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
-    //    _robot->sensors.fa_imu->get_quat(qFA);
-    //    qDebug("qFA after tare: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
 }
 
 void CompensationIMU::receiveData()
@@ -132,6 +122,7 @@ bool CompensationIMU::setup()
         return false;
     }
     _need_to_write_header = true;
+    _cnt = 0.;
     _start_time = clock::now();
     return true;
 }
@@ -165,9 +156,9 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
 
     double qBras[4], qTronc[4], qFA[4];
-    _robot->sensors.arm_imu->get_quat(qBras);
-    _robot->sensors.trunk_imu->get_quat(qTronc);
-    _robot->sensors.fa_imu->get_quat(qFA);
+    _robot->sensors.white_imu->get_quat(qBras);
+    _robot->sensors.red_imu->get_quat(qTronc);
+    _robot->sensors.yellow_imu->get_quat(qFA);
 
     //    qDebug("qfa: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
 
