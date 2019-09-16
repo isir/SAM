@@ -4,6 +4,7 @@
 #include "control/compensation_imu.h"
 #include "control/compensation_optitrack.h"
 #include "control/demo.h"
+#include "control/demo_imu.h"
 #include "control/general_formulation.h"
 #include "control/matlab_receiver.h"
 #include "control/remote_computer_control.h"
@@ -37,6 +38,7 @@ private:
     std::unique_ptr<RemoteComputerControl> _rm;
     std::unique_ptr<MatlabReceiver> _mr;
     std::unique_ptr<Demo> _demo;
+    std::unique_ptr<DemoIMU> _demoimu;
     std::unique_ptr<SystemMonitor> _sm;
 
     std::unique_ptr<MenuBackend> _main_menu;
