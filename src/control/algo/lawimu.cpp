@@ -81,6 +81,7 @@ void LawIMU::rotationMatrices(Eigen::Quaterniond qFA_record)
 void LawIMU::controlLawWrist(int lambdaW, double thresholdW)
 {
     wristAngle_new = atan2(R_FA(1, 2), R_FA(2, 2)); //rotation around X-axis
+    debug() << "wrist angle: " << wristAngle_new * M_PI / 180 << "\n";
     theta = -atan(R_FA(0, 2) / sqrt(1 - R_FA(0, 2) * R_FA(0, 2))); //rotation around Y-axis
     psi = atan2(R_FA(0, 1), R_FA(0, 0)); //rotation around Z-axis
     if (abs(wristAngle_new) < thresholdW)
@@ -90,6 +91,7 @@ void LawIMU::controlLawWrist(int lambdaW, double thresholdW)
     } else if (wristAngle_new >= thresholdW) {
         wristVel = lambdaW * (wristAngle_new - thresholdW);
     }
+    debug() << "wrist vel: " << wristVel << "\n";
 }
 
 void LawIMU::writeDebugData(double d[])
