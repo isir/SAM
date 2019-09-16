@@ -241,23 +241,22 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     debug() << "J(2,:) " << J(2, 0) << ';' << J(2, 1) << ';' << J(2, 2) << ';' << J(2, 3);
     /// COMPUTE delta, position error of acromion
     delta = posA - posA0;
-    debug() << "nb of rows delta: " << delta.RowsAtCompileTime << "\r\n";
-    debug() << "nb of col delta: " << delta.ColsAtCompileTime << "\r\n";
+    debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
     pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
     debug() << "pinvJ(0,:) : " << pinvJ.coeff(0, 0) << ';' << pinvJ.coeff(0, 1) << ';' << pinvJ.coeff(0, 2) << "\n";
     debug() << "pinvJ(1,:) " << pinvJ.coeff(1, 0) << ';' << pinvJ.coeff(1, 1) << ';' << pinvJ.coeff(1, 2) << "\n";
     debug() << "pinvJ(2,:) " << pinvJ.coeff(2, 0) << ';' << pinvJ.coeff(2, 1) << ';' << pinvJ.coeff(2, 2) << "\n";
     debug() << "pinvJ(3,:) " << pinvJ.coeff(3, 0) << ';' << pinvJ.coeff(3, 1) << ';' << pinvJ.coeff(3, 2) << "\n";
     /// COMPUTE ANG. VELOCITIES
-    //    thetaNew = (J.completeOrthogonalDecomposition().pseudoInverse()) * delta;
-    //    thetaNew = (J.pseudoInverse()) * delta;
-    //    for (int i = 0; i < nbFrames; i++) {
-    //        if (thetaNew[i] < threshold[i])
+    thetaNew = pinvJ * delta;
+    debug() << "thetaNew: " << thetaNew(0) << "; " << thetaNew(1) << "; " << thetaNew(2) << "; " << thetaNew(3) << "\n";
+    //    for (int i = 1; i < nbFrames; i++) {
+    //        if (thetaNew[i] < threshold[i-1])
     //            thetaNew[i] = 0;
-    //        else if (thetaNew[i] >= threshold[i])
-    //            thetaNew[i] = thetaNew[i] - threshold[i];
-    //        else if (thetaNew[i] <= threshold[i])
-    //            thetaNew[i] = thetaNew[i] + threshold[i];
+    //        else if (thetaNew[i] >= threshold[i-1])
+    //            thetaNew[i] = thetaNew[i] - threshold[i-1];
+    //        else if (thetaNew[i] <= threshold[i-1])
+    //            thetaNew[i] = thetaNew[i] + threshold[i-1];
     //    }
     //    thetaDot = lambda * thetaNew;
 }
@@ -268,5 +267,16 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[i] = theta[i];
         d[i + nbFrames] = thetaNew[i];
         d[i + 2 * nbFrames] = thetaDot[i];
+    }
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[3 * nbFrames + j + 3 * i] = OO(j, i);
+        }
+    }
+
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[3 * nbFrames + 3 * nbLinks + j + 3 * i] = J(j, i);
+        }
     }
 }
