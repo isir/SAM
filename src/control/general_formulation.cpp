@@ -66,10 +66,10 @@ GeneralFormulation::~GeneralFormulation()
 
 void GeneralFormulation::tare_IMU()
 {
-    _robot->sensors.arm_imu->send_command_algorithm_init_then_tare();
-    _robot->sensors.trunk_imu->send_command_algorithm_init_then_tare();
+    _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+    _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
 
-    _robot->sensors.fa_imu->send_command_algorithm_init_then_tare();
+    _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
     debug("Wait ...");
 
@@ -151,11 +151,10 @@ bool GeneralFormulation::setup()
 {
     debug() << "Begin setup \n";
     // Check for calibration
-
-    //    if ((_robot->joints.elbow_flexion->is_calibrated() == false) || (_robot->joints.wrist_flexion->is_calibrated() == false) || (_robot->joints.wrist_pronation->is_calibrated() == false)) {
-    //        debug() << "Actuators not calibrated";
-    //        return false;
-    //    }
+    if ((_robot->joints.elbow_flexion->is_calibrated() == false) || (_robot->joints.wrist_flexion->is_calibrated() == false) || (_robot->joints.wrist_pronation->is_calibrated() == false)) {
+        debug() << "Actuators not calibrated";
+        return false;
+    }
 
     _robot->joints.wrist_pronation->set_encoder_position(0);
     std::string filename("GalF");
@@ -191,10 +190,10 @@ void GeneralFormulation::loop(double, clock::time_point time)
 
     receiveData();
 
-    //    _robot->sensors.optitrack->update();
-    //    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    _robot->sensors.optitrack->update();
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
 
-    double debugData[10];
+    double debugData[50];
 
     /// WRITE FILE HEADERS
     if (_need_to_write_header) {
@@ -203,9 +202,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
         _file << " to complete";
         _file << " nbRigidBodies";
-        //        for (int i = 0; i < data.nRigidBodies; i++) {
-        //            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
-        //        }
+        for (int i = 0; i < data.nRigidBodies; i++) {
+            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
+        }
         _file << "\r\n";
         _need_to_write_header = false;
     }
@@ -225,29 +224,29 @@ void GeneralFormulation::loop(double, clock::time_point time)
     qHand.y() = 0.;
     qHand.z() = 0.;
 
-    //    for (int i = 0; i < data.nRigidBodies; i++) {
-    //        if (data.rigidBodies[i].ID == 3) {
-    //            posA[0] = data.rigidBodies[i].x * 100;
-    //            posA[1] = data.rigidBodies[i].y * 100;
-    //            posA[2] = data.rigidBodies[i].z * 100;
-    //            index_acromion = i;
-    //        } else if (data.rigidBodies[i].ID == 10) {
-    //            posHip[0] = data.rigidBodies[i].x * 100;
-    //            posHip[1] = data.rigidBodies[i].y * 100;
-    //            posHip[2] = data.rigidBodies[i].z * 100;
-    //            qHip.w() = data.rigidBodies[i].qw;
-    //            qHip.x() = data.rigidBodies[i].qx;
-    //            qHip.y() = data.rigidBodies[i].qy;
-    //            qHip.z() = data.rigidBodies[i].z;
-    //            index_hip = i;
-    //        } else if (data.rigidBodies[i].ID == 1) {
-    //            qHand.w() = data.rigidBodies[i].qw;
-    //            qHand.x() = data.rigidBodies[i].qx;
-    //            qHand.y() = data.rigidBodies[i].qy;
-    //            qHand.z() = data.rigidBodies[i].z;
-    //            index_hand = i;
-    //        }
-    //    }
+    for (int i = 0; i < data.nRigidBodies; i++) {
+        if (data.rigidBodies[i].ID == 3) {
+            posA[0] = data.rigidBodies[i].x * 100;
+            posA[1] = data.rigidBodies[i].y * 100;
+            posA[2] = data.rigidBodies[i].z * 100;
+            index_acromion = i;
+        } else if (data.rigidBodies[i].ID == 10) {
+            posHip[0] = data.rigidBodies[i].x * 100;
+            posHip[1] = data.rigidBodies[i].y * 100;
+            posHip[2] = data.rigidBodies[i].z * 100;
+            qHip.w() = data.rigidBodies[i].qw;
+            qHip.x() = data.rigidBodies[i].qx;
+            qHip.y() = data.rigidBodies[i].qy;
+            qHip.z() = data.rigidBodies[i].z;
+            index_hip = i;
+        } else if (data.rigidBodies[i].ID == 1) {
+            qHand.w() = data.rigidBodies[i].qw;
+            qHand.x() = data.rigidBodies[i].qx;
+            qHand.y() = data.rigidBodies[i].qy;
+            qHand.z() = data.rigidBodies[i].z;
+            index_hand = i;
+        }
+    }
 
     /// WRIST
     double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
@@ -260,9 +259,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
     debug() << "theta: " << theta[1] << ", " << theta[2] << ", " << theta[3] << "\r\n";
     /// IMU
     double qBras[4], qTronc[4], qFA[4];
-    //    _robot->sensors.arm_imu->get_quat(qBras);
-    //    _robot->sensors.trunk_imu->get_quat(qTronc);
-    //    _robot->sensors.fa_imu->get_quat(qFA);
+    _robot->sensors.white_imu->get_quat(qBras);
+    _robot->sensors.red_imu->get_quat(qTronc);
+    //    _robot->sensors.yellow_imu->get_quat(qFA);
     /// PIN PUSH-BUTTONS CONTROL
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
@@ -277,26 +276,32 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.updateFrames(theta, l);
         _lawJ.controlLaw(posA, _lambda, _threshold);
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
+        debug() << "pronation vel :" << thetaDot_toSend[1] << "\n";
+        debug() << "wrist flex vel :" << thetaDot_toSend[2] << "\n";
+        debug() << "elbow flex vel :" << thetaDot_toSend[3] << "\n";
         //        _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
         //        _robot->joints.wrist_flexion->set_velocity_safe(thetaDot_toSend[2]);
         //        _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[3]);
     }
 
-    //    _lawJ.writeDebugData(debugData, theta);
+    _lawJ.writeDebugData(debugData, theta);
     /// WRITE DATA
     _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
     _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
+    //    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     /// A COMPLETER !!!!
-    _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
+    for (int i = 0; i < 50; i++) {
+        _file << ' ' << debugData[i];
+    }
+    //    _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
     _file << ' ' << _lambdaW << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2] << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
-    //    _file << ' ' << data.nRigidBodies;
+    _file << ' ' << data.nRigidBodies;
 
-    //    for (int i = 0; i < data.nRigidBodies; i++) {
-    //        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-    //        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-    //        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
-    //    }
+    for (int i = 0; i < data.nRigidBodies; i++) {
+        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    }
     _file << std::endl;
 
     ++_cnt;
@@ -308,6 +313,6 @@ void GeneralFormulation::cleanup()
     _robot->joints.wrist_pronation->forward(0);
     _robot->joints.wrist_flexion->forward(0);
     _robot->joints.elbow_flexion->move_to(0, 20);
-    //    _robot->joints.hand->release_ownership();
+    _robot->joints.hand->release_ownership();
     _file.close();
 }
