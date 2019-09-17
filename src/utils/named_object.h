@@ -16,6 +16,8 @@ public:
         return _name;
     }
 
+    static const std::string base_name;
+
 protected:
     std::string _name;
     std::vector<std::string> _parents;
