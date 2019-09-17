@@ -10,7 +10,8 @@ BaseParam::BaseParam(std::string name, NamedObject* parent)
     , _first_assignment(true)
     , _value_changed(true)
 {
-    _topic_name = _topic_prefix + full_name();
+    std::string fn = full_name().erase(0, NamedObject::base_name.size() + 1);
+    _topic_name = NamedObject::base_name + "/" + _topic_prefix + fn;
 
     {
         std::string param_list_string;
@@ -25,7 +26,7 @@ BaseParam::BaseParam(std::string name, NamedObject* parent)
         }
         _param_list.push_back(this);
         param_list_string += _topic_name;
-        _mqtt.publish(_topic_prefix + "/list", param_list_string);
+        _mqtt.publish(NamedObject::base_name + "param_list", param_list_string);
     }
 
     auto cb = [this](Mosquittopp::Message msg) {
