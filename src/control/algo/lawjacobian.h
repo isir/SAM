@@ -20,7 +20,7 @@ public:
     void bufferingOldValues();
     void updateFrames(double theta[], double l[]);
     void controlLaw(Eigen::Vector3d posA, int lambda, double threshold[]);
-    void writeDebugData(double debug[], double theta[]);
+    void writeDebugData(double d[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> returnthetaDot_deg() { return thetaDot * 180. / M_PI; }
