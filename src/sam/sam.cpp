@@ -1,39 +1,24 @@
 #include "sam.h"
-#include "utils/log/log.h"
 
 namespace SAM {
 
 Sensors::Sensors()
 {
-    try {
-        myoband = std::make_unique<Myoband>();
+    myoband = Components::make_component<Myoband>("myoband");
+    if (myoband) {
         myoband->start();
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the Myoband dongle - " << e.what();
     }
 
-    try {
-        arm_imu = std::make_unique<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the red IMU - " << e.what();
+    arm_imu = Components::make_component<XIMU>("white_imu", "/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+    trunk_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+    fa_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+
+    adc = Components::make_component<Adafruit_ADS1115>("adc", "/dev/i2c-1", 0x48);
+
+    optitrack = Components::make_component<OptiListener>("optitrack");
+    if (optitrack) {
+        optitrack->begin(1511);
     }
-
-    try {
-        trunk_imu = std::make_unique<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the white IMU - " << e.what();
-    }
-
-    try {
-        fa_imu = std::make_unique<XIMU>("/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the yellow IMU -" << e.what();
-    }
-
-    adc = std::make_unique<Adafruit_ADS1115>("/dev/i2c-1", 0x48);
-
-    optitrack = std::make_unique<OptiListener>();
-    optitrack->begin(1511);
 }
 
 UserFeedback::UserFeedback()

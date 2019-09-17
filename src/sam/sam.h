@@ -15,6 +15,9 @@
 #include "components/internal/touch_bionics/touch_bionics_hand.h"
 #include "ui/sound/buzzer.h"
 #include "ui/visual/ledstrip.h"
+#include "utils/log/log.h"
+#include "utils/named_object.h"
+#include "ux/mosquittopp/client.h"
 #include <memory>
 
 namespace SAM {
@@ -56,6 +59,23 @@ public:
     UserFeedback user_feedback;
     Sensors sensors;
     Joints joints;
+
+    template <typename U, typename... Ts>
+    static std::unique_ptr<U> make_component(std::string name, Ts... args)
+    {
+        Mosquittopp::Client mqtt;
+        mqtt.connect(MOSQUITTO_SERVER_IP, MOSQUITTO_SERVER_PORT);
+
+        std::unique_ptr<U> p;
+        try {
+            p = std::make_unique<U>(args...);
+            mqtt.publish(NamedObject::base_name + "/component/" + name, std::string("1"));
+        } catch (std::exception& e) {
+            critical() << "Couldn't create this component: " << name << " (" << e.what() << ")";
+            mqtt.publish(NamedObject::base_name + "/component/" + name, std::string("0"));
+        }
+        return p;
+    }
 
     static const int pin_buzzer = 29;
     static const int pin_demo = 28;
