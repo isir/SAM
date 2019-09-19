@@ -18,6 +18,7 @@ public:
     void set_velocity(double deg_s);
     virtual void set_velocity_safe(double deg_s);
     virtual bool is_calibrated() { return _calibrated; }
+    virtual uint32_t r_incs_per_deg() { return _incs_per_deg; }
 
 protected:
     virtual void on_exit();
