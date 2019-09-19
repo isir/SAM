@@ -49,6 +49,7 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     delta[1] = 0;
     delta[2] = 0;
     Rhip = Eigen::Matrix3d::Zero();
+    Rhand = Eigen::Matrix3d::Zero();
     Rframe = Eigen::Matrix3d::Zero();
     thetaNew = Eigen::MatrixXd::Zero(nbLinks, 1);
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
@@ -122,10 +123,11 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
     } else {
         Rhip = qHip_filt.toRotationMatrix();
     }
+    Rhand = qHand.toRotationMatrix();
 }
 
 /**
- * @brief LawOpti::projectionInHip project positions in the hip frame
+ * @brief LawJacobian::projectionInHip project positions in the hip frame
  * @param posA position of the acromion
  * @param posElbow position of the elbow
  * @param posHip position of the hip
@@ -146,7 +148,7 @@ void LawJacobian::bufferingOldValues()
     qHip_filt_old = qHip_filt;
 }
 
-void LawJacobian::updateFrames(double theta[], double l[])
+void LawJacobian::updateFrames(double theta[], int l[])
 {
     for (int i = 1; i < nbFrames; i++) {
 
@@ -234,49 +236,46 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
-    debug() << "nb of rows J: " << J.RowsAtCompileTime << "\r\n";
-    debug() << "nb of col J: " << J.ColsAtCompileTime << "\r\n";
-    debug() << "J(0,:) : " << J(0, 0) << ';' << J(0, 1) << ';' << J(0, 2) << ';' << J(0, 3) << "\n";
-    debug() << "J(1,:) " << J(1, 0) << ';' << J(1, 1) << ';' << J(1, 2) << ';' << J(1, 3) << "\n";
-    debug() << "J(2,:) " << J(2, 0) << ';' << J(2, 1) << ';' << J(2, 2) << ';' << J(2, 3);
     /// COMPUTE delta, position error of acromion
-    delta = posA - posA0;
+    delta = Rhand * (posA0 - posA);
     debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
     pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
-    debug() << "pinvJ(0,:) : " << pinvJ.coeff(0, 0) << ';' << pinvJ.coeff(0, 1) << ';' << pinvJ.coeff(0, 2) << "\n";
-    debug() << "pinvJ(1,:) " << pinvJ.coeff(1, 0) << ';' << pinvJ.coeff(1, 1) << ';' << pinvJ.coeff(1, 2) << "\n";
-    debug() << "pinvJ(2,:) " << pinvJ.coeff(2, 0) << ';' << pinvJ.coeff(2, 1) << ';' << pinvJ.coeff(2, 2) << "\n";
-    debug() << "pinvJ(3,:) " << pinvJ.coeff(3, 0) << ';' << pinvJ.coeff(3, 1) << ';' << pinvJ.coeff(3, 2) << "\n";
     /// COMPUTE ANG. VELOCITIES
     thetaNew = pinvJ * delta;
-    debug() << "thetaNew: " << thetaNew(0) << "; " << thetaNew(1) << "; " << thetaNew(2) << "; " << thetaNew(3) << "\n";
-    //    for (int i = 1; i < nbFrames; i++) {
-    //        if (thetaNew[i] < threshold[i-1])
-    //            thetaNew[i] = 0;
-    //        else if (thetaNew[i] >= threshold[i-1])
-    //            thetaNew[i] = thetaNew[i] - threshold[i-1];
-    //        else if (thetaNew[i] <= threshold[i-1])
-    //            thetaNew[i] = thetaNew[i] + threshold[i-1];
-    //    }
-    //    thetaDot = lambda * thetaNew;
+    debug() << "thetaNew(deg): " << thetaNew(0) * 180 / M_PI << "; " << thetaNew(1) * 180 / M_PI << "; " << thetaNew(2) * 180 / M_PI << "; " << thetaNew(3) * 180 / M_PI << "\n";
+    for (int i = 1; i < nbLinks; i++) {
+        if (abs(thetaNew(i)) < threshold[i - 1])
+            thetaNew(i) = 0;
+        else if (thetaNew(i) >= threshold[i - 1])
+            thetaNew(i) = thetaNew(i) - threshold[i - 1];
+        else if (thetaNew(i) <= -threshold[i - 1])
+            thetaNew(i) = thetaNew(i) + threshold[i - 1];
+    }
+    thetaDot = lambda * thetaNew;
 }
 
 void LawJacobian::writeDebugData(double d[], double theta[])
 {
-    for (int i = 0; i < nbFrames; i++) {
+    for (int i = 0; i < nbLinks; i++) {
         d[i] = theta[i];
-        d[i + nbFrames] = thetaNew[i];
-        d[i + 2 * nbFrames] = thetaDot[i];
+        d[i + nbLinks] = thetaNew(i);
+        d[i + 2 * nbLinks] = thetaDot(i);
     }
     for (int i = 0; i < nbLinks; i++) {
         for (int j = 0; j < 3; j++) {
-            d[3 * nbFrames + j + 3 * i] = OO(j, i);
+            d[3 * nbLinks + j + 3 * i] = OO(j, i);
         }
     }
 
     for (int i = 0; i < nbLinks; i++) {
         for (int j = 0; j < 3; j++) {
-            d[3 * nbFrames + 3 * nbLinks + j + 3 * i] = J(j, i);
+            d[3 * nbLinks + 3 * nbLinks + j + 3 * i] = J(j, i);
+        }
+    }
+
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[3 * nbLinks + 6 * nbLinks + j + 3 * i] = pinvJ(i, j);
         }
     }
 }

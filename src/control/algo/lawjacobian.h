@@ -18,7 +18,7 @@ public:
     void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void bufferingOldValues();
-    void updateFrames(double theta[], double l[]);
+    void updateFrames(double theta[], int l[]);
     void controlLaw(Eigen::Vector3d posA, int lambda, double threshold[]);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
