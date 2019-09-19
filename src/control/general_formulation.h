@@ -32,12 +32,12 @@ private:
 
     LawJacobian _lawJ;
     int _Lt;
-    double _Lua;
-    double _Lfa;
-    double _lhand;
-    double _lwrist;
-    double l[nbLinks];
-    int _lambdaW, _lambda;
+    int _Lua;
+    int _Lfa;
+    int _lhand;
+    int _lwrist;
+    int l[nbLinks];
+    int _lambda;
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
