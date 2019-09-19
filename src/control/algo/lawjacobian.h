@@ -5,9 +5,9 @@
 #include <eigen3/Eigen/Geometry>
 #include <string.h>
 
-static const int nbFrames = 5;
-static const int nbLinks = 4;
-static const std::string rel = "0zyyz";
+static const int nbFrames = 4;
+static const int nbLinks = 3;
+static const std::string rel = "0xyz";
 
 class LawJacobian {
 public:
