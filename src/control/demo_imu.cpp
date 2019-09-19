@@ -81,15 +81,16 @@ void DemoIMU::loop(double dt, clock::time_point time)
         _lawimu.rotationMatrices(qFA_record);
         _lawimu.controlLawWrist(_lambdaW, _thresholdW);
 
-        if (_lawimu.returnWristVel_deg() > 0) {
-            _robot->joints.wrist_pronation->move_to(350, _lawimu.returnWristVel_deg());
-        } else if (_lawimu.returnWristVel_deg() < 0) {
-            _robot->joints.wrist_pronation->move_to(-350, -_lawimu.returnWristVel_deg());
-        } else if (_lawimu.returnWristVel_deg() == 0) {
+        if (_lawimu.returnWristVel_deg() < 0)
+            _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
+        //            _robot->joints.wrist_pronation->move_to(6000, _lawimu.returnWristVel_deg() * 100, 6000, 35000);
+        else if (_lawimu.returnWristVel_deg() > 0)
+            _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
+        //            _robot->joints.wrist_pronation->move_to(6000, -_lawimu.returnWristVel_deg() * 100, 6000, -35000);
+        else if (_lawimu.returnWristVel_deg() == 0) {
             _robot->joints.wrist_pronation->forward(0);
         }
     }
-
     /// OPEN-LOOP WITH PUSH BUTTONS
     static int prev_pin_up_value = 1, prev_pin_down_value = 1;
     int pin_down_value = digitalRead(_pin_down);
