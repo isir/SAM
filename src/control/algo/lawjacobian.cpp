@@ -208,21 +208,21 @@ void LawJacobian::updateFrames(double theta[], int l[])
     }
 
     /// UPDATE POSITIONS OF CENTERS OF FRAMES
-    OO(0, 0) = -l[0] * y(0, 1) + l[1] * z(0, 2) + l[2] * y(0, 3) + l[3] * y(0, 4);
-    OO(1, 0) = -l[0] * y(1, 1) + l[1] * z(1, 2) + l[2] * y(1, 3) + l[3] * y(1, 4);
-    OO(2, 0) = -l[0] * y(2, 1) + l[1] * z(2, 2) + l[2] * y(2, 3) + l[3] * y(2, 4);
+    OO(0, 0) = -l[0] * x(0, 0) + l[1] * z(0, 1) + l[2] * y(0, 2) + l[3] * y(0, 3);
+    OO(1, 0) = -l[0] * x(1, 0) + l[1] * z(1, 1) + l[2] * y(1, 2) + l[3] * y(1, 3);
+    OO(2, 0) = -l[0] * x(2, 0) + l[1] * z(2, 1) + l[2] * y(2, 2) + l[3] * y(2, 3);
 
-    OO(0, 1) = l[1] * z(0, 2) + l[2] * y(0, 3) + l[3] * y(0, 4);
-    OO(1, 1) = l[1] * z(1, 2) + l[2] * y(1, 3) + l[3] * y(1, 4);
-    OO(2, 1) = l[1] * z(2, 2) + l[2] * y(2, 3) + l[3] * y(2, 4);
+    OO(0, 1) = l[1] * z(0, 1) + l[2] * y(0, 2) + l[3] * y(0, 3);
+    OO(1, 1) = l[1] * z(1, 1) + l[2] * y(1, 2) + l[3] * y(1, 3);
+    OO(2, 1) = l[1] * z(2, 1) + l[2] * y(2, 2) + l[3] * y(2, 3);
 
-    OO(0, 2) = l[2] * y(0, 3) + l[3] * y(0, 4);
-    OO(1, 2) = l[2] * y(1, 3) + l[3] * y(1, 4);
-    OO(2, 2) = l[2] * y(2, 3) + l[3] * y(2, 4);
+    OO(0, 2) = l[2] * y(0, 2) + l[3] * y(0, 3);
+    OO(1, 2) = l[2] * y(1, 2) + l[3] * y(1, 3);
+    OO(2, 2) = l[2] * y(2, 2) + l[3] * y(2, 3);
 
-    OO(0, 3) = l[3] * y(0, 4);
-    OO(1, 3) = l[3] * y(1, 4);
-    OO(2, 3) = l[3] * y(2, 4);
+    OO(0, 3) = l[3] * y(0, 3);
+    OO(1, 3) = l[3] * y(1, 3);
+    OO(2, 3) = l[3] * y(2, 3);
 
     debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
     debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
@@ -242,14 +242,14 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
     /// COMPUTE ANG. VELOCITIES
     thetaNew = pinvJ * delta;
-    debug() << "thetaNew(deg): " << thetaNew(0) * 180 / M_PI << "; " << thetaNew(1) * 180 / M_PI << "; " << thetaNew(2) * 180 / M_PI << "; " << thetaNew(3) * 180 / M_PI << "\n";
-    for (int i = 1; i < nbLinks; i++) {
-        if (abs(thetaNew(i)) < threshold[i - 1])
+    debug() << "thetaNew(deg): " << thetaNew(0) * 180 / M_PI << "; " << thetaNew(1) * 180 / M_PI << "; " << thetaNew(2) * 180 / M_PI << "\n";
+    for (int i = 0; i < nbLinks; i++) {
+        if (abs(thetaNew(i)) < threshold[i])
             thetaNew(i) = 0;
-        else if (thetaNew(i) >= threshold[i - 1])
-            thetaNew(i) = thetaNew(i) - threshold[i - 1];
-        else if (thetaNew(i) <= -threshold[i - 1])
-            thetaNew(i) = thetaNew(i) + threshold[i - 1];
+        else if (thetaNew(i) >= threshold[i])
+            thetaNew(i) = thetaNew(i) - threshold[i];
+        else if (thetaNew(i) <= -threshold[i])
+            thetaNew(i) = thetaNew(i) + threshold[i];
     }
     thetaDot = lambda * thetaNew;
 }
@@ -267,15 +267,13 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         }
     }
 
-    for (int i = 0; i < nbLinks; i++) {
+    for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
-            d[3 * nbLinks + 3 * nbLinks + j + 3 * i] = J(j, i);
+            d[6 * nbLinks + j + 3 * i] = Rhand(i, j);
         }
     }
 
-    for (int i = 0; i < nbLinks; i++) {
-        for (int j = 0; j < 3; j++) {
-            d[3 * nbLinks + 6 * nbLinks + j + 3 * i] = pinvJ(i, j);
-        }
+    for (int j = 0; j < 3; j++) {
+        d[6 * nbLinks + 9 + j] = delta(j);
     }
 }
