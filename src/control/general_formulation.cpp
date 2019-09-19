@@ -176,7 +176,6 @@ bool GeneralFormulation::setup()
     theta[0] = 0.;
     theta[1] = 0.;
     theta[2] = 0.;
-    theta[3] = 0.;
     return true;
 }
 
@@ -257,12 +256,12 @@ void GeneralFormulation::loop(double, clock::time_point time)
     double wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
-    theta[1] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
-    theta[2] = wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
-    theta[3] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
-    debug() << "theta(deg): " << theta[1] << ", " << theta[2] << ", " << theta[3] << "\r\n";
+    theta[0] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+    theta[1] = wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
+    theta[2] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+    debug() << "theta(deg): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
     theta = theta * M_PI / 180;
-    debug() << "theta(rad): " << theta[1] << ", " << theta[2] << ", " << theta[3] << "\r\n";
+    debug() << "theta(rad): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
     /// IMU
     double qBras[4], qTronc[4], qFA[4];
     //    _robot->sensors.white_imu->get_quat(qBras);
@@ -283,9 +282,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.controlLaw(posA, _lambda, _threshold);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
-        debug() << "pronation vel :" << thetaDot_toSend[1] << "\n";
-        debug() << "wrist flex vel :" << thetaDot_toSend[2] << "\n";
-        debug() << "elbow flex vel :" << thetaDot_toSend[3] << "\n";
+        debug() << "pronation vel :" << thetaDot_toSend[0] << "\n";
+        debug() << "wrist flex vel :" << thetaDot_toSend[1] << "\n";
+        debug() << "elbow flex vel :" << thetaDot_toSend[2] << "\n";
         //        _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
         //        _robot->joints.wrist_flexion->set_velocity_safe(thetaDot_toSend[2]);
         //        _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[3]);
