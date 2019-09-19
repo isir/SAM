@@ -177,9 +177,9 @@ void CompensationIMU::loop(double dt, clock::time_point time)
         _lawimu.controlLawWrist(_lambdaW, _thresholdW);
 
         if (_lawimu.returnWristVel_deg() > 0) {
-            _robot->joints.wrist_pronation->move_to(350, _lawimu.returnWristVel_deg());
+            _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
         } else if (_lawimu.returnWristVel_deg() < 0) {
-            _robot->joints.wrist_pronation->move_to(-350, -_lawimu.returnWristVel_deg());
+            _robot->joints.wrist_pronation->set_velocity_safe(-_lawimu.returnWristVel_deg());
         } else if (_lawimu.returnWristVel_deg() == 0) {
             _robot->joints.wrist_pronation->forward(0);
         }
