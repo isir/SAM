@@ -24,11 +24,17 @@ void Logger::work()
 {
     static std::ofstream os("/var/log/sam.log", std::ios::trunc | std::ios::out);
 
-    std::queue<std::pair<MessageType, std::string>> queue_local;
+    std::unique_lock lock(_queue_mutex);
 
-    _queue_mutex.lock();
+    if (_queue.empty()) {
+        lock.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        return;
+    }
+
+    std::queue<std::pair<MessageType, std::string>> queue_local;
     queue_local.swap(_queue);
-    _queue_mutex.unlock();
+    lock.unlock();
 
     while (!queue_local.empty()) {
         std::pair<MessageType, std::string> p = queue_local.front();
