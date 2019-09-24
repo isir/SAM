@@ -68,6 +68,7 @@ set(SOURCES
 include_directories(src/)
 
 add_definitions(-DMOSQUITTO_SERVER_IP="127.0.0.1" -DMOSQUITTO_SERVER_PORT=1883)
+add_definitions(-DDEFAULT_CPU_CORE=2 -DDEFAULT_THREAD_PRIO=20)
 
 set(CC_FLAGS "-O2 -mcpu=cortex-a53 -mfloat-abi=hard -std=gnu++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CC_FLAGS}")
