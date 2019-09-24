@@ -4,9 +4,10 @@ std::vector<BaseParam*> BaseParam::_param_list;
 std::mutex BaseParam::_param_list_mutex;
 const std::string BaseParam::_topic_prefix = "param/";
 
-BaseParam::BaseParam(std::string name, NamedObject* parent)
+BaseParam::BaseParam(std::string name, Mode mode, NamedObject* parent)
     : NamedObject(name, parent)
     , _storage(" ")
+    , _mode(mode)
     , _first_assignment(true)
     , _value_changed(true)
 {
@@ -26,14 +27,15 @@ BaseParam::BaseParam(std::string name, NamedObject* parent)
         }
         _param_list.push_back(this);
         param_list_string += _topic_name;
-        _mqtt.publish(NamedObject::base_name + "param_list", param_list_string);
+        _mqtt.publish(NamedObject::base_name + "/param_list", param_list_string);
     }
 
-    auto cb = [this](Mosquittopp::Message msg) {
-        _assign_raw(msg.payload());
-    };
-
-    _mqtt.subscribe(_topic_name, Mosquittopp::Client::QoS1)->add_callback(this, cb);
+    if (_mode & Read) {
+        auto cb = [this](Mosquittopp::Message msg) {
+            _assign_raw(msg.payload());
+        };
+        _mqtt.subscribe(_topic_name, Mosquittopp::Client::QoS1)->add_callback(this, cb);
+    }
 }
 
 BaseParam::~BaseParam()
