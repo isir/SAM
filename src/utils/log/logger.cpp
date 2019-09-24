@@ -4,7 +4,7 @@
 namespace Log {
 Logger::Logger()
     : Worker("logger", Worker::Continuous)
-    , _log_to_file(false)
+    , _log_to_file(true)
     , _log_to_mqtt(true)
 {
     do_work();
