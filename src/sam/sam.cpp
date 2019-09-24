@@ -33,50 +33,18 @@ UserFeedback::UserFeedback()
 Joints::Joints()
 {
 
-    try {
-        wrist_flexion = std::make_unique<WristFlexor>();
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the wrist flexor - " << e.what();
-    }
-
-    try {
-        shoulder_medial_rotation = std::make_unique<ShoulderRotator>();
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the Shoulder rotator - " << e.what();
-    }
-
-    try {
-        wrist_pronation = std::make_unique<WristRotator>();
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the wrist rotator - " << e.what();
-    }
+    shoulder_medial_rotation = Components::make_component<ShoulderRotator>("shoulder_medial_rotation");
+    elbow_flexion = Components::make_component<CustomElbow>("elbow_v2");
+    wrist_pronation = Components::make_component<WristRotator>("wrist_pronation_v2");
+    wrist_flexion = Components::make_component<WristFlexor>("wrist_flexor");
+    hand = Components::make_component<TouchBionicsHand>("touchbionics_hand");
 
     if (!wrist_pronation) {
-        try {
-            wrist_pronation = std::make_unique<PronoSupination>();
-        } catch (std::exception& e) {
-            critical() << "Couldn't access the wrist - " << e.what();
-        }
-    }
-
-    try {
-        elbow_flexion = std::make_unique<CustomElbow>();
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the custom elbow - " << e.what();
+        wrist_pronation = Components::make_component<PronoSupination>("wrist_pronation_v1");
     }
 
     if (!elbow_flexion) {
-        try {
-            elbow_flexion = std::make_unique<OsmerElbow>();
-        } catch (std::exception& e) {
-            critical() << "Couldn't access the elbow - " << e.what();
-        }
-    }
-
-    try {
-        hand = std::make_unique<TouchBionicsHand>();
-    } catch (std::exception& e) {
-        critical() << "Couldn't access the hand - " << e.what();
+        elbow_flexion = Components::make_component<OsmerElbow>("elbow_v1");
     }
 }
 
