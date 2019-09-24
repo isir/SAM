@@ -7,6 +7,7 @@ Logger::Logger()
     , _log_to_file(false)
     , _log_to_mqtt(true)
 {
+    do_work();
 }
 
 Logger::~Logger()

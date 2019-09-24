@@ -9,7 +9,12 @@
 
 class Worker {
 public:
-    Worker(std::string thread_name = std::string());
+    enum RunType {
+        Continuous,
+        OneShot
+    };
+
+    Worker(std::string thread_name = std::string(), RunType rt = OneShot);
     virtual ~Worker();
 
     void stop();
@@ -25,6 +30,7 @@ private:
     std::condition_variable _worker_cv;
     std::mutex _worker_mutex;
     std::thread _worker_thread;
+    RunType _worker_runtype;
 };
 
 #endif // WORKER_H
