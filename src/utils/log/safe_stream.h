@@ -20,10 +20,10 @@ private:
 };
 }
 
-#define info Log::SafeStream::make<Log::Logger::INFO>
-#define debug Log::SafeStream::make<Log::Logger::DEBUG>
-#define warning Log::SafeStream::make<Log::Logger::WARNING>
-#define critical Log::SafeStream::make<Log::Logger::CRITICAL>
-#define fatal Log::SafeStream::make<Log::Logger::FATAL>
+#define info(s) Log::SafeStream::make<Log::Logger::INFO>(s)
+#define debug(s) Log::SafeStream::make<Log::Logger::DEBUG>(s)
+#define warning(s) Log::SafeStream::make<Log::Logger::WARNING>(s)
+#define critical(s) Log::SafeStream::make<Log::Logger::CRITICAL>(s)
+#define fatal(s) Log::SafeStream::make<Log::Logger::FATAL>(s)
 
 #endif // SAFE_STREAM_H
