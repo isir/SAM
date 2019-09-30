@@ -30,6 +30,7 @@ set(SOURCES
     src/control/compensation_imu.cpp
     src/control/compensation_optitrack.cpp
     src/control/demo.cpp
+    src/control/demo_imu.cpp
     src/control/general_formulation.cpp
     src/control/matlab_receiver.cpp
     src/control/remote_computer_control.cpp

@@ -1,6 +1,8 @@
 #include "lawjacobian.h"
 #include "utils/log/log.h"
+#include "utils/pseudoinverse.h"
 #include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/QR>
 #include <iostream>
 #include <math.h>
 #include <string.h>
@@ -47,9 +49,13 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     delta[1] = 0;
     delta[2] = 0;
     Rhip = Eigen::Matrix3d::Zero();
+    Rhand = Eigen::Matrix3d::Zero();
     Rframe = Eigen::Matrix3d::Zero();
-    thetaNew = Eigen::MatrixXd::Zero(nbFrames, 1);
-    thetaDot = Eigen::MatrixXd::Zero(nbFrames, 1);
+    thetaNew = Eigen::MatrixXd::Zero(nbLinks, 1);
+    thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
+    J = Eigen::MatrixXd::Zero(3, nbLinks);
+    pinvJ = Eigen::MatrixXd::Zero(nbLinks, 3);
+    OO = Eigen::MatrixXd::Zero(3, nbLinks);
 }
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
@@ -117,10 +123,11 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
     } else {
         Rhip = qHip_filt.toRotationMatrix();
     }
+    Rhand = qHand.toRotationMatrix();
 }
 
 /**
- * @brief LawOpti::projectionInHip project positions in the hip frame
+ * @brief LawJacobian::projectionInHip project positions in the hip frame
  * @param posA position of the acromion
  * @param posElbow position of the elbow
  * @param posHip position of the hip
@@ -141,7 +148,11 @@ void LawJacobian::bufferingOldValues()
     qHip_filt_old = qHip_filt;
 }
 
-void LawJacobian::updateFrames(double theta[], double l[])
+/**
+ * @brief LawJacobian::updateFrames compute the current orientation of the links frames
+ * @param theta current angles of the joints
+ */
+void LawJacobian::updateFrames(double theta[])
 {
     for (int i = 1; i < nbFrames; i++) {
 
@@ -194,51 +205,98 @@ void LawJacobian::updateFrames(double theta[], double l[])
         z(0, i) = Rframe(2, 0) * x(0, i - 1) + Rframe(2, 1) * y(0, i - 1) + Rframe(2, 2) * z(0, i - 1);
         z(1, i) = Rframe(2, 0) * x(1, i - 1) + Rframe(2, 1) * y(1, i - 1) + Rframe(2, 2) * z(1, i - 1);
         z(2, i) = Rframe(2, 0) * x(2, i - 1) + Rframe(2, 1) * y(2, i - 1) + Rframe(2, 2) * z(2, i - 1);
+
+        //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
+        //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
+        //        debug() << "z" << i << ": " << z(0, i) << "; " << z(1, i) << "; " << z(2, i) << "\n";
     }
-
-    /// UPDATE POSITIONS OF CENTERS OF FRAMES
-    OO(0, 0) = l[0] * y(0, 1) + l[1] * x(0, 2) + l[3] * x(0, 3);
-    OO(1, 0) = l[0] * y(1, 1) + l[1] * x(1, 2) + l[3] * x(1, 3);
-    OO(2, 0) = l[0] * y(2, 1) + l[1] * x(2, 2) + l[3] * x(2, 3);
-
-    OO(0, 1) = l[1] * x(0, 2) + l[3] * x(0, 3);
-    OO(1, 1) = l[1] * x(1, 2) + l[3] * x(1, 3);
-    OO(2, 1) = l[1] * x(2, 2) + l[3] * x(2, 3);
-
-    OO(0, 2) = l[3] * x(0, 3);
-    OO(1, 2) = l[3] * x(1, 3);
-    OO(2, 2) = l[3] * x(2, 3);
 }
 
-void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[])
+/**
+ * @brief LawJacobian::computeOriginsVectors compute the vectors from the origins of the frames to the end-effector position
+ * @param l lengths of the arm segments
+ * @param nbDOF number of DOF of the prosthetic arm
+ */
+void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
+{
+    if (nbDOF == 2) {
+        /// UPDATE POSITIONS OF CENTERS OF FRAMES
+        OO(0, 0) = -l[0] * z(0, 0) - l[1] * y(0, 1) - l[2] * y(0, 2);
+        OO(1, 0) = -l[0] * z(1, 0) - l[1] * y(1, 1) - l[2] * y(1, 2);
+        OO(2, 0) = -l[0] * z(2, 0) - l[1] * y(2, 1) - l[2] * y(2, 2);
+
+        OO(0, 1) = -l[2] * y(0, 2);
+        OO(1, 1) = -l[2] * y(1, 2);
+        OO(2, 1) = -l[2] * y(2, 2);
+
+        //    debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
+        //    debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
+        //    debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
+    }
+
+    if (nbDOF == 3) {
+        /// UPDATE POSITIONS OF CENTERS OF FRAMES
+        OO(0, 0) = -l[0] * x(0, 0) - l[1] * z(0, 1) - l[2] * y(0, 2) - l[3] * y(0, 3);
+        OO(1, 0) = -l[0] * x(1, 0) - l[1] * z(1, 1) - l[2] * y(1, 2) - l[3] * y(1, 3);
+        OO(2, 0) = -l[0] * x(2, 0) - l[1] * z(2, 1) - l[2] * y(2, 2) - l[3] * y(2, 3);
+
+        OO(0, 1) = -l[2] * y(0, 2) - l[3] * y(0, 3);
+        OO(1, 1) = -l[2] * y(1, 2) - l[3] * y(1, 3);
+        OO(2, 1) = -l[2] * y(2, 2) - l[3] * y(2, 3);
+
+        OO(0, 2) = -l[3] * y(0, 3);
+        OO(1, 2) = -l[3] * y(1, 3);
+        OO(2, 2) = -l[3] * y(2, 3);
+
+        //        debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
+        //        debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
+        //        debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
+    }
+}
+
+void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
     /// COMPUTE delta, position error of acromion
-    delta = posA - posA0;
-    debug() << "nb of rows J: " << J.RowsAtCompileTime << "\r\n";
-    debug() << "nb of col J: " << J.ColsAtCompileTime << "\r\n";
+    delta = Rhand * (posA0 - posA);
+    pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
     /// COMPUTE ANG. VELOCITIES
-    //    thetaNew = (J.completeOrthogonalDecomposition().pseudoInverse()) * delta;
-    //    thetaNew = (J.pseudoInverse()) * delta;
-    //    for (int i = 0; i < nbFrames; i++) {
-    //        if (thetaNew[i] < threshold[i])
-    //            thetaNew[i] = 0;
-    //        else if (thetaNew[i] >= threshold[i])
-    //            thetaNew[i] = thetaNew[i] - threshold[i];
-    //        else if (thetaNew[i] <= threshold[i])
-    //            thetaNew[i] = thetaNew[i] + threshold[i];
-    //    }
-    //    thetaDot = lambda * thetaNew;
+    thetaNew = pinvJ * delta;
+    for (int i = 0; i < nbLinks; i++) {
+        if (abs(thetaNew(i)) < threshold[i])
+            thetaNew(i) = 0;
+        else if (thetaNew(i) >= threshold[i])
+            thetaNew(i) = thetaNew(i) - threshold[i];
+        else if (thetaNew(i) <= -threshold[i])
+            thetaNew(i) = thetaNew(i) + threshold[i];
+    }
+    if (_cnt % 50 == 0) {
+        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        debug() << "thetaNew(after threshold): ";
+        for (int i = 0; i < nbLinks; i++) {
+            debug() << thetaNew(i) * 180 / M_PI;
+        }
+    }
+    thetaDot = lambda * thetaNew;
 }
 
 void LawJacobian::writeDebugData(double d[], double theta[])
 {
-    for (int i = 0; i < nbFrames; i++) {
+    for (int i = 0; i < nbLinks; i++) {
         d[i] = theta[i];
-        d[i + nbFrames] = thetaNew[i];
-        d[i + 2 * nbFrames] = thetaDot[i];
+        d[i + nbLinks] = thetaNew(i);
+        d[i + 2 * nbLinks] = thetaDot(i);
+    }
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[3 * nbLinks + j + 3 * i] = OO(j, i);
+        }
+    }
+
+    for (int j = 0; j < 3; j++) {
+        d[6 * nbLinks + j] = delta(j);
     }
 }

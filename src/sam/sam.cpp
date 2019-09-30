@@ -13,19 +13,19 @@ Sensors::Sensors()
     }
 
     try {
-        arm_imu = std::make_unique<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+        white_imu = std::make_unique<XIMU>("/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
         critical() << "Couldn't access the red IMU - " << e.what();
     }
 
     try {
-        trunk_imu = std::make_unique<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+        red_imu = std::make_unique<XIMU>("/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
         critical() << "Couldn't access the white IMU - " << e.what();
     }
 
     try {
-        fa_imu = std::make_unique<XIMU>("/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+        yellow_imu = std::make_unique<XIMU>("/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     } catch (std::exception& e) {
         critical() << "Couldn't access the yellow IMU -" << e.what();
     }

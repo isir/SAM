@@ -5,9 +5,15 @@
 #include <eigen3/Eigen/Geometry>
 #include <string.h>
 
-static const int nbFrames = 5;
-static const int nbLinks = 4;
-static const std::string rel = "0zyyz";
+/// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
+static const int nbFrames = 4;
+static const int nbLinks = 3;
+static const std::string rel = "0xxz";
+
+/// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
+//static const int nbFrames = 3;
+//static const int nbLinks = 2;
+//static const std::string rel = "0yz";
 
 class LawJacobian {
 public:
@@ -18,8 +24,9 @@ public:
     void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void bufferingOldValues();
-    void updateFrames(double theta[], double l[]);
-    void controlLaw(Eigen::Vector3d posA, int lambda, double threshold[]);
+    void updateFrames(double theta[]);
+    void computeOriginsVectors(int l[], int nbDOF);
+    void controlLaw(Eigen::Vector3d posA, int lambda, double threshold[], int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
@@ -28,7 +35,9 @@ public:
 
 private:
     Eigen::Matrix<double, 3, nbFrames, Eigen::DontAlign> x, y, z; // frames
-    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J, pinvJ; // jacobian patrix
+    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J; // jacobian matrix
+    Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> pinvJ; // pseudo inverse of jacobian matrix
+    //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame

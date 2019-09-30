@@ -13,6 +13,10 @@ TouchBionicsHand::TouchBionicsHand()
     _menu->add_item("h", "Hand posture", [this](std::string) { setPosture(HAND_POSTURE); });
     _menu->add_item("ch", "Close hand", [this](std::string) { move(HAND_CLOSING); });
     _menu->add_item("oh", "Open hand", [this](std::string) { move(HAND_OPENING); });
+    _menu->add_item("oit", "Open internal thumb", [this](std::string) { move(THUMB_INT_OPENING); });
+    _menu->add_item("cit", "Close internal thumb", [this](std::string) { move(THUMB_INT_CLOSING); });
+    _menu->add_item("oet", "Open external thumb", [this](std::string) { move(THUMB_EXT_OPENING); });
+    _menu->add_item("cet", "Close external thumb", [this](std::string) { move(THUMB_EXT_CLOSING); });
     _menu->add_item("p", "Pinch posture", [this](std::string) { setPosture(PINCH_POSTURE); });
     _menu->add_item("cp", "Close pinch", [this](std::string) { move(PINCH_CLOSING); });
     _menu->add_item("op", "Open pinch ", [this](std::string) { move(PINCH_OPENING); });
