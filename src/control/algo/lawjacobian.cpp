@@ -148,7 +148,11 @@ void LawJacobian::bufferingOldValues()
     qHip_filt_old = qHip_filt;
 }
 
-void LawJacobian::updateFrames(double theta[], int l[])
+/**
+ * @brief LawJacobian::updateFrames compute the current orientation of the links frames
+ * @param theta current angles of the joints
+ */
+void LawJacobian::updateFrames(double theta[])
 {
     for (int i = 1; i < nbFrames; i++) {
 
@@ -202,35 +206,55 @@ void LawJacobian::updateFrames(double theta[], int l[])
         z(1, i) = Rframe(2, 0) * x(1, i - 1) + Rframe(2, 1) * y(1, i - 1) + Rframe(2, 2) * z(1, i - 1);
         z(2, i) = Rframe(2, 0) * x(2, i - 1) + Rframe(2, 1) * y(2, i - 1) + Rframe(2, 2) * z(2, i - 1);
 
-        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
-        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
-        debug() << "z" << i << ": " << z(0, i) << "; " << z(1, i) << "; " << z(2, i) << "\n";
+        //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
+        //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
+        //        debug() << "z" << i << ": " << z(0, i) << "; " << z(1, i) << "; " << z(2, i) << "\n";
     }
-
-    /// UPDATE POSITIONS OF CENTERS OF FRAMES
-    OO(0, 0) = -l[0] * x(0, 0) + l[1] * z(0, 1) + l[2] * y(0, 2) + l[3] * y(0, 3);
-    OO(1, 0) = -l[0] * x(1, 0) + l[1] * z(1, 1) + l[2] * y(1, 2) + l[3] * y(1, 3);
-    OO(2, 0) = -l[0] * x(2, 0) + l[1] * z(2, 1) + l[2] * y(2, 2) + l[3] * y(2, 3);
-
-    OO(0, 1) = l[1] * z(0, 1) + l[2] * y(0, 2) + l[3] * y(0, 3);
-    OO(1, 1) = l[1] * z(1, 1) + l[2] * y(1, 2) + l[3] * y(1, 3);
-    OO(2, 1) = l[1] * z(2, 1) + l[2] * y(2, 2) + l[3] * y(2, 3);
-
-    OO(0, 2) = l[2] * y(0, 2) + l[3] * y(0, 3);
-    OO(1, 2) = l[2] * y(1, 2) + l[3] * y(1, 3);
-    OO(2, 2) = l[2] * y(2, 2) + l[3] * y(2, 3);
-
-    OO(0, 3) = l[3] * y(0, 3);
-    OO(1, 3) = l[3] * y(1, 3);
-    OO(2, 3) = l[3] * y(2, 3);
-
-    debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
-    debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
-    debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
-    debug() << "OO 34: " << OO(0, 3) << "; " << OO(1, 3) << "; " << OO(2, 3) << "\n";
 }
 
-void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[])
+/**
+ * @brief LawJacobian::computeOriginsVectors compute the vectors from the origins of the frames to the end-effector position
+ * @param l lengths of the arm segments
+ * @param nbDOF number of DOF of the prosthetic arm
+ */
+void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
+{
+    if (nbDOF == 2) {
+        /// UPDATE POSITIONS OF CENTERS OF FRAMES
+        OO(0, 0) = -l[0] * z(0, 0) - l[1] * y(0, 1) - l[2] * y(0, 2);
+        OO(1, 0) = -l[0] * z(1, 0) - l[1] * y(1, 1) - l[2] * y(1, 2);
+        OO(2, 0) = -l[0] * z(2, 0) - l[1] * y(2, 1) - l[2] * y(2, 2);
+
+        OO(0, 1) = -l[2] * y(0, 2);
+        OO(1, 1) = -l[2] * y(1, 2);
+        OO(2, 1) = -l[2] * y(2, 2);
+
+        //    debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
+        //    debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
+        //    debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
+    }
+
+    if (nbDOF == 3) {
+        /// UPDATE POSITIONS OF CENTERS OF FRAMES
+        OO(0, 0) = -l[0] * x(0, 0) - l[1] * z(0, 1) - l[2] * y(0, 2) - l[3] * y(0, 3);
+        OO(1, 0) = -l[0] * x(1, 0) - l[1] * z(1, 1) - l[2] * y(1, 2) - l[3] * y(1, 3);
+        OO(2, 0) = -l[0] * x(2, 0) - l[1] * z(2, 1) - l[2] * y(2, 2) - l[3] * y(2, 3);
+
+        OO(0, 1) = -l[2] * y(0, 2) - l[3] * y(0, 3);
+        OO(1, 1) = -l[2] * y(1, 2) - l[3] * y(1, 3);
+        OO(2, 1) = -l[2] * y(2, 2) - l[3] * y(2, 3);
+
+        OO(0, 2) = -l[3] * y(0, 3);
+        OO(1, 2) = -l[3] * y(1, 3);
+        OO(2, 2) = -l[3] * y(2, 3);
+
+        //        debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
+        //        debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
+        //        debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
+    }
+}
+
+void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -238,11 +262,9 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     }
     /// COMPUTE delta, position error of acromion
     delta = Rhand * (posA0 - posA);
-    debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
     pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
     /// COMPUTE ANG. VELOCITIES
     thetaNew = pinvJ * delta;
-    debug() << "thetaNew(deg): " << thetaNew(0) * 180 / M_PI << "; " << thetaNew(1) * 180 / M_PI << "; " << thetaNew(2) * 180 / M_PI << "\n";
     for (int i = 0; i < nbLinks; i++) {
         if (abs(thetaNew(i)) < threshold[i])
             thetaNew(i) = 0;
@@ -250,6 +272,13 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
             thetaNew(i) = thetaNew(i) - threshold[i];
         else if (thetaNew(i) <= -threshold[i])
             thetaNew(i) = thetaNew(i) + threshold[i];
+    }
+    if (_cnt % 50 == 0) {
+        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        debug() << "thetaNew(after threshold): ";
+        for (int i = 0; i < nbLinks; i++) {
+            debug() << thetaNew(i) * 180 / M_PI;
+        }
     }
     thetaDot = lambda * thetaNew;
 }
@@ -267,13 +296,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         }
     }
 
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            d[6 * nbLinks + j + 3 * i] = Rhand(i, j);
-        }
-    }
-
     for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + 9 + j] = delta(j);
+        d[6 * nbLinks + j] = delta(j);
     }
 }
