@@ -26,22 +26,23 @@ private:
     Socket _receiver;
     std::ofstream _file;
     bool _need_to_write_header;
-    //    bool is_calibrated;
     int _cnt;
     clock::time_point _start_time;
 
     LawJacobian _lawJ;
+    int nbDOF;
     int _Lt;
     int _Lua;
     int _Lfa;
     int _lhand;
     int _lwrist;
-    int l[nbLinks];
     int _lambda;
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
     double _threshold[nbLinks];
+    //    int l[nbLinks + 1];  // for 3DOF
+    int l[nbLinks]; // for 2 DOF
 
     //    Param<double> _lua;
     //    Param<double> _lfa;
