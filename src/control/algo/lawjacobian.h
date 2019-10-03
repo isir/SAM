@@ -8,7 +8,7 @@
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
 static const int nbFrames = 4;
 static const int nbLinks = 3;
-static const std::string rel = "0xxz";
+static const std::string rel = "0yyz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
 //static const int nbFrames = 3;
@@ -49,7 +49,7 @@ private:
     double coeff; // coefficient for low-pass filtering
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot;
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rhand, Rframe; // term of rotation matrix of hip frame in initial hip frame
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rhand, Rframe, R0; // rotation matrices
     double R11, R12, R13, R21, R22, R23, R31, R32, R33;
 };
 
