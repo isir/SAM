@@ -271,7 +271,7 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     // for IMU quaternion
     delta = R0 * Rhand * (posA0 - posA);
 
-    pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
+    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
     /// COMPUTE ANG. VELOCITIES
     thetaNew = pinvJ * delta;
     for (int i = 0; i < nbLinks; i++) {
@@ -284,7 +284,7 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     }
     if (_cnt % 50 == 0) {
         //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
-        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
+        //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
         debug() << "thetaNew(after threshold): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;
