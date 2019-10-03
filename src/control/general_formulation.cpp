@@ -93,9 +93,9 @@ void GeneralFormulation::tare_IMU()
 void GeneralFormulation::calibrations()
 {
     // HAND
-    //    _robot->joints.hand->take_ownership();
-    //    _robot->joints.hand->init_sequence();
-    //    _robot->joints.hand->move(14);
+    _robot->joints.hand->take_ownership();
+    _robot->joints.hand->init_sequence();
+    _robot->joints.hand->move(14);
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
         _robot->joints.elbow_flexion->calibrate();
@@ -287,13 +287,14 @@ void GeneralFormulation::loop(double, clock::time_point time)
             qHip.z() = data.rigidBodies[i].qz;
             index_hip = i;
         } else if (data.rigidBodies[i].ID == 4) {
-            qHand.w() = data.rigidBodies[i].qw;
-            qHand.x() = data.rigidBodies[i].qx;
-            qHand.y() = data.rigidBodies[i].qy;
-            qHand.z() = data.rigidBodies[i].qz;
+            //            qHand.w() = data.rigidBodies[i].qw;
+            //            qHand.x() = data.rigidBodies[i].qx;
+            //            qHand.y() = data.rigidBodies[i].qy;
+            //            qHand.z() = data.rigidBodies[i].qz;
             index_hand = i;
         }
     }
+    //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
 
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
@@ -308,9 +309,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         theta[2] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
-        theta[0] = theta[0] * M_PI / 180;
-        theta[1] = theta[1] * M_PI / 180;
-        theta[2] = theta[2] * M_PI / 180;
+        theta[0] = -M_PI / 2 + theta[0] * M_PI / 180;
+        theta[1] = M_PI / 2 + theta[1] * M_PI / 180;
+        theta[2] = M_PI / 2 + theta[2] * M_PI / 180;
         //        debug() << "theta(rad): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
     } else {
         theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
@@ -331,6 +332,11 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _robot->sensors.red_imu->get_quat(qTronc);
     if (_robot->sensors.yellow_imu)
         _robot->sensors.yellow_imu->get_quat(qFA);
+
+    qHand.w() = qBras[0];
+    qHand.x() = qBras[1];
+    qHand.y() = qBras[2];
+    qHand.z() = qBras[3];
     /// PIN PUSH-BUTTONS CONTROL
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
@@ -340,6 +346,8 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.initialization(posA, qHip, 1 / period());
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, qHip, _cnt, init_cnt);
+        _lawJ.updateFrames(theta);
+        _lawJ.computeOriginsVectors(l, nbDOF);
     } else {
         _lawJ.rotationMatrices(qHand, qHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
@@ -349,9 +357,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
         if (_robot->joints.wrist_flexion) {
-            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
-            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
-            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
+            //            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
+            //            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
+            //            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
             if (_cnt % 50 == 0) {
                 debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
                 debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
@@ -371,7 +379,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     /// WRITE DATA
     _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _Lua << ' ' << _Lfa << ' ' << _lwrist << ' ' << _lhand;
     _file << ' ' << _lambda << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
-    //    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     //    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     for (int i = 0; i < 40; i++) {
         _file << ' ' << debugData[i];
