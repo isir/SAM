@@ -9,22 +9,23 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("General Formulation", 0.01)
     , _robot(robot)
     , _Lt(40)
-    , _Lua(30)
-    , _Lfa(20)
-    , _lwrist(5)
-    , _lhand(10)
-    , _lambda(0.)
+    //    , _lua(30)
+    //    , _lfa(20)
+    //    , _lwrist(5)
+    //    , _lhand(10)
+    //    , _lambda(0.)
     , _pin_up(24)
     , _pin_down(22)
-//    , _lua("lua(cm)", this, 30)
-//    , _lfa("lfa(cm)", this, 35)
-//    , _lhand("lhand(cm)", this, 5)
-//    , _lambdaE("lambda elbow", this, 0)
-//    , _lambdaWF("lambda wrist flex", this, 0)
-//    , _lambdaWPS("lambda wrist PS", this, 0)
-//    , _thresholdE("threshold E", this, 5)
-//    , _thresholdWF("threshold WF", this, 5)
-//    , _thresholWPS("threshold WPS", this, 5)
+    , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
+    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 35)
+    , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
+    , _lhand("lhand(cm)", BaseParam::ReadWrite, this, 5)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
+    , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
+    , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
+    , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
+    , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.optitrack)) {
         throw std::runtime_error("General Formulation Control is missing components");
@@ -50,22 +51,15 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
         _menu->add_item(_robot->joints.wrist_flexion->menu());
 
         nbDOF = 3; // set the number of dof of the prosthetic arm to adapt intermediate computations in control law
-        l[0] = _lhand; // from center of the hand to the pronosupination joint
-        l[1] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
-        l[2] = _Lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
-        l[3] = _Lua; // from the elbow joint to the acromion/shoulder joint
         debug() << "nDOF: " << nbDOF;
     } else {
         nbDOF = 2;
-        l[0] = _lhand + _lwrist;
-        l[1] = _Lfa;
-        l[2] = _Lua;
         debug() << "nDOF: " << nbDOF;
     }
 
-    for (int i = 0; i < nbLinks; i++) {
-        _threshold[i] = 10. * M_PI / 180;
-    }
+    //    for (int i = 0; i < nbLinks; i++) {
+    //        _threshold[i] = 10. * M_PI / 180;
+    //    }
 }
 
 GeneralFormulation::~GeneralFormulation()
@@ -119,7 +113,7 @@ void GeneralFormulation::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    //    _robot->joints.elbow_flexion->move_to(-80, 20);
+    _robot->joints.elbow_flexion->move_to(-60, 20);
 }
 
 void GeneralFormulation::receiveData()
@@ -133,20 +127,20 @@ void GeneralFormulation::receiveData()
         std::istringstream ts(buf);
         int tmp;
 
-        ts >> tmp;
-        _Lua = tmp; // _Lua
+        //        ts >> tmp;
+        //        _lua = tmp; // _lua
 
-        ts >> tmp;
-        _Lfa = tmp; // _Lfa
+        //        ts >> tmp;
+        //        _lfa = tmp; // _lfa
 
-        ts >> tmp;
-        _lwrist = tmp; // _lwrist
+        //        ts >> tmp;
+        //        _lwrist = tmp; // _lwrist
 
-        ts >> tmp;
-        _lhand = tmp; // _lhand
+        //        ts >> tmp;
+        //        _lhand = tmp; // _lhand
 
-        ts >> tmp;
-        _lambda = tmp;
+        //        ts >> tmp;
+        //        _lambda = tmp;
 
         ts >> tmp;
         _threshold[0] = tmp * M_PI / 180.; // dead zone limit for pronosup, in rad.
@@ -217,26 +211,22 @@ void GeneralFormulation::loop(double, clock::time_point time)
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
 
-    receiveData();
-    if (_robot->joints.wrist_flexion) {
-        l[0] = _lhand; // from center of the hand to the pronosupination joint
-        l[1] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
-        l[2] = _Lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
-        l[3] = _Lua; // from the elbow joint to the acromion/shoulder joint
+    //    receiveData();
+    //    if (_robot->joints.wrist_flexion) {
+    //        l[0] = _lhand; // from center of the hand to the pronosupination joint
+    //        l[1] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
+    //        l[2] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
+    //        l[3] = _lua; // from the elbow joint to the acromion/shoulder joint
 
-    } else {
-        l[0] = _lhand + _lwrist;
-        l[1] = _Lfa;
-        l[2] = _Lua;
-    }
-    //    debug() << "threshold WPS: " << _threshold[0] << "\n";
-    //    debug() << "threshold WFE: " << _threshold[1] << "\n";
-    //    debug() << "threshold elbow: " << _threshold[2] << "\n";
+    //    } else {
+    //        l[0] = _lhand + _lwrist;
+    //        l[1] = _lfa;
+    //        l[2] = _lua;
+    //    }
 
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     if (_cnt == 0) {
-        debug() << "lambda: " << _lambda << "\n";
         debug() << "nbRigid Bodies: " << data.nRigidBodies << "\n";
     }
 
@@ -245,7 +235,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     /// WRITE FILE HEADERS
     if (_need_to_write_header) {
         _file << " time, pinUp, pinDown,";
-        _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
+        _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
         _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
         _file << " to complete";
         _file << " nbRigidBodies";
@@ -281,10 +271,10 @@ void GeneralFormulation::loop(double, clock::time_point time)
             posHip[0] = data.rigidBodies[i].x * 100;
             posHip[1] = data.rigidBodies[i].y * 100;
             posHip[2] = data.rigidBodies[i].z * 100;
-            qHip.w() = data.rigidBodies[i].qw;
-            qHip.x() = data.rigidBodies[i].qx;
-            qHip.y() = data.rigidBodies[i].qy;
-            qHip.z() = data.rigidBodies[i].qz;
+            //            qHip.w() = data.rigidBodies[i].qw;
+            //            qHip.x() = data.rigidBodies[i].qx;
+            //            qHip.y() = data.rigidBodies[i].qy;
+            //            qHip.z() = data.rigidBodies[i].qz;
             index_hip = i;
         } else if (data.rigidBodies[i].ID == 4) {
             //            qHand.w() = data.rigidBodies[i].qw;
@@ -302,7 +292,23 @@ void GeneralFormulation::loop(double, clock::time_point time)
     double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
     //    debug() << "pronosup encoder: " << pronoSupEncoder;
     double wristFlexEncoder = 0.;
+
+    /// PROTO with wrist flexor
     if (_robot->joints.wrist_flexion) {
+        // set thresholds
+        _threshold[0] = _thresholdWF;
+        _threshold[1] = _thresholdWPS;
+        _threshold[2] = _thresholdE;
+        // set gain
+        _lambda[0] = _lambdaWF;
+        _lambda[1] = _lambdaWPS;
+        _lambda[2] = _lambdaE;
+        // set arm lengths
+        l[0] = _lhand; // from center of the hand to the pronosupination joint
+        l[1] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
+        l[2] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
+        l[3] = _lua; // from the elbow joint to the acromion/shoulder joint
+
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
         theta[1] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
@@ -312,8 +318,26 @@ void GeneralFormulation::loop(double, clock::time_point time)
         theta[0] = -M_PI / 2 + theta[0] * M_PI / 180;
         theta[1] = M_PI / 2 + theta[1] * M_PI / 180;
         theta[2] = M_PI / 2 + theta[2] * M_PI / 180;
-        //        debug() << "theta(rad): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
-    } else {
+
+        debug() << "threshold WPS: " << _threshold[0] << "\n";
+        debug() << "threshold WFE: " << _threshold[1] << "\n";
+        debug() << "threshold elbow: " << _threshold[2] << "\n";
+    }
+    /// PROTO without wrist flexor
+    else {
+        // set thresholds
+        _threshold[0] = _thresholdWPS;
+        _threshold[1] = _thresholdE;
+
+        // set gain
+        _lambda[0] = _lambdaWPS;
+        _lambda[1] = _lambdaE;
+
+        // set arm lengths
+        l[0] = _lhand + _lwrist;
+        l[1] = _lfa;
+        l[2] = _lua;
+
         theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
         theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
         if (_cnt % 50 == 0)
@@ -321,22 +345,30 @@ void GeneralFormulation::loop(double, clock::time_point time)
         // in radians:
         theta[0] = theta[0] * M_PI / 180;
         theta[1] = theta[1] * M_PI / 180;
-        //        debug() << "theta(rad): " << theta[0] << ", " << theta[1] << "\r\n";
+
+        debug() << "threshold WFE: " << _threshold[0] << "\n";
+        debug() << "threshold elbow: " << _threshold[1] << "\n";
     }
 
     /// IMU
-    double qBras[4], qTronc[4], qFA[4];
-    if (_robot->sensors.white_imu)
-        _robot->sensors.white_imu->get_quat(qBras);
-    if (_robot->sensors.red_imu)
-        _robot->sensors.red_imu->get_quat(qTronc);
+    double qWhite[4], qRed[4], qFA[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        qHand.w() = qWhite[0];
+        qHand.x() = qWhite[1];
+        qHand.y() = qWhite[2];
+        qHand.z() = qWhite[3];
+    }
+    if (_robot->sensors.red_imu) {
+        _robot->sensors.red_imu->get_quat(qRed);
+        qHip.w() = qRed[0];
+        qHip.x() = qRed[1];
+        qHip.y() = qRed[2];
+        qHip.z() = qRed[3];
+    }
     if (_robot->sensors.yellow_imu)
         _robot->sensors.yellow_imu->get_quat(qFA);
 
-    qHand.w() = qBras[0];
-    qHand.x() = qBras[1];
-    qHand.y() = qBras[2];
-    qHand.z() = qBras[3];
     /// PIN PUSH-BUTTONS CONTROL
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
@@ -346,10 +378,13 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.initialization(posA, qHip, 1 / period());
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, qHip, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, _cnt, init_cnt);
+        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
     } else {
         _lawJ.rotationMatrices(qHand, qHip, _cnt, init_cnt);
+        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
         _lawJ.controlLaw(posA, _lambda, _threshold, _cnt);
@@ -357,9 +392,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
         if (_robot->joints.wrist_flexion) {
-            //            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
-            //            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
-            //            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
+            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
+            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
+            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
             if (_cnt % 50 == 0) {
                 debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
                 debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
@@ -377,14 +412,13 @@ void GeneralFormulation::loop(double, clock::time_point time)
 
     _lawJ.writeDebugData(debugData, theta);
     /// WRITE DATA
-    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _Lua << ' ' << _Lfa << ' ' << _lwrist << ' ' << _lhand;
+    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lhand;
     _file << ' ' << _lambda << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
-    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
     //    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     for (int i = 0; i < 40; i++) {
         _file << ' ' << debugData[i];
     }
-    //    _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
     _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
     _file << ' ' << data.nRigidBodies;
 

@@ -32,11 +32,11 @@ private:
     LawJacobian _lawJ;
     int nbDOF;
     int _Lt;
-    int _Lua;
-    int _Lfa;
-    int _lhand;
-    int _lwrist;
-    int _lambda;
+    //    int _Lua;
+    //    int _Lfa;
+    //    int _lhand;
+    //    int _lwrist;
+    Eigen::Vector3i _lambda;
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
@@ -44,15 +44,16 @@ private:
     //    int l[nbLinks + 1];  // for 3DOF
     int l[nbLinks]; // for 2 DOF
 
-    //    Param<double> _lua;
-    //    Param<double> _lfa;
-    //    Param<double> _lhand;
-    //    Param<int> _lambdaE;
-    //    Param<int> _lambdaWF;
-    //    Param<int> _lambdaWPS;
-    //    Param<double> _thresholdE;
-    //    Param<double> _thresholdWF;
-    //    Param<double> _thresholWPS;
+    Param<double> _lua;
+    Param<double> _lfa;
+    Param<double> _lwrist;
+    Param<double> _lhand;
+    Param<int> _lambdaE;
+    Param<int> _lambdaWF;
+    Param<int> _lambdaWPS;
+    Param<double> _thresholdE;
+    Param<double> _thresholdWF;
+    Param<double> _thresholdWPS;
 };
 
 #endif // GENERAL_FORMULATION_H
