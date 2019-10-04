@@ -46,7 +46,13 @@ bool Myoband::setup()
 
             payload += std::to_string(_emgs_rms[i]) + " ";
         }
-        _mqtt.publish(full_name() + "/emg_rms", payload);
+        payload.pop_back();
+
+        static int decimation = 0;
+        if ((++decimation % 40) == 0) {
+            _mqtt.publish(full_name() + "/emg_rms", payload);
+            decimation = 0;
+        }
     };
 
     auto imu_callback = [this](myolinux::myo::OrientationSample ori, myolinux::myo::AccelerometerSample acc, myolinux::myo::GyroscopeSample gyr) {

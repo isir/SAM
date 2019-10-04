@@ -48,6 +48,11 @@ set(SOURCES
     src/utils/interfaces/mqtt_user.cpp
     src/utils/log/logger.cpp
     src/utils/log/safe_stream.cpp
+    src/utils/monitoring/abstract_monitor.cpp
+    src/utils/monitoring/cpu_freq_monitor.cpp
+    src/utils/monitoring/cpu_load_monitor.cpp
+    src/utils/monitoring/cpu_temp_monitor.cpp
+    src/utils/monitoring/vc_based_monitor.cpp
     src/utils/named_object.cpp
     src/utils/param.cpp
     src/utils/serial_port.cpp
@@ -68,19 +73,23 @@ set(SOURCES
 
 include_directories(src/)
 
+add_definitions(-DMOSQUITTO_SERVER_IP="127.0.0.1" -DMOSQUITTO_SERVER_PORT=1883)
+add_definitions(-DDEFAULT_CPU_CORE=2 -DDEFAULT_THREAD_PRIO=20)
+
 set(CC_FLAGS "-O2 -mcpu=cortex-a53 -mfloat-abi=hard -std=gnu++17")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CC_FLAGS}")
 
 add_executable(sam ${SOURCES})
 
 target_link_libraries(sam
-                      -lwiringPi
-                      -li2c
-                      -lboost_thread
-                      -lboost_system
-                      -lespeak
-                      -lmosquitto
-                      -lpthread
-                      -lstdc++fs)
+                      wiringPi
+                      i2c
+                      espeak
+                      mosquitto
+                      pthread
+                      stdc++fs
+                      vcos
+                      vchiq_arm
+                      vchostif)
 
 install(TARGETS sam RUNTIME DESTINATION /home/root/)

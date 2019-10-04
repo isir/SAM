@@ -233,23 +233,23 @@ void LawOpti::controlLawWrist(int lambdaW, double thresholdW)
     }
 }
 
-void LawOpti::writeDebugData(double dbg[], Eigen::Vector3f posEE, double beta)
+void LawOpti::writeDebugData(double d[], Eigen::Vector3f posEE, double beta)
 {
-    dbg[0] = posA0inHip[0];
-    dbg[1] = posA0inHip[1];
-    dbg[2] = posA0inHip[2];
-    dbg[3] = posEEinHip[0];
-    dbg[4] = posEEinHip[1];
-    dbg[5] = posEEinHip[2];
-    dbg[6] = delta;
-    dbg[9] = beta_new;
-    dbg[10] = beta;
-    dbg[11] = dBeta;
-    dbg[12] = betaDot;
-    dbg[13] = phi;
-    dbg[14] = theta;
-    dbg[15] = wristAngle_new;
-    dbg[16] = wristVel;
+    d[0] = posA0inHip[0];
+    d[1] = posA0inHip[1];
+    d[2] = posA0inHip[2];
+    d[3] = posEEinHip[0];
+    d[4] = posEEinHip[1];
+    d[5] = posEEinHip[2];
+    d[6] = delta;
+    d[9] = beta_new;
+    d[10] = beta;
+    d[11] = dBeta;
+    d[12] = betaDot;
+    d[13] = phi;
+    d[14] = theta;
+    d[15] = wristAngle_new;
+    d[16] = wristVel;
 }
 
 void LawOpti::displayData(Eigen::Vector3f posEE, double beta)

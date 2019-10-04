@@ -4,9 +4,9 @@
 ThreadedLoop::ThreadedLoop(std::string name, double period_s)
     : NamedObject(name)
     , MenuUser("", "", [this] { stop(); })
-    , _period_s("period_ms", this, period_s)
-    , _pref_cpu("pref_cpu", this, 1)
-    , _prio("prio", this, 20)
+    , _period_s("period_ms", BaseParam::ReadWrite, this, period_s)
+    , _pref_cpu("pref_cpu", BaseParam::ReadWrite, this, DEFAULT_CPU_CORE)
+    , _prio("prio", BaseParam::ReadWrite, this, DEFAULT_THREAD_PRIO)
 {
     _menu->add_item("start", "Start loop", [this](std::string) { start(); });
     _menu->add_item("stop", "Stop loop", [this](std::string) { stop_and_join(); });
@@ -57,6 +57,10 @@ void ThreadedLoop::stop_and_join()
 bool ThreadedLoop::setup()
 {
     return true;
+}
+
+void ThreadedLoop::cleanup()
+{
 }
 
 void ThreadedLoop::_set_prio_internal(int prio)

@@ -27,32 +27,30 @@
 
 #include "ximu.h"
 #include "utils/log/log.h"
+#include <fcntl.h>
+#include <math.h>
+#include <string.h>
+#include <unistd.h>
 
 #define RXBUFSIZE 256
 
-XIMU::XIMU(const char* filename, int level, int baudrate)
+XIMU::XIMU(std::string filename, int level, int baudrate)
+    : ThreadedLoop(filename.substr(5), 0.001)
 {
-    //inits
     fd = -1;
     pending_command = -1;
 
     set_loglevel(level);
 
-    if (!open_port(filename, baudrate)) {
-        _hasOpenPort = false;
+    if (!open_port(filename.c_str(), baudrate)) {
         throw std::runtime_error(std::string(filename) + ": " + std::string(strerror(errno)));
-    } else {
-        _hasOpenPort = true;
     }
 
-    //init
+    _rx_packet_buffer.reserve(RX_PACKET_BUFFER_SIZE);
+
     init_imudata();
 
-    //connect default slots
-    init_default_slots();
-
-    //start thread
-    boost::thread* thread = new boost::thread(boost::bind(&XIMU::comm_thread, this));
+    start();
 }
 
 XIMU::~XIMU()
@@ -127,38 +125,28 @@ int XIMU::set_loglevel(int i)
     return 0;
 }
 
-void XIMU::comm_thread()
+void XIMU::loop(double, clock::time_point)
 {
-    rx_packet_buffer_pos = 0;
     int rxcount;
-    unsigned char rxbuf[RXBUFSIZE];
+    std::vector<unsigned char> buf;
+    buf.reserve(RXBUFSIZE);
+    rxcount = read(fd, buf.data(), RXBUFSIZE);
 
-    //printf("communication thread running.\n");
+    _rx_packet_buffer.insert(_rx_packet_buffer.end(), buf.begin(), buf.end());
 
-    while (1) {
-        rxcount = read(fd, rxbuf, 1);
-
-        for (int i = 0; i < rxcount; i++) {
-            if (rx_packet_buffer_pos >= RX_PACKET_BUFFER_SIZE) {
-                critical("XIMU ERROR: buffer overflow");
-            } else {
-                //copy to packetbuffer
-                rx_packet_buffer[rx_packet_buffer_pos++] = rxbuf[i];
-            }
-
-            if (rxbuf[i] & 0x80) {
-                //we have a full packet in packet buffer -> process!
-                process_packet(rx_packet_buffer, rx_packet_buffer_pos);
-                //reset packet counter
-                rx_packet_buffer_pos = 0;
-            }
+    for (unsigned int i = 0; i < _rx_packet_buffer.size(); i++) {
+        if (_rx_packet_buffer[i] & 0x80) {
+            //we have a full packet in packet buffer -> process!
+            process_packet(_rx_packet_buffer.data(), static_cast<int>(i));
+            _rx_packet_buffer.erase(_rx_packet_buffer.begin(), _rx_packet_buffer.begin() + static_cast<int>(i));
+            i = 0;
         }
     }
 }
 
 bool XIMU::get_euler(double* e)
 {
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     bool result = imudata_euler_available;
 
     //access data
@@ -166,14 +154,13 @@ bool XIMU::get_euler(double* e)
     e[1] = imudata_euler[1];
     e[2] = imudata_euler[2];
     imudata_euler_available = false;
-    scoped_lock.unlock();
 
     return result;
 }
 
 bool XIMU::get_quat(double* q)
 {
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     bool result = imudata_quat_available;
 
     //access data
@@ -182,14 +169,13 @@ bool XIMU::get_quat(double* q)
     q[2] = imudata_quat[2];
     q[3] = imudata_quat[3];
     imudata_quat_available = false;
-    scoped_lock.unlock();
 
     return result;
 }
 
 bool XIMU::get_cal(double* gyro, double* accel, double* mag)
 {
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     bool result = imudata_cal_available;
 
     //access data
@@ -199,20 +185,18 @@ bool XIMU::get_cal(double* gyro, double* accel, double* mag)
         mag[i] = imudata_cal[2][i];
     }
     imudata_cal_available = false;
-    scoped_lock.unlock();
 
     return result;
 }
 
 bool XIMU::get_time(struct tm* time)
 {
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     bool result = imudata_time_available;
 
     //access data
     *time = imudata_time;
     imudata_time_available = false;
-    scoped_lock.unlock();
 
     return result;
 }
@@ -355,7 +339,7 @@ int XIMU::get_register(unsigned int register_address, unsigned int* val)
         return 0;
     }
 
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex);
+    std::unique_lock scoped_lock(_mutex);
     register_raw_pending[register_address] = true;
     scoped_lock.unlock();
 
@@ -757,10 +741,9 @@ void XIMU::process_packet_write_register(unsigned char* ptr, int len)
     }
 
     //store internally:
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     register_raw_value[hi] = lo; //value
     register_raw_pending[hi] = false; //no longer pending as we received a reply
-    scoped_lock.unlock();
 
     info() << "XIMU INFO : WRITE REGISTER 0x" << std::hex << hi << lo;
 }
@@ -780,7 +763,7 @@ void XIMU::process_packet_write_datetime(unsigned char* ptr, int len)
 
     // DATAGET printf("WRITE DATETIME: %4d.%02d.%02d %02d:%02d.%02d\n",year,month,day,hour,minute,second);
 
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     imudata_time.tm_year = year - 1900;
     imudata_time.tm_mon = month - 1;
     imudata_time.tm_mday = day;
@@ -789,9 +772,6 @@ void XIMU::process_packet_write_datetime(unsigned char* ptr, int len)
     imudata_time.tm_sec = second;
     //set time (day etc)
     mktime(&imudata_time);
-    scoped_lock.unlock();
-
-    signal_incoming_data_time(imudata_time);
 }
 
 void XIMU::process_packet_raw_battery_and_thermometer_data(unsigned char* ptr, int len)
@@ -836,8 +816,6 @@ void XIMU::process_packet_raw_inertialandmagnetic_data(unsigned char* ptr, int l
 
     printf("XIMU : RAW DATA: gyro[0x%08X, 0x%08X, 0x%08X] accel[0x%08X, 0x%08X, 0x%08X] mag[0x%08X, 0x%08X, 0x%08X]\n",
         raw[0][0], raw[0][1], raw[0][2], raw[1][0], raw[1][1], raw[1][2], raw[2][0], raw[2][1], raw[2][2]);
-    //fire signal
-    signal_incoming_data_raw(raw[0], raw[1], raw[2]);
 }
 
 void XIMU::process_packet_cal_inertialandmagnetic_data(unsigned char* ptr, int len)
@@ -858,17 +836,13 @@ void XIMU::process_packet_cal_inertialandmagnetic_data(unsigned char* ptr, int l
     // DATAGET printf("CAL DATA: gyro[%8.6f, %8.6f, %8.6f] accel[%8.6f, %8.6f, %8.6f] mag[%8.6f, %8.6f, %8.6f]\n",gyro[0],gyro[1],gyro[2],accel[0],accel[1],accel[2],mag[0],mag[1],mag[2]);
 
     //store data
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     for (int i = 0; i < 3; i++) {
         imudata_cal[0][i] = gyro[i];
         imudata_cal[1][i] = accel[i];
         imudata_cal[2][i] = mag[i];
     }
     imudata_cal_available = true;
-    scoped_lock.unlock();
-
-    //fire signal
-    signal_incoming_data_cal(imudata_cal[0], imudata_cal[1], imudata_cal[2]);
 }
 
 void XIMU::process_packet_quaternion_data(unsigned char* ptr, int len)
@@ -900,7 +874,7 @@ void XIMU::process_packet_quaternion_data(unsigned char* ptr, int len)
     // DATAGET printf("QUATERNION DATA: [%8.6f, %8.6f, %8.6f, %8.6f] --> Euler %8.5f, %8.5f, %8.5f\n",quat[0],quat[1],quat[2],quat[3],phi,theta,psi);
 
     //store data
-    boost::mutex::scoped_lock scoped_lock(data_access_mutex); //will be freed on function exit
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
     imudata_euler[0] = phi;
     imudata_euler[1] = theta;
     imudata_euler[2] = psi;
@@ -911,11 +885,6 @@ void XIMU::process_packet_quaternion_data(unsigned char* ptr, int len)
     imudata_quat[2] = quat[2];
     imudata_quat[3] = quat[3];
     imudata_quat_available = true;
-    scoped_lock.unlock();
-
-    //fire signal
-    signal_incoming_data_euler(imudata_euler);
-    signal_incoming_data_quat(imudata_quat);
 }
 
 void XIMU::process_digital_io_data(unsigned char* ptr, int len)
@@ -1041,120 +1010,6 @@ void XIMU::process_cal_adxl_bus_data(unsigned char* ptr, int len)
         }
         printf(" [FIXME: add implementation]\n");
     }
-}
-
-///slot handling
-void XIMU::init_default_slots()
-{
-    connect_slot_incoming_data_euler(default_slot_incoming_data_euler);
-    connect_slot_incoming_data_quat(default_slot_incoming_data_quat);
-    connect_slot_incoming_data_raw(default_slot_incoming_data_raw);
-    connect_slot_incoming_data_cal(default_slot_incoming_data_cal);
-    connect_slot_incoming_data_time(default_slot_incoming_data_time);
-}
-
-void XIMU::default_slot_incoming_data_euler(double* euler)
-{
-#if XIMU_DEBUG_DEFAULT_SLOTS
-    printf("XIMU : DEFAULT SLOT: incoming euler angles [%6.2f %6.2f %6.2f]\n", euler[0], euler[1], euler[2]);
-#endif
-}
-
-void XIMU::default_slot_incoming_data_quat(double* quat)
-{
-#if XIMU_DEBUG_DEFAULT_SLOTS
-    printf("XIMU : DEFAULT SLOT: incoming quat [%6.2f %6.2f %6.2f %6.2f]\n", quat[0], quat[1], quat[2], quat[3]);
-#endif
-}
-
-void XIMU::default_slot_incoming_data_raw(uint16_t* gyro, uint16_t* accel, uint16_t* mag)
-{
-#if XIMU_DEBUG_DEFAULT_SLOTS
-    printf("XIMU : DEFAULT SLOT: incoming RAW  gyro[0x%04X 0x%04X 0x%04X] accel[0x%04X 0x%04X 0x%04X] mag[0x%04X 0x%04X 0x%04X]\n",
-        gyro[0], gyro[1], gyro[2],
-        accel[0], accel[1], accel[2],
-        mag[0], mag[1], mag[2]);
-#endif
-}
-
-void XIMU::default_slot_incoming_data_cal(double* gyro, double* accel, double* mag)
-{
-#if XIMU_DEBUG_DEFAULT_SLOTS
-    printf("XIMU : DEFAULT SLOT: incoming CAL gyro[%6.2f %6.2f %6.2f] accel[%6.2f %6.2f %6.2f] mag[%6.2f %6.2f %6.2f]\n",
-        gyro[0], gyro[1], gyro[2],
-        accel[0], accel[1], accel[2],
-        mag[0], mag[1], mag[2]);
-#endif
-}
-
-void XIMU::default_slot_incoming_data_time(struct tm now)
-{
-#if XIMU_DEBUG_DEFAULT_SLOTS
-    char buf[80];
-    strftime(buf, 80, "%c.", &now);
-    printf("XIMU : DEFAULT SLOT: incoming TIME %s\n", buf);
-#endif
-}
-
-void XIMU::connect_slot_incoming_data_euler(const signal_incoming_data_euler_t::slot_type& slot)
-{
-    signal_incoming_data_euler.disconnect_all_slots();
-    signal_incoming_data_euler.connect(slot);
-}
-
-void XIMU::connect_slot_incoming_data_quat(const signal_incoming_data_quat_t::slot_type& slot)
-{
-    signal_incoming_data_quat.disconnect_all_slots();
-    signal_incoming_data_quat.connect(slot);
-}
-
-void XIMU::connect_slot_incoming_data_raw(const signal_incoming_data_raw_t::slot_type& slot)
-{
-    signal_incoming_data_raw.disconnect_all_slots();
-    signal_incoming_data_raw.connect(slot);
-}
-
-void XIMU::connect_slot_incoming_data_cal(const signal_incoming_data_cal_t::slot_type& slot)
-{
-    signal_incoming_data_cal.disconnect_all_slots();
-    signal_incoming_data_cal.connect(slot);
-}
-
-void XIMU::connect_slot_incoming_data_time(const signal_incoming_data_time_t::slot_type& slot)
-{
-    signal_incoming_data_time.disconnect_all_slots();
-    signal_incoming_data_time.connect(slot);
-}
-
-//disconnect slots & assign default handler (for debugging)
-void XIMU::disconnect_slot_incoming_data_euler()
-{
-    signal_incoming_data_euler.disconnect_all_slots();
-    connect_slot_incoming_data_euler(default_slot_incoming_data_euler);
-}
-
-void XIMU::disconnect_slot_incoming_data_quat()
-{
-    signal_incoming_data_quat.disconnect_all_slots();
-    connect_slot_incoming_data_quat(default_slot_incoming_data_quat);
-}
-
-void XIMU::disconnect_slot_incoming_data_raw()
-{
-    signal_incoming_data_raw.disconnect_all_slots();
-    connect_slot_incoming_data_raw(default_slot_incoming_data_raw);
-}
-
-void XIMU::disconnect_slot_incoming_data_cal()
-{
-    signal_incoming_data_cal.disconnect_all_slots();
-    connect_slot_incoming_data_cal(default_slot_incoming_data_cal);
-}
-
-void XIMU::disconnect_slot_incoming_data_time()
-{
-    signal_incoming_data_time.disconnect_all_slots();
-    connect_slot_incoming_data_time(default_slot_incoming_data_time);
 }
 
 bool XIMU::areQuatConsistent(double currentQuatW, double currentQuatX, double currentQuatY, double currentQuatZ)

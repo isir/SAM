@@ -56,6 +56,11 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     J = Eigen::MatrixXd::Zero(3, nbLinks);
     pinvJ = Eigen::MatrixXd::Zero(nbLinks, 3);
     OO = Eigen::MatrixXd::Zero(3, nbLinks);
+
+    // Rotation matrix from IMU or hand rigid body frame to theoretical arm frame
+    R0 << 0., 1., 0.,
+        0., 0., 1.,
+        1., 0., 0.;
 }
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
@@ -236,17 +241,17 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
 
     if (nbDOF == 3) {
         /// UPDATE POSITIONS OF CENTERS OF FRAMES
-        OO(0, 0) = -l[0] * x(0, 0) - l[1] * z(0, 1) - l[2] * y(0, 2) - l[3] * y(0, 3);
-        OO(1, 0) = -l[0] * x(1, 0) - l[1] * z(1, 1) - l[2] * y(1, 2) - l[3] * y(1, 3);
-        OO(2, 0) = -l[0] * x(2, 0) - l[1] * z(2, 1) - l[2] * y(2, 2) - l[3] * y(2, 3);
+        OO(0, 0) = (l[1] + l[2]) * z(0, 1) + l[3] * x(0, 3);
+        OO(1, 0) = (l[1] + l[2]) * z(1, 1) + l[3] * x(1, 3);
+        OO(2, 0) = (l[1] + l[2]) * z(2, 1) + l[3] * x(2, 3);
 
-        OO(0, 1) = -l[2] * y(0, 2) - l[3] * y(0, 3);
-        OO(1, 1) = -l[2] * y(1, 2) - l[3] * y(1, 3);
-        OO(2, 1) = -l[2] * y(2, 2) - l[3] * y(2, 3);
+        OO(0, 1) = (l[1] + l[2]) * z(0, 1) + l[3] * x(0, 3);
+        OO(1, 1) = (l[1] + l[2]) * z(1, 1) + l[3] * x(1, 3);
+        OO(2, 1) = (l[1] + l[2]) * z(2, 1) + l[3] * x(2, 3);
 
-        OO(0, 2) = -l[3] * y(0, 3);
-        OO(1, 2) = -l[3] * y(1, 3);
-        OO(2, 2) = -l[3] * y(2, 3);
+        OO(0, 2) = l[3] * x(0, 3);
+        OO(1, 2) = l[3] * x(1, 3);
+        OO(2, 2) = l[3] * x(2, 3);
 
         //        debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
         //        debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
@@ -261,8 +266,12 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
     /// COMPUTE delta, position error of acromion
-    delta = Rhand * (posA0 - posA);
-    pinvJ = pseudoinverse<Eigen::MatrixXd>(J);
+    // for optitrack quaternion
+    //    delta = R0 * Rhand.transpose() * (posA0 - posA);
+    // for IMU quaternion
+    delta = R0 * Rhand * (posA0 - posA);
+
+    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
     /// COMPUTE ANG. VELOCITIES
     thetaNew = pinvJ * delta;
     for (int i = 0; i < nbLinks; i++) {
@@ -275,6 +284,7 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     }
     if (_cnt % 50 == 0) {
         //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
         debug() << "thetaNew(after threshold): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;
@@ -298,5 +308,11 @@ void LawJacobian::writeDebugData(double d[], double theta[])
 
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + j] = delta(j);
+    }
+
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[6 * nbLinks + 3 + j + 3 * i] = J(j, i);
+        }
     }
 }

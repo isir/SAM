@@ -18,7 +18,7 @@ public:
     void bufferingOldValues();
     void controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold);
     void controlLawWrist(int lambdaW, double thresholdW);
-    void writeDebugData(double debug[], Eigen::Vector3f posEE, double beta);
+    void writeDebugData(double d[], Eigen::Vector3f posEE, double beta);
     void displayData(Eigen::Vector3f posEE, double beta);
     double returnBetaDot_deg() { return betaDot * 180. / M_PI; }
     double returnWristVel_deg() { return wristVel * 180. / M_PI; }
