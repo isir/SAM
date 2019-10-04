@@ -29,7 +29,7 @@ protected:
 
     virtual bool setup();
     virtual void loop(double dt, clock::time_point time) = 0;
-    virtual void cleanup() = 0;
+    virtual void cleanup();
 
     void _set_preferred_cpu_internal(int cpu);
     void _set_prio_internal(int prio);

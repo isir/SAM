@@ -9,7 +9,15 @@
 
 class BaseParam : public MqttUser, public NamedObject {
 public:
-    BaseParam(std::string name, NamedObject* parent = nullptr);
+    enum Mode {
+        Read = 1,
+        Write = 2,
+        ReadOnly = Read,
+        WriteOnly = Write,
+        ReadWrite = Read | Write
+    };
+
+    BaseParam(std::string name, Mode mode = ReadWrite, NamedObject* parent = nullptr);
     virtual ~BaseParam() override = 0;
 
     bool changed();
@@ -22,14 +30,16 @@ protected:
     template <typename T>
     void _assign(T v)
     {
-        std::stringstream stream;
-        stream << v;
+        if (_mode & Write) {
+            std::stringstream stream;
+            stream << v;
 
-        _assign_raw(stream.str());
+            _assign_raw(stream.str());
 
-        if (_value_changed || _first_assignment) {
-            _first_assignment = false;
-            _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
+            if (_value_changed || _first_assignment) {
+                _first_assignment = false;
+                _mqtt.publish(_topic_name, _storage, Mosquittopp::Client::QoS1, true);
+            }
         }
     }
 
@@ -52,6 +62,7 @@ protected:
     std::mutex _storage_mutex;
 
 private:
+    Mode _mode;
     bool _first_assignment;
 
     static std::vector<BaseParam*> _param_list;
@@ -66,13 +77,13 @@ private:
 template <typename T>
 class Param : public BaseParam {
 public:
-    Param(std::string name, NamedObject* parent)
-        : BaseParam(name, parent)
+    Param(std::string name, Mode mode, NamedObject* parent)
+        : BaseParam(name, mode, parent)
     {
     }
 
-    Param(std::string name, NamedObject* parent, T default_value)
-        : BaseParam(name, parent)
+    Param(std::string name, Mode mode, NamedObject* parent, T default_value)
+        : BaseParam(name, mode, parent)
     {
         assign(default_value);
     }

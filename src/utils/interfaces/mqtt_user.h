@@ -2,7 +2,6 @@
 #define MQTT_USER_H
 
 #include "ux/mosquittopp/client.h"
-#include "utils/named_object.h"
 
 class MqttUser {
 public:

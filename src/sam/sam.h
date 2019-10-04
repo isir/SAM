@@ -15,9 +15,30 @@
 #include "components/internal/touch_bionics/touch_bionics_hand.h"
 #include "ui/sound/buzzer.h"
 #include "ui/visual/ledstrip.h"
+#include "utils/log/log.h"
+#include "utils/named_object.h"
+#include "ux/mosquittopp/client.h"
 #include <memory>
 
 namespace SAM {
+
+template <typename U, typename... Ts>
+std::unique_ptr<U> make_generic(std::string type, std::string name, Ts... args)
+{
+    Mosquittopp::Client mqtt;
+    mqtt.connect(MOSQUITTO_SERVER_IP, MOSQUITTO_SERVER_PORT);
+
+    std::unique_ptr<U> p;
+    try {
+        p = std::make_unique<U>(args...);
+        mqtt.publish(NamedObject::base_name + "/" + type + "/" + name, std::string("1"), Mosquittopp::Client::QoS1, true);
+    } catch (std::exception& e) {
+        critical() << "Couldn't create this component: " << name << " (" << e.what() << ")";
+        mqtt.publish(NamedObject::base_name + "/" + type + "/" + name, std::string("0"), Mosquittopp::Client::QoS1, true);
+    }
+    return p;
+}
+
 class Sensors {
 public:
     Sensors();
@@ -56,6 +77,12 @@ public:
     UserFeedback user_feedback;
     Sensors sensors;
     Joints joints;
+
+    template <typename U, typename... Ts>
+    inline static std::unique_ptr<U> make_component(std::string name, Ts... args)
+    {
+        return make_generic<U>("component", name, args...);
+    }
 
     static const int pin_buzzer = 29;
     static const int pin_demo = 28;

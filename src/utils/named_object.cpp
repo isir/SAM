@@ -1,6 +1,8 @@
 #include "named_object.h"
 #include <algorithm>
 
+const std::string NamedObject::base_name = "sam";
+
 NamedObject::NamedObject(std::string name, const NamedObject* parent)
     : _name(name)
 {
@@ -10,7 +12,7 @@ NamedObject::NamedObject(std::string name, const NamedObject* parent)
         _parents = parent->_parents;
         _parents.push_back(parent->_name);
     } else {
-        _parents.push_back("sam");
+        _parents.push_back(base_name);
     }
 }
 

@@ -2,14 +2,14 @@
 #define LOGGER_H
 
 #include "utils/interfaces/mqtt_user.h"
-#include "utils/threaded_loop.h"
+#include "utils/worker.h"
 #include <map>
 #include <memory>
 #include <queue>
 #include <sstream>
 
 namespace Log {
-class Logger : public ThreadedLoop, public MqttUser {
+class Logger : public Worker, public MqttUser {
 public:
     enum MessageType { INFO,
         DEBUG,
@@ -25,13 +25,12 @@ private:
     explicit Logger();
     ~Logger() override;
 
-    bool setup() override;
-    void loop(double dt, clock::time_point time) override;
-    void cleanup() override;
+    void work() override;
 
     std::string from_type(MessageType t);
 
     std::queue<std::pair<MessageType, std::string>> _queue;
+    std::mutex _queue_mutex;
 
     bool _log_to_file;
     bool _log_to_mqtt;

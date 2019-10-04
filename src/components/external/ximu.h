@@ -27,23 +27,12 @@
 #ifndef XIMU_H
 #define XIMU_H
 
-#define XIMU_BAUDRATE B115200
-
-#include <boost/bind.hpp>
-#include <boost/signals2.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/thread.hpp>
-#include <cstdio>
-#include <errno.h>
-#include <fcntl.h>
-#include <inttypes.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/ioctl.h>
+#include "utils/threaded_loop.h"
+#include <mutex>
+#include <string>
 #include <termios.h>
-#include <unistd.h>
+
+#define XIMU_BAUDRATE B115200
 
 #define RX_PACKET_BUFFER_SIZE 1024
 #define XIMU_READ_REGISTER_TRIES 5
@@ -51,15 +40,13 @@
 #define XIMU_SUPPORTED_FIRMWARE_REV_MAJOR 9
 #define XIMU_SUPPORTED_FIRMWARE_REV_MINOR 6
 
-#define XIMU_DEBUG_DEFAULT_SLOTS 0
-
-class XIMU {
+class XIMU : public ThreadedLoop {
 public:
-    XIMU(const char* filename, int level = XIMU_LOGLEVEL_NONE, int baudrate = XIMU_BAUDRATE);
-    ~XIMU();
+    XIMU(std::string filename, int level = XIMU_LOGLEVEL_NONE, int baudrate = XIMU_BAUDRATE);
+    ~XIMU() override;
+
     int set_loglevel(int i);
     int detect_device();
-    bool hasOpenedPort() { return _hasOpenPort; }
 
     bool send_command_algorithm_init();
     bool send_command_algorithm_init_then_tare();
@@ -266,32 +253,13 @@ public:
         REGISTER_ADDRESS_NumRegisters
     };
 
-    typedef boost::signals2::signal<void(double*)> signal_incoming_data_euler_t;
-    typedef boost::signals2::signal<void(double*)> signal_incoming_data_quat_t;
-    typedef boost::signals2::signal<void(uint16_t*, uint16_t*, uint16_t*)> signal_incoming_data_raw_t;
-    typedef boost::signals2::signal<void(double*, double*, double*)> signal_incoming_data_cal_t;
-    typedef boost::signals2::signal<void(struct tm now)> signal_incoming_data_time_t;
-
-    void connect_slot_incoming_data_euler(const signal_incoming_data_euler_t::slot_type& slot);
-    void connect_slot_incoming_data_quat(const signal_incoming_data_quat_t::slot_type& slot);
-    void connect_slot_incoming_data_raw(const signal_incoming_data_raw_t::slot_type& slot);
-    void connect_slot_incoming_data_cal(const signal_incoming_data_cal_t::slot_type& slot);
-    void connect_slot_incoming_data_time(const signal_incoming_data_time_t::slot_type& slot);
-
-    void disconnect_slot_incoming_data_euler();
-    void disconnect_slot_incoming_data_quat();
-    void disconnect_slot_incoming_data_raw();
-    void disconnect_slot_incoming_data_cal();
-    void disconnect_slot_incoming_data_time();
-
 private:
+    void loop(double dt, clock::time_point time) override;
+
     void init_imudata();
-    bool _hasOpenPort;
     bool open_port(const char* fn, int baudrate);
 
     bool check_len(int len, int check);
-    void comm_thread();
-    void init_default_slots();
 
     void send_register_read_request(unsigned int reg);
 
@@ -324,8 +292,7 @@ private:
     }
     float to_float(int d, unsigned int q) { return ((float)d) / ((float)(1 << q)); }
 
-    unsigned char rx_packet_buffer[RX_PACKET_BUFFER_SIZE];
-    int rx_packet_buffer_pos;
+    std::vector<unsigned char> _rx_packet_buffer;
     int fd;
     int loglevel;
     bool device_detected;
@@ -353,20 +320,7 @@ private:
     int pending_command;
 
     //interprocess_semaphore  data_access_mutex;
-    boost::mutex data_access_mutex;
-
-    //default slots
-    static void default_slot_incoming_data_euler(double* euler);
-    static void default_slot_incoming_data_quat(double* quat);
-    static void default_slot_incoming_data_raw(uint16_t* gyro, uint16_t* accel, uint16_t* mag);
-    static void default_slot_incoming_data_cal(double* gyro, double* accel, double* mag);
-    static void default_slot_incoming_data_time(struct tm now);
-    //signals
-    signal_incoming_data_euler_t signal_incoming_data_euler;
-    signal_incoming_data_euler_t signal_incoming_data_quat;
-    signal_incoming_data_raw_t signal_incoming_data_raw;
-    signal_incoming_data_cal_t signal_incoming_data_cal;
-    signal_incoming_data_time_t signal_incoming_data_time;
+    std::mutex _mutex;
 };
 
 #endif

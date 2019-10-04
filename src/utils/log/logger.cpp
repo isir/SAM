@@ -3,16 +3,15 @@
 
 namespace Log {
 Logger::Logger()
-    : ThreadedLoop("logger", 0.1)
-    , _log_to_file(false)
+    : Worker("logger", Worker::Continuous)
+    , _log_to_file(true)
     , _log_to_mqtt(true)
 {
-    start();
+    do_work();
 }
 
 Logger::~Logger()
 {
-    stop_and_join();
 }
 
 Logger& Logger::instance()
@@ -21,19 +20,21 @@ Logger& Logger::instance()
     return l;
 }
 
-bool Logger::setup()
-{
-    return true;
-}
-
-void Logger::loop(double, clock::time_point)
+void Logger::work()
 {
     static std::ofstream os("/var/log/sam.log", std::ios::trunc | std::ios::out);
 
-    _mutex.lock();
+    std::unique_lock lock(_queue_mutex);
+
+    if (_queue.empty()) {
+        lock.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        return;
+    }
+
     std::queue<std::pair<MessageType, std::string>> queue_local;
     queue_local.swap(_queue);
-    _mutex.unlock();
+    lock.unlock();
 
     while (!queue_local.empty()) {
         std::pair<MessageType, std::string> p = queue_local.front();
@@ -41,7 +42,7 @@ void Logger::loop(double, clock::time_point)
         std::string type_str_upper(type_str);
         for (auto c : type_str) {
             c = static_cast<char>(toupper(c));
-        };
+        }
 
         if (_log_to_file) {
             os << "[" << type_str_upper << "] " << p.second << std::endl;
@@ -59,13 +60,9 @@ void Logger::loop(double, clock::time_point)
     }
 }
 
-void Logger::cleanup()
-{
-}
-
 void Logger::enqueue(MessageType t, std::string s)
 {
-    std::lock_guard lock(_mutex);
+    std::lock_guard lock(_queue_mutex);
     _queue.push(std::make_pair(t, s));
 }
 
