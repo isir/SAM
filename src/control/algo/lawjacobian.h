@@ -26,7 +26,7 @@ public:
     void bufferingOldValues();
     void updateFrames(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
-    void controlLaw(Eigen::Vector3d posA, int lambda, double threshold[], int _cnt);
+    void controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, double threshold[], int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
