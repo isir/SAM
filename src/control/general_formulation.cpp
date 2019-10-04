@@ -392,9 +392,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
         if (_robot->joints.wrist_flexion) {
-            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
-            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
-            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
+            //            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
+            //            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
+            //            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
             if (_cnt % 50 == 0) {
                 debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
                 debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
