@@ -105,28 +105,16 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
  */
 void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts)
 {
-    qHip_filt.w() = qHip_filt_old.w() + coeff * (qHip.w() - qHip_filt_old.w());
-    qHip_filt.x() = qHip_filt_old.x() + coeff * (qHip.x() - qHip_filt_old.x());
-    qHip_filt.y() = qHip_filt_old.y() + coeff * (qHip.y() - qHip_filt_old.y());
-    qHip_filt.z() = qHip_filt_old.z() + coeff * (qHip.z() - qHip_filt_old.z());
+    //    qHip_filt.w() = qHip_filt_old.w() + coeff * (qHip.w() - qHip_filt_old.w());
+    //    qHip_filt.x() = qHip_filt_old.x() + coeff * (qHip.x() - qHip_filt_old.x());
+    //    qHip_filt.y() = qHip_filt_old.y() + coeff * (qHip.y() - qHip_filt_old.y());
+    //    qHip_filt.z() = qHip_filt_old.z() + coeff * (qHip.z() - qHip_filt_old.z());
 
-    //    qHip_relative = quat_multiply(qHip_filt,quat_conj(qHip0));
     ///  From quaternions to orientation
-    /// for IMU quaternion definition
-    //    R11 = 2*qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.x()*qHip_relative.x();
-    //    R21 = 2*(qHip_relative.x()*qHip_relative.y() - qHip_relative.w()*qHip_relative.z());
-    //    R31 = 2*(qHip_relative.x()*qHip_relative.z() + qHip_relative.w()*qHip_relative.y());
-    //    R12 = 2*(qHip_relative.x()*qHip_relative.y() + qHip_relative.w()*qHip_relative.z());
-    //    R22 = 2* qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.y()*qHip_relative.y();
-    //    R32 = 2*(qHip_relative.y()*qHip_relative.z() - qHip_relative.w()*qHip_relative.x());
-    //    R13 = 2*(qHip_relative.x()*qHip_relative.z() - qHip_relative.w()*qHip_relative.y());
-    //    R23 = 2*(qHip_relative.y()*qHip_relative.z() + qHip_relative.w()*qHip_relative.x());
-    //    R33 = 2* qHip_relative.w()*qHip_relative.w() - 1 + 2*qHip_relative.z()*qHip_relative.z();
-    /// For optitrack quaternion definition
     if (initCounter == initCounts) {
         Rhip = qHip0.toRotationMatrix();
     } else {
-        Rhip = qHip_filt.toRotationMatrix();
+        Rhip = qHip.toRotationMatrix();
     }
     Rhand = qHand.toRotationMatrix();
 }
@@ -142,10 +130,16 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
 void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
     // project in hip frame
-    posAinHip = Rhip.transpose() * (posA - posHip);
     if (initCounter == initCounts) {
-        posA0inHip = Rhip.transpose() * (posA0 - posHip0);
+        // for optitrack quaternions
+        //        posA0inHip = Rhip.transpose() * (posA0 - posHip0);
+        // for imu quaternions
+        posA0inHip = Rhip * (posA0 - posHip0);
     }
+    // for optitrack quaternions
+    //    posAinHip = Rhip.transpose() * (posA - posHip);
+    // for imu quaternions
+    posAinHip = Rhip * (posA - posHip);
 }
 
 void LawJacobian::bufferingOldValues()
@@ -259,7 +253,7 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
     }
 }
 
-void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[], int _cnt)
+void LawJacobian::controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -269,11 +263,12 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
     // for optitrack quaternion
     //    delta = R0 * Rhand.transpose() * (posA0 - posA);
     // for IMU quaternion
-    delta = R0 * Rhand * (posA0 - posA);
+    delta = R0 * Rhand * Rhip.transpose() * (posA0 - posA);
 
     pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
     /// COMPUTE ANG. VELOCITIES
     thetaNew = pinvJ * delta;
+    // deadzone
     for (int i = 0; i < nbLinks; i++) {
         if (abs(thetaNew(i)) < threshold[i])
             thetaNew(i) = 0;
@@ -282,6 +277,7 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
         else if (thetaNew(i) <= -threshold[i])
             thetaNew(i) = thetaNew(i) + threshold[i];
     }
+    // display data
     if (_cnt % 50 == 0) {
         //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
         //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
@@ -290,7 +286,8 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda, double threshold[
             debug() << thetaNew(i) * 180 / M_PI;
         }
     }
-    thetaDot = lambda * thetaNew;
+    // Angular velocities
+    //    thetaDot = lambda.array() * thetaNew.array();
 }
 
 void LawJacobian::writeDebugData(double d[], double theta[])
