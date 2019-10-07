@@ -128,17 +128,15 @@ int XIMU::set_loglevel(int i)
 void XIMU::loop(double, clock::time_point)
 {
     int rxcount;
-    std::vector<unsigned char> buf;
-    buf.reserve(RXBUFSIZE);
-    rxcount = read(fd, buf.data(), RXBUFSIZE);
-
-    _rx_packet_buffer.insert(_rx_packet_buffer.end(), buf.begin(), buf.end());
+    unsigned char cbuf[RXBUFSIZE];
+    rxcount = read(fd, cbuf, RXBUFSIZE);
+    _rx_packet_buffer.insert(_rx_packet_buffer.end(), cbuf, cbuf + rxcount);
 
     for (unsigned int i = 0; i < _rx_packet_buffer.size(); i++) {
         if (_rx_packet_buffer[i] & 0x80) {
             //we have a full packet in packet buffer -> process!
-            process_packet(_rx_packet_buffer.data(), static_cast<int>(i));
-            _rx_packet_buffer.erase(_rx_packet_buffer.begin(), _rx_packet_buffer.begin() + static_cast<int>(i));
+            process_packet(_rx_packet_buffer.data(), static_cast<int>(i) + 1);
+            _rx_packet_buffer.erase(_rx_packet_buffer.begin(), _rx_packet_buffer.begin() + static_cast<int>(i) + 1);
             i = 0;
         }
     }
