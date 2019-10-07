@@ -183,6 +183,7 @@ bool GeneralFormulation::setup()
     std::string suffix;
 
     int cnt = 0;
+    nbRigidBodies = 0;
     std::string extension(".txt");
     do {
         ++cnt;
@@ -207,7 +208,6 @@ bool GeneralFormulation::setup()
 
 void GeneralFormulation::loop(double, clock::time_point time)
 {
-    //    debug() << "Begin loop: " << _cnt << "\n";
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
 
@@ -228,6 +228,8 @@ void GeneralFormulation::loop(double, clock::time_point time)
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     if (_cnt == 0) {
         debug() << "nbRigid Bodies: " << data.nRigidBodies << "\n";
+        if (data.nRigidBodies < 10)
+            nbRigidBodies = data.nRigidBodies;
     }
 
     double debugData[40];
@@ -237,9 +239,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _file << " time, pinUp, pinDown,";
         _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
         _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
-        _file << " to complete";
+        _file << " to complete,";
         _file << " nbRigidBodies";
-        for (int i = 0; i < data.nRigidBodies; i++) {
+        for (int i = 0; i < nbRigidBodies; i++) {
             _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
         }
         _file << "\r\n";
@@ -261,7 +263,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     qHand.y() = 0.;
     qHand.z() = 0.;
 
-    for (int i = 0; i < data.nRigidBodies; i++) {
+    for (int i = 0; i < nbRigidBodies; i++) {
         if (data.rigidBodies[i].ID == 3) {
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
@@ -284,7 +286,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
             index_hand = i;
         }
     }
-    //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
+    //    if (_cnt % 50 == 0) {
+    //        debug() << "posA: " << posA[0] << "; " << posA[1] << "; " << posA[2];
+    //    }
 
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
@@ -296,9 +300,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
     /// PROTO with wrist flexor
     if (_robot->joints.wrist_flexion) {
         // set thresholds
-        _threshold[0] = _thresholdWF;
-        _threshold[1] = _thresholdWPS;
-        _threshold[2] = _thresholdE;
+        _threshold[0] = _thresholdWF * M_PI / 180;
+        _threshold[1] = _thresholdWPS * M_PI / 180;
+        _threshold[2] = _thresholdE * M_PI / 180;
         // set gain
         _lambda[0] = _lambdaWF;
         _lambda[1] = _lambdaWPS;
@@ -319,15 +323,12 @@ void GeneralFormulation::loop(double, clock::time_point time)
         theta[1] = M_PI / 2 + theta[1] * M_PI / 180;
         theta[2] = M_PI / 2 + theta[2] * M_PI / 180;
 
-        debug() << "threshold WPS: " << _threshold[0] << "\n";
-        debug() << "threshold WFE: " << _threshold[1] << "\n";
-        debug() << "threshold elbow: " << _threshold[2] << "\n";
     }
     /// PROTO without wrist flexor
     else {
         // set thresholds
-        _threshold[0] = _thresholdWPS;
-        _threshold[1] = _thresholdE;
+        _threshold[0] = _thresholdWPS * M_PI / 180;
+        _threshold[1] = _thresholdE * M_PI / 180;
 
         // set gain
         _lambda[0] = _lambdaWPS;
@@ -345,9 +346,6 @@ void GeneralFormulation::loop(double, clock::time_point time)
         // in radians:
         theta[0] = theta[0] * M_PI / 180;
         theta[1] = theta[1] * M_PI / 180;
-
-        debug() << "threshold WFE: " << _threshold[0] << "\n";
-        debug() << "threshold elbow: " << _threshold[1] << "\n";
     }
 
     /// IMU
@@ -366,8 +364,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         qHip.y() = qRed[2];
         qHip.z() = qRed[3];
     }
-    if (_robot->sensors.yellow_imu)
+    if (_robot->sensors.yellow_imu) {
         _robot->sensors.yellow_imu->get_quat(qFA);
+    }
 
     /// PIN PUSH-BUTTONS CONTROL
     int pin_down_value = digitalRead(_pin_down);
@@ -413,7 +412,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     _lawJ.writeDebugData(debugData, theta);
     /// WRITE DATA
     _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lhand;
-    _file << ' ' << _lambda << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
+    _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
     _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
     //    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     for (int i = 0; i < 40; i++) {
@@ -422,7 +421,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
     _file << ' ' << data.nRigidBodies;
 
-    for (int i = 0; i < data.nRigidBodies; i++) {
+    for (int i = 0; i < nbRigidBodies; i++) {
         _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
         _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
         _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
