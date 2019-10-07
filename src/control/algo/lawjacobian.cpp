@@ -111,11 +111,8 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
     //    qHip_filt.z() = qHip_filt_old.z() + coeff * (qHip.z() - qHip_filt_old.z());
 
     ///  From quaternions to orientation
-    if (initCounter == initCounts) {
-        Rhip = qHip0.toRotationMatrix();
-    } else {
-        Rhip = qHip.toRotationMatrix();
-    }
+    Rhip = qHip.toRotationMatrix();
+
     Rhand = qHand.toRotationMatrix();
 }
 
@@ -140,6 +137,10 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
     //    posAinHip = Rhip.transpose() * (posA - posHip);
     // for imu quaternions
     posAinHip = Rhip * (posA - posHip);
+
+    if (initCounter % 50 == 0) {
+        debug() << "posA in hip: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
+    }
 }
 
 void LawJacobian::bufferingOldValues()
@@ -260,10 +261,13 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, doubl
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
     /// COMPUTE delta, position error of acromion
-    // for optitrack quaternion
-    //    delta = R0 * Rhand.transpose() * (posA0 - posA);
-    // for IMU quaternion
-    delta = R0 * Rhand * Rhip.transpose() * (posA0 - posA);
+    /// for optitrack quaternion for hand frame, no projection in hip
+    //    delta = R0 * Rhand * (posA0 - posA);
+    /// for IMU quaternion
+    delta = R0 * Rhand * Rhip.transpose() * (posA0inHip - posAinHip);
+    /// for optitrack quaternions
+    //    delta = R0 * Rhand.transpose() * Rhip * (posA0 - posA);
+    //    delta = Rhip * Rhand.transpose() * (posA0inHip - posAinHip);
 
     pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
     /// COMPUTE ANG. VELOCITIES
@@ -279,7 +283,7 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, doubl
     }
     // display data
     if (_cnt % 50 == 0) {
-        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
         //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
         debug() << "thetaNew(after threshold): ";
         for (int i = 0; i < nbLinks; i++) {
@@ -312,4 +316,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
             d[6 * nbLinks + 3 + j + 3 * i] = J(j, i);
         }
     }
+    d[6 * nbLinks + 6 + 3 * nbLinks] = posAinHip[0];
+    d[6 * nbLinks + 6 + 3 * nbLinks + 1] = posAinHip[1];
+    d[6 * nbLinks + 6 + 3 * nbLinks + 2] = posAinHip[2];
 }
