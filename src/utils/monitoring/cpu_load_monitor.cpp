@@ -8,6 +8,11 @@ namespace Monitoring {
 
 CPULoadMonitor::CPULoadMonitor()
 {
+    _old_usr.fill(0);
+    _old_nice.fill(0);
+    _old_sys.fill(0);
+    _old_idle.fill(0);
+    _cpu_load.fill(0);
 }
 
 CPULoadMonitor::~CPULoadMonitor()

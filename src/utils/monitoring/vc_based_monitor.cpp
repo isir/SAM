@@ -4,6 +4,7 @@
 namespace Monitoring {
 
 VCBasedMonitor::VCBasedMonitor()
+    : _vchi_connection(nullptr)
 {
     vcos_init();
 
