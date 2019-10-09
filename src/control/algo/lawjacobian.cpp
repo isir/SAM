@@ -21,6 +21,7 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     posA0 = Eigen::Vector3d::Zero();
     posAinHip = posA;
     posA0inHip = posA;
+    posAinTrunk = Eigen::Vector3d::Zero();
     posHip0 = Eigen::Vector3d::Zero();
     qHip0.w() = 0.;
     qHip0.x() = 0.;
@@ -43,6 +44,8 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
         z(1, i) = 0.;
         z(2, i) = 1.;
     }
+    xref << 1., 0., 0.;
+    yref << 0., 1., 0.;
     samplePeriod = 1. / freq;
     coeff = samplePeriod / (0.03 + samplePeriod);
     delta[0] = 0;
@@ -71,7 +74,7 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
  * @param initCounter counter of time steps
  * @param initCounts number of time step to take into account to compute the initial position
  */
-void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, int initCounter, int initCounts)
+void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts)
 {
     if (initCounter < initCounts) {
         posA0 += posA;
@@ -80,6 +83,10 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
         qHip0.x() += qHip.x();
         qHip0.y() += qHip.y();
         qHip0.z() += qHip.z();
+        qTrunk0.w() += qTrunk.w();
+        qTrunk0.x() += qTrunk.x();
+        qTrunk0.y() += qTrunk.y();
+        qTrunk0.z() += qTrunk.z();
     }
     if (initCounter == initCounts) {
         posA0 += posA;
@@ -95,6 +102,16 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
         qHip0.y() = qHip0.y() / initCounts;
         qHip0.z() = qHip0.z() / initCounts;
         qHip0 = qHip0.normalized();
+
+        qTrunk0.w() += qTrunk.w();
+        qTrunk0.x() += qTrunk.x();
+        qTrunk0.y() += qTrunk.y();
+        qTrunk0.z() += qTrunk.z();
+        qTrunk0.w() = qTrunk0.w() / initCounts;
+        qTrunk0.x() = qTrunk0.x() / initCounts;
+        qTrunk0.y() = qTrunk0.y() / initCounts;
+        qTrunk0.z() = qTrunk0.z() / initCounts;
+        qTrunk0 = qTrunk0.normalized();
     }
 }
 
@@ -103,7 +120,7 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
  * @param qHip quaternions of the hip cluster
  * @param qFA_record quaternions of the forearm cluster
  */
-void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts)
+void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts)
 {
     //    qHip_filt.w() = qHip_filt_old.w() + coeff * (qHip.w() - qHip_filt_old.w());
     //    qHip_filt.x() = qHip_filt_old.x() + coeff * (qHip.x() - qHip_filt_old.x());
@@ -112,7 +129,7 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
 
     ///  From quaternions to orientation
     Rhip = qHip.toRotationMatrix();
-
+    Rtrunk = qTrunk.toRotationMatrix();
     Rhand = qHand.toRotationMatrix();
 }
 
@@ -137,6 +154,28 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
     //    posAinHip = Rhip.transpose() * (posA - posHip);
     // for imu quaternions
     posAinHip = Rhip * (posA - posHip);
+
+    if (initCounter % 50 == 0) {
+        //        debug() << "posA in hip: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
+    }
+}
+
+/**
+ * @brief LawJacobian::projectionInHipIMU compute acromion positions in the hip frame
+ * @param posA position of the acromion
+ * @param initCounter counter
+ * @param initCounts number of counts that defined the initial position
+ */
+void LawJacobian::projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts)
+{
+    posAinTrunk = lt * yref + lsh * xref;
+    // project in hip frame
+    if (initCounter == initCounts) {
+        // for imu quaternions
+        posA0inHip = Rhip * Rtrunk.transpose() * posAinTrunk;
+    }
+    // for imu quaternions
+    posAinHip = Rhip * Rtrunk.transpose() * posAinTrunk;
 
     if (initCounter % 50 == 0) {
         //        debug() << "posA in hip: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
@@ -236,17 +275,17 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
 
     if (nbDOF == 3) {
         /// UPDATE POSITIONS OF CENTERS OF FRAMES
-        OO(0, 0) = (l[1] + l[2]) * z(0, 1) + l[3] * x(0, 3);
-        OO(1, 0) = (l[1] + l[2]) * z(1, 1) + l[3] * x(1, 3);
-        OO(2, 0) = (l[1] + l[2]) * z(2, 1) + l[3] * x(2, 3);
+        OO(0, 0) = (l[0] + l[1]) * z(0, 1) + l[2] * x(0, 3);
+        OO(1, 0) = (l[0] + l[1]) * z(1, 1) + l[2] * x(1, 3);
+        OO(2, 0) = (l[0] + l[1]) * z(2, 1) + l[2] * x(2, 3);
 
-        OO(0, 1) = (l[1] + l[2]) * z(0, 1) + l[3] * x(0, 3);
-        OO(1, 1) = (l[1] + l[2]) * z(1, 1) + l[3] * x(1, 3);
-        OO(2, 1) = (l[1] + l[2]) * z(2, 1) + l[3] * x(2, 3);
+        OO(0, 1) = (l[0] + l[1]) * z(0, 1) + l[2] * x(0, 3);
+        OO(1, 1) = (l[0] + l[1]) * z(1, 1) + l[2] * x(1, 3);
+        OO(2, 1) = (l[0] + l[1]) * z(2, 1) + l[2] * x(2, 3);
 
-        OO(0, 2) = l[3] * x(0, 3);
-        OO(1, 2) = l[3] * x(1, 3);
-        OO(2, 2) = l[3] * x(2, 3);
+        OO(0, 2) = l[2] * x(0, 3);
+        OO(1, 2) = l[2] * x(1, 3);
+        OO(2, 2) = l[2] * x(2, 3);
 
         //        debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
         //        debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
@@ -313,11 +352,11 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[6 * nbLinks + j] = delta(j);
     }
 
-    for (int i = 0; i < nbLinks; i++) {
-        for (int j = 0; j < 3; j++) {
-            d[6 * nbLinks + 3 + j + 3 * i] = J(j, i);
-        }
-    }
+    //    for (int i = 0; i < nbLinks; i++) {
+    //        for (int j = 0; j < 3; j++) {
+    //            d[6 * nbLinks + 3 + j + 3 * i] = J(j, i);
+    //        }
+    //    }
     d[6 * nbLinks + 6 + 3 * nbLinks] = posAinHip[0];
     d[6 * nbLinks + 6 + 3 * nbLinks + 1] = posAinHip[1];
     d[6 * nbLinks + 6 + 3 * nbLinks + 2] = posAinHip[2];

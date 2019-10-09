@@ -20,9 +20,10 @@ public:
     LawJacobian();
     ~LawJacobian();
     void initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, unsigned int freq);
-    void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, int initCounter, int initCounts);
-    void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, int initCounter, int initCounts);
+    void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
+    void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
+    void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
     void bufferingOldValues();
     void updateFrames(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
@@ -39,18 +40,18 @@ private:
     Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> pinvJ; // pseudo inverse of jacobian matrix
     //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
+    Eigen::Vector3d xref, yref;
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
-    Eigen::Vector3d posAinHip; // position of the acromion and the elbow in hip frame
+    Eigen::Vector3d posAinHip, posAinTrunk; // position of the acromion and the elbow in hip frame
     Eigen::Vector3d delta; // displacement between acromion initial (=reference) position and current position
     Eigen::Vector3d posHip0; // initial position of hip
-    Eigen::Quaternion<double, Eigen::DontAlign> qHip0, qHip_filt, qHip_filt_old; // quaternions for hip frame rotation
+    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old; // quaternions for hip and trunk frames
     double samplePeriod;
     double coeff; // coefficient for low-pass filtering
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot;
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rhand, Rframe, R0; // rotation matrices
-    double R11, R12, R13, R21, R22, R23, R31, R32, R33;
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0; // rotation matrices
 };
 
 #endif // LAWJACOBIAN_H
