@@ -15,6 +15,7 @@ public:
 private:
     void tare_IMU();
     void displayPin();
+    void action_loop();
 
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
@@ -28,8 +29,11 @@ private:
     int _cnt;
     int _lambdaW;
     double _thresholdW;
-    int _pin_up;
-    int _pin_down;
+    int _pin_up; // pin buttons for open-loop
+    int _pin_down; // pin buttons for open-loop
+    int _pin_mode; // 0 = open-loop with buttons; 1 = ergonomic with IMU
+    int _pin_status; // 0 -> change status: start or stop
+    bool _start; // indicates weither the loop is working
 };
 
 #endif // COMPENSATION_IMU_H
