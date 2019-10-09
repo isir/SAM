@@ -346,6 +346,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         // in radians:
         theta[0] = theta[0] * M_PI / 180;
         theta[1] = theta[1] * M_PI / 180;
+
+        _lambda[0] = _lambdaWPS;
+        _lambda[1] = _lambdaE;
     }
 
     /// IMU
@@ -363,6 +366,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
         qHip.x() = qRed[1];
         qHip.y() = qRed[2];
         qHip.z() = qRed[3];
+        //        debug() << "qRed: " << qHip.w() << "; " << qHip.x() << "; " << qHip.y() << "; " << qHip.z();
     }
     if (_robot->sensors.yellow_imu) {
         _robot->sensors.yellow_imu->get_quat(qFA);

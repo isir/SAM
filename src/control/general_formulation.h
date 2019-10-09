@@ -36,13 +36,14 @@ private:
     //    int _Lfa;
     //    int _lhand;
     //    int _lwrist;
-    Eigen::Vector3i _lambda;
+    int _lambda[3];
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
     double _threshold[nbLinks];
     //    int l[nbLinks + 1];  // for 3DOF
     int l[nbLinks]; // for 2 DOF
+    int nbRigidBodies;
 
     Param<double> _lua;
     Param<double> _lfa;
