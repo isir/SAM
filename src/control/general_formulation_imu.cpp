@@ -133,7 +133,6 @@ bool GeneralFormulationIMU::setup()
     std::string suffix;
 
     int cnt = 0;
-    nbRigidBodies = 0;
     std::string extension(".txt");
     do {
         ++cnt;
@@ -288,7 +287,7 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, qHip, qTrunk, _cnt, init_cnt);
         _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
-        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
+        _lawJ.projectionInHipIMU(_lt, _lsh, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
     } else {
@@ -321,7 +320,7 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
 
     _lawJ.writeDebugData(debugData, theta);
     /// WRITE DATA
-    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lt << ' ' << _lsh << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
     _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
     _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
     _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
