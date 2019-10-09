@@ -139,7 +139,7 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
     posAinHip = Rhip * (posA - posHip);
 
     if (initCounter % 50 == 0) {
-        debug() << "posA in hip: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
+        //        debug() << "posA in hip: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
     }
 }
 
@@ -254,7 +254,7 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
     }
 }
 
-void LawJacobian::controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, double threshold[], int _cnt)
+void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -291,7 +291,9 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, doubl
         }
     }
     // Angular velocities
-    //    thetaDot = lambda.array() * thetaNew.array();
+    for (int i = 0; i < nbLinks; i++) {
+        thetaDot(i) = lambda[i] * thetaNew(i);
+    }
 }
 
 void LawJacobian::writeDebugData(double d[], double theta[])

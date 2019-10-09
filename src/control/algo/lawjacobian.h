@@ -6,14 +6,14 @@
 #include <string.h>
 
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
-static const int nbFrames = 4;
-static const int nbLinks = 3;
-static const std::string rel = "0yyz";
+//static const int nbFrames = 4;
+//static const int nbLinks = 3;
+//static const std::string rel = "0yyz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
-//static const int nbFrames = 3;
-//static const int nbLinks = 2;
-//static const std::string rel = "0yz";
+static const int nbFrames = 3;
+static const int nbLinks = 2;
+static const std::string rel = "0yz";
 
 class LawJacobian {
 public:
@@ -26,7 +26,7 @@ public:
     void bufferingOldValues();
     void updateFrames(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
-    void controlLaw(Eigen::Vector3d posA, Eigen::Vector3i lambda, double threshold[], int _cnt);
+    void controlLaw(Eigen::Vector3d posA, int lambda[], double threshold[], int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
