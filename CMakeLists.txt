@@ -32,6 +32,7 @@ set(SOURCES
     src/control/demo.cpp
     src/control/demo_imu.cpp
     src/control/general_formulation.cpp
+    src/control/general_formulation_imu.cpp
     src/control/matlab_receiver.cpp
     src/control/remote_computer_control.cpp
     src/control/voluntary_control.cpp
