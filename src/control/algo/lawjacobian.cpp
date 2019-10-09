@@ -58,12 +58,17 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
     J = Eigen::MatrixXd::Zero(3, nbLinks);
     pinvJ = Eigen::MatrixXd::Zero(nbLinks, 3);
+    dlsJ = Eigen::MatrixXd::Zero(nbLinks, 3);
     OO = Eigen::MatrixXd::Zero(3, nbLinks);
 
     // Rotation matrix from IMU or hand rigid body frame to theoretical arm frame
     R0 << 0., 1., 0.,
         0., 0., 1.,
         1., 0., 0.;
+    // Identity matrix
+    I3 << 1., 0., 0.,
+        0., 1., 0.,
+        0., 0., 1.;
 }
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
@@ -293,7 +298,7 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
     }
 }
 
-void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw(Eigen::Vector3d posA, int k, int lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -308,9 +313,14 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int lambda[], double threshol
     //    delta = R0 * Rhand.transpose() * Rhip * (posA0 - posA);
     //    delta = Rhip * Rhand.transpose() * (posA0inHip - posAinHip);
 
-    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
+    /// PSEUDO INVERSE SOLUTION
+    //    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
+
+    /// DAMPED LEAST SQUARE SOLUTION
+    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
+
     /// COMPUTE ANG. VELOCITIES
-    thetaNew = pinvJ * delta;
+    thetaNew = dlsJ * delta;
     // deadzone
     for (int i = 0; i < nbLinks; i++) {
         if (abs(thetaNew(i)) < threshold[i])
@@ -352,11 +362,11 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[6 * nbLinks + j] = delta(j);
     }
 
-    //    for (int i = 0; i < nbLinks; i++) {
-    //        for (int j = 0; j < 3; j++) {
-    //            d[6 * nbLinks + 3 + j + 3 * i] = J(j, i);
-    //        }
-    //    }
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[6 * nbLinks + 3 + j + 3 * i] = dlsJ(i, j);
+        }
+    }
     d[6 * nbLinks + 6 + 3 * nbLinks] = posAinHip[0];
     d[6 * nbLinks + 6 + 3 * nbLinks + 1] = posAinHip[1];
     d[6 * nbLinks + 6 + 3 * nbLinks + 2] = posAinHip[2];

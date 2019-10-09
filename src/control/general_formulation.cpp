@@ -394,7 +394,8 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
-        _lawJ.controlLaw(posA, _lambda, _threshold, _cnt);
+        int k = 0;
+        _lawJ.controlLaw(posA, k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 

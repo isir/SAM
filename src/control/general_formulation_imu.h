@@ -35,6 +35,7 @@ private:
     double _threshold[nbLinks];
     int l[nbLinks];
 
+    Param<int> _k; // damping parameter for inverse kinematics
     Param<double> _lt; // length of the trunk
     Param<double> _lsh; // length between neck and shoulder
     Param<double> _lua; // upper-arm length

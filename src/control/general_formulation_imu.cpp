@@ -8,6 +8,7 @@
 GeneralFormulationIMU::GeneralFormulationIMU(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("General Formulation IMU", 0.01)
     , _robot(robot)
+    , _k("k", BaseParam::ReadWrite, this, 5)
     , _lt("lt(cm)", BaseParam::ReadWrite, this, 40)
     , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 20)
     , _pin_up(24)
@@ -295,7 +296,7 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
         _lawJ.projectionInHipIMU(_lt, _lsh, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
-        _lawJ.controlLaw(posA, _lambda, _threshold, _cnt);
+        _lawJ.controlLaw(posA, _k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
