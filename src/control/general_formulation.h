@@ -36,19 +36,17 @@ private:
     //    int _Lfa;
     //    int _lhand;
     //    int _lwrist;
-    int _lambda[3];
+    int _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
     double _threshold[nbLinks];
-    //    int l[nbLinks + 1];  // for 3DOF
-    int l[nbLinks]; // for 2 DOF
+    int l[nbLinks];
     int nbRigidBodies;
 
     Param<double> _lua;
     Param<double> _lfa;
     Param<double> _lwrist;
-    Param<double> _lhand;
     Param<int> _lambdaE;
     Param<int> _lambdaWF;
     Param<int> _lambdaWPS;

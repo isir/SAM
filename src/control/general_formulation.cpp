@@ -6,7 +6,7 @@
 #include <iostream>
 
 GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("General Formulation", 0.01)
+    : ThreadedLoop("General Formulation Optitrack", 0.01)
     , _robot(robot)
     , _Lt(40)
     //    , _lua(30)
@@ -17,9 +17,8 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     , _pin_up(24)
     , _pin_down(22)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
-    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 35)
+    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 20)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
-    , _lhand("lhand(cm)", BaseParam::ReadWrite, this, 5)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
     , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
@@ -35,8 +34,8 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
         critical() << "General Formulation: Failed to bind receiver for parameters definition";
     }
 
-    _menu->set_description("GeneralFormulation");
-    _menu->set_code("gf");
+    _menu->set_description("Jacobian Formulation Opti");
+    _menu->set_code("jfo");
     _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
 
@@ -238,7 +237,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     if (_need_to_write_header) {
         _file << " time, pinUp, pinDown,";
         _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
-        _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
+        _file << " qYellow.w, qYellow.x, qYellow.y, qYellow.z,";
         _file << " to complete,";
         _file << " nbRigidBodies";
         for (int i = 0; i < nbRigidBodies; i++) {
@@ -262,6 +261,11 @@ void GeneralFormulation::loop(double, clock::time_point time)
     qHand.x() = 0.;
     qHand.y() = 0.;
     qHand.z() = 0.;
+    Eigen::Quaterniond qTrunk;
+    qTrunk.w() = 0.;
+    qTrunk.x() = 0.;
+    qTrunk.y() = 0.;
+    qTrunk.z() = 0.;
 
     for (int i = 0; i < nbRigidBodies; i++) {
         if (data.rigidBodies[i].ID == 3) {
@@ -308,10 +312,9 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lambda[1] = _lambdaWPS;
         _lambda[2] = _lambdaE;
         // set arm lengths
-        l[0] = _lhand; // from center of the hand to the pronosupination joint
-        l[1] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
-        l[2] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
-        l[3] = _lua; // from the elbow joint to the acromion/shoulder joint
+        l[0] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
+        l[1] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
+        l[2] = _lua; // from the elbow joint to the acromion/shoulder joint
 
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
@@ -335,7 +338,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lambda[1] = _lambdaE;
 
         // set arm lengths
-        l[0] = _lhand + _lwrist;
+        l[0] = _lwrist;
         l[1] = _lfa;
         l[2] = _lua;
 
@@ -352,7 +355,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     }
 
     /// IMU
-    double qWhite[4], qRed[4], qFA[4];
+    double qWhite[4], qRed[4], qYellow[4];
     if (_robot->sensors.white_imu) {
         _robot->sensors.white_imu->get_quat(qWhite);
         qHand.w() = qWhite[0];
@@ -369,7 +372,8 @@ void GeneralFormulation::loop(double, clock::time_point time)
         //        debug() << "qRed: " << qHip.w() << "; " << qHip.x() << "; " << qHip.y() << "; " << qHip.z();
     }
     if (_robot->sensors.yellow_imu) {
-        _robot->sensors.yellow_imu->get_quat(qFA);
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        //        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
     }
 
     /// PIN PUSH-BUTTONS CONTROL
@@ -380,13 +384,13 @@ void GeneralFormulation::loop(double, clock::time_point time)
     if (_cnt == 0) {
         _lawJ.initialization(posA, qHip, 1 / period());
     } else if (_cnt <= init_cnt) {
-        _lawJ.initialPositions(posA, posHip, qHip, _cnt, init_cnt);
-        _lawJ.rotationMatrices(qHand, qHip, _cnt, init_cnt);
+        _lawJ.initialPositions(posA, posHip, qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
     } else {
-        _lawJ.rotationMatrices(qHand, qHip, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
@@ -415,10 +419,10 @@ void GeneralFormulation::loop(double, clock::time_point time)
 
     _lawJ.writeDebugData(debugData, theta);
     /// WRITE DATA
-    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lhand;
+    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
     _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
     _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
-    //    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
+    _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
     for (int i = 0; i < 40; i++) {
         _file << ' ' << debugData[i];
     }
