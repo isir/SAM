@@ -27,6 +27,8 @@ SAManager::~SAManager()
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 10);
+    if (_robot->joints.elbow_flexion)
+        _robot->joints.elbow_flexion->move_to(0, 20);
 }
 
 void SAManager::run()
@@ -62,6 +64,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_galf);
+    _main_menu->add_submenu_from_user(_galfIMU);
 
     _main_menu->activate();
 }
@@ -94,6 +97,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _galf = std::make_unique<GeneralFormulation>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _galfIMU = std::make_unique<GeneralFormulationIMU>(_robot);
     } catch (std::exception&) {
     }
 }

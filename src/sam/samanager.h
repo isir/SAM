@@ -6,6 +6,7 @@
 #include "control/demo.h"
 #include "control/demo_imu.h"
 #include "control/general_formulation.h"
+#include "control/general_formulation_imu.h"
 #include "control/matlab_receiver.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
@@ -34,6 +35,7 @@ private:
 
     std::unique_ptr<VoluntaryControl> _vc;
     std::unique_ptr<GeneralFormulation> _galf;
+    std::unique_ptr<GeneralFormulationIMU> _galfIMU;
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
     std::unique_ptr<MatlabReceiver> _mr;
