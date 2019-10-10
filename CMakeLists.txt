@@ -65,7 +65,6 @@ set(SOURCES
     src/ux/mosquittopp/client.cpp
     src/ux/mosquittopp/connect_factory.cpp
     src/ux/mosquittopp/connect_helper.cpp
-    src/ux/mosquittopp/library_wrapper.cpp
     src/ux/mosquittopp/message.cpp
     src/ux/mosquittopp/subscription.cpp
     src/ux/mosquittopp/subscription_factory.cpp)
