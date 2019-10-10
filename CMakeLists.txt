@@ -90,4 +90,4 @@ target_link_libraries(sam
                       vchiq_arm
                       vchostif)
 
-install(TARGETS sam RUNTIME DESTINATION /home/root/)
+install(TARGETS sam RUNTIME DESTINATION /opt/)
