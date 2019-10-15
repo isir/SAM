@@ -19,6 +19,8 @@ Add the debugger: `/path/to/sdk/sysroots/x86_64-soysdk-linux/usr/bin/arm-oe-linu
 
 Add the compiler: `/path/to/sdk/sysroots/x86_64-soysdk-linux/usr/bin/arm-oe-linux-gnueabi/arm-oe-linux-gnueabi-g++`
 
+(Optional) Add CMake: `/path/to/sdk/sysroots/x86_64-soysdk-linux/usr/bin/cmake`
+
 Finally, create the kit: 
 
 - Device type: `Generic Linux Device`
@@ -28,6 +30,10 @@ Finally, create the kit:
   - C: `<No compiler>`
   - C++: Use the one you created earlier
 - Debugger: Use the one you created earlier
+- (Optional) CMake Tool: Use the one you created earlier
+- CMake generator:
+  - Generator: `Unix Makefiles`
+  - Extra generator: `<none>`
 - Qt version: `None`
   
 ### CMake configuration
