@@ -23,7 +23,7 @@ Sensors::Sensors()
 
 UserFeedback::UserFeedback()
 {
-    buzzer = std::make_unique<Buzzer>(Components::pin_buzzer);
+    buzzer = std::make_unique<Buzzer>(29);
     buzzer->set_prio(90);
     buzzer->set_preferred_cpu(2);
 
@@ -48,5 +48,10 @@ Joints::Joints()
     }
 }
 
-Components::Components() {}
+Components::Components()
+    : demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn2(22, GPIO::DIR_INPUT, GPIO::PULL_UP)
+{
+}
 }

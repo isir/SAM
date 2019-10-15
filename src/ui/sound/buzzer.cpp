@@ -2,10 +2,9 @@
 
 Buzzer::Buzzer(int pin)
     : ThreadedLoop("buzzer", 0.)
-    , _pin(pin)
+    , _gpio(pin, GPIO::DIR_OUTPUT, GPIO::PULL_NONE)
 {
-    pinMode(_pin, OUTPUT);
-    digitalWrite(_pin, LOW);
+    _gpio = 0;
 }
 
 Buzzer::~Buzzer()
@@ -22,9 +21,9 @@ void Buzzer::loop(double, clock::time_point)
 {
     for (; _cfg.n_buzzes > 0; --_cfg.n_buzzes) {
         for (int i = 0; i < _cfg.n_pulses; i++) {
-            digitalWrite(_cfg.pin, 1);
+            _gpio = 1;
             std::this_thread::sleep_for(std::chrono::microseconds(_cfg.half_period_us));
-            digitalWrite(_cfg.pin, 0);
+            _gpio = 0;
             std::this_thread::sleep_for(std::chrono::microseconds(_cfg.half_period_us));
         }
         if (_cfg.n_buzzes > 0)
@@ -43,7 +42,6 @@ void Buzzer::makeNoise(BUZZ_TYPE buzz_type, int freq)
         _thread.join();
     }
 
-    _cfg.pin = _pin;
     _cfg.n_pulses = 500;
     _cfg.half_period_us = static_cast<int>(1000000. / freq);
     _cfg.time_between_buzzes_us = 200000;

@@ -2,7 +2,6 @@
 #define GENERAL_FORMULATION_H
 
 #include "algo/lawjacobian.h"
-#include "components/external/optitrack_listener.h"
 #include "sam/sam.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
@@ -35,8 +34,6 @@ private:
     double _lhand;
     double l[nbLinks];
     int _lambdaW, _lambda;
-    int _pin_up;
-    int _pin_down;
     double theta[nbLinks];
     double _threshold[nbLinks];
 };

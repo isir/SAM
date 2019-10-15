@@ -1,8 +1,8 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
+#include "components/internal/gpio/gpio.h"
 #include "utils/threaded_loop.h"
-#include "wiringPi.h"
 
 /**
  * \brief The Buzzer class handles the buzzer on the prosthesis. Through it, you can beep the buzzer in a thread with different patterns.
@@ -20,7 +20,6 @@ public:
 
     struct BuzzerConfig {
         int n_buzzes;
-        int pin;
         int n_pulses;
         int half_period_us;
         int time_between_buzzes_us;
@@ -36,7 +35,7 @@ private:
     void loop(double dt, clock::time_point time) override;
     void cleanup() override;
 
-    int _pin;
+    GPIO _gpio;
     BuzzerConfig _cfg;
 };
 

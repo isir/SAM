@@ -1,5 +1,4 @@
 #include "sam/samanager.h"
-#include <espeak/speak_lib.h>
 #include <malloc.h>
 #include <sys/mman.h>
 
@@ -18,10 +17,6 @@ int main(int, char**)
     free(buf);
 
     SAManager sam;
-
-    espeak_Initialize(AUDIO_OUTPUT_PLAYBACK, 0, nullptr, 0);
-    espeak_Synth("Starting.", 10, 0, POS_CHARACTER, 10, espeakCHARS_AUTO, nullptr, nullptr);
-
     sam.run();
 
     return 0;

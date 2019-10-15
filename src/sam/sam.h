@@ -2,8 +2,8 @@
 #define SAM_H
 
 #include "components/external/myoband/myoband.h"
-#include "components/external/optitrack_listener.h"
-#include "components/external/ximu.h"
+#include "components/external/optitrack/optitrack_listener.h"
+#include "components/external/ximu/ximu.h"
 #include "components/internal/actuators/actuator.h"
 #include "components/internal/actuators/custom_elbow.h"
 #include "components/internal/actuators/osmer_elbow.h"
@@ -11,8 +11,9 @@
 #include "components/internal/actuators/shoulder_rotator.h"
 #include "components/internal/actuators/wrist_flexor.h"
 #include "components/internal/actuators/wrist_rotator.h"
-#include "components/internal/adafruit_ads1115.h"
-#include "components/internal/touch_bionics/touch_bionics_hand.h"
+#include "components/internal/adc/adafruit_ads1115.h"
+#include "components/internal/gpio/gpio.h"
+#include "components/internal/hand/touch_bionics_hand.h"
 #include "ui/sound/buzzer.h"
 #include "ui/visual/ledstrip.h"
 #include "utils/log/log.h"
@@ -78,14 +79,15 @@ public:
     Sensors sensors;
     Joints joints;
 
+    GPIO demo_gpio;
+    GPIO btn1;
+    GPIO btn2;
+
     template <typename U, typename... Ts>
     inline static std::unique_ptr<U> make_component(std::string name, Ts... args)
     {
         return make_generic<U>("component", name, args...);
     }
-
-    static const int pin_buzzer = 29;
-    static const int pin_demo = 28;
 };
 }
 

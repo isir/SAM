@@ -1,7 +1,6 @@
 #ifndef COMPENSATIONIMU_H
 #define COMPENSATIONIMU_H
 
-#include "components/external/optitrack_listener.h"
 #include "control/algo/lawimu.h"
 #include "sam/sam.h"
 #include "utils/socket.h"
@@ -38,8 +37,6 @@ private:
     double _l;
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;
-    int _pin_up;
-    int _pin_down;
 };
 
 #endif // COMPENSATION_IMU_H
