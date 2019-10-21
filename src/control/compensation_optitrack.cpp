@@ -38,7 +38,8 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
-    _menu->add_item(_robot->joints.hand->menu());
+    if (_robot->joints.hand)
+        _menu->add_item(_robot->joints.hand->menu());
 
     _menu->set_activated_callback([this] { on_activated(); });
 
@@ -66,7 +67,7 @@ void CompensationOptitrack::tareIMU()
     _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
     debug("Wait for triple bip");
 
-    std::this_thread::sleep_for(std::chrono::seconds(6));
+    std::this_thread::sleep_for(std::chrono::seconds(3));
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 
     double qBras[4], qTronc[4];

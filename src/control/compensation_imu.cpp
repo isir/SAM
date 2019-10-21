@@ -31,7 +31,8 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     _menu->add_item("Display Pin data", "pin", [this](std::string) { this->displayPin(); });
 
     _menu->add_item(_robot->joints.wrist_pronation->menu());
-    _menu->add_item(_robot->joints.hand->menu());
+    if (_robot->joints.hand)
+        _menu->add_item(_robot->joints.hand->menu());
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
@@ -46,8 +47,10 @@ CompensationIMU::~CompensationIMU()
 
 void CompensationIMU::tare_IMU()
 {
-    _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
-    _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+    if (_robot->sensors.red_imu)
+        _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
 
     _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
@@ -101,9 +104,9 @@ void CompensationIMU::displayPin()
 
 bool CompensationIMU::setup()
 {
-    //    if (_robot.elbow) {
-    //        _robot.elbow->calibrate();
-    //    }
+    if (_robot->joints.elbow_flexion) {
+        _robot->joints.elbow_flexion->calibrate();
+    }
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     std::string filename("compensationIMU");
