@@ -44,6 +44,7 @@ private:
     int l[nbLinks];
     int nbRigidBodies;
 
+    Param<int> _k;
     Param<double> _lua;
     Param<double> _lfa;
     Param<double> _lwrist;

@@ -8,6 +8,7 @@
 GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("General Formulation Optitrack", 0.01)
     , _robot(robot)
+    , _k("k", BaseParam::ReadWrite, this, 5)
     , _Lt(40)
     //    , _lua(30)
     //    , _lfa(20)
@@ -41,7 +42,8 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
-    _menu->add_item(_robot->joints.hand->menu());
+    if (_robot->joints.hand)
+        _menu->add_item(_robot->joints.hand->menu());
 
     pullUpDnControl(_pin_up, PUD_UP);
     pullUpDnControl(_pin_down, PUD_UP);
@@ -86,9 +88,11 @@ void GeneralFormulation::tare_IMU()
 void GeneralFormulation::calibrations()
 {
     // HAND
-    _robot->joints.hand->take_ownership();
-    _robot->joints.hand->init_sequence();
-    _robot->joints.hand->move(14);
+    if (_robot->joints.hand) {
+        _robot->joints.hand->take_ownership();
+        _robot->joints.hand->init_sequence();
+        _robot->joints.hand->move(14);
+    }
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
         _robot->joints.elbow_flexion->calibrate();
@@ -394,8 +398,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
-        int k = 0;
-        _lawJ.controlLaw(posA, k, _lambda, _threshold, _cnt);
+        _lawJ.controlLaw(posA, _k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -447,6 +450,7 @@ void GeneralFormulation::cleanup()
     if (_robot->joints.wrist_flexion)
         _robot->joints.wrist_flexion->forward(0);
     //    _robot->joints.elbow_flexion->move_to(0, 20);
-    _robot->joints.hand->release_ownership();
+    if (_robot->joints.hand)
+        _robot->joints.hand->release_ownership();
     _file.close();
 }
