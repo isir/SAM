@@ -69,6 +69,7 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     I3 << 1., 0., 0.,
         0., 1., 0.,
         0., 0., 1.;
+    //    I3 = Eigen::Matrix<int, 3, 3>::Identity();
 }
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
@@ -249,6 +250,70 @@ void LawJacobian::updateFrames(double theta[])
         z(0, i) = Rframe(2, 0) * x(0, i - 1) + Rframe(2, 1) * y(0, i - 1) + Rframe(2, 2) * z(0, i - 1);
         z(1, i) = Rframe(2, 0) * x(1, i - 1) + Rframe(2, 1) * y(1, i - 1) + Rframe(2, 2) * z(1, i - 1);
         z(2, i) = Rframe(2, 0) * x(2, i - 1) + Rframe(2, 1) * y(2, i - 1) + Rframe(2, 2) * z(2, i - 1);
+
+        //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
+        //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
+        //        debug() << "z" << i << ": " << z(0, i) << "; " << z(1, i) << "; " << z(2, i) << "\n";
+    }
+}
+
+/**
+ * @brief LawJacobian::updateFramesinEE compute the current orientation of the links frames expressed in EE frame
+ * @param theta current angles of the joints
+ */
+void LawJacobian::updateFramesinEE(double theta[])
+{
+    for (int i = nbFrames - 2; i > 0; i--) {
+
+        /// COMPUTE ROTATION MATRIX
+        if (rel[i + 1] == 'z') {
+            Rframe(0, 0) = cos(theta[i]);
+            Rframe(1, 0) = sin(theta[i]);
+            Rframe(2, 0) = 0;
+            Rframe(0, 1) = -sin(theta[i]);
+            Rframe(1, 1) = cos(theta[i]);
+            Rframe(2, 1) = 0;
+            Rframe(0, 1) = 0;
+            Rframe(1, 2) = 0;
+            Rframe(2, 2) = 1;
+        }
+
+        if (rel[i + 1] == 'x') {
+            Rframe(0, 0) = -sin(theta[i]);
+            Rframe(1, 0) = cos(theta[i]);
+            Rframe(2, 0) = 0;
+            Rframe(0, 1) = 0;
+            Rframe(1, 1) = 0;
+            Rframe(2, 1) = 1;
+            Rframe(0, 2) = cos(theta[i]);
+            Rframe(1, 2) = sin(theta[i]);
+            Rframe(2, 2) = 0;
+        }
+
+        if (rel[i + 1] == 'y') {
+            Rframe(0, 0) = cos(theta[i]);
+            Rframe(1, 0) = sin(theta[i]);
+            Rframe(2, 0) = 0;
+            Rframe(0, 1) = 0;
+            Rframe(1, 1) = 0;
+            Rframe(2, 1) = 1;
+            Rframe(0, 2) = sin(theta[i]);
+            Rframe(1, 2) = -cos(theta[i]);
+            Rframe(2, 2) = 0;
+        }
+
+        /// UPDATE FRAMES
+        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(0, 1) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
+        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(0, 1) * y(1, i + 1) + Rframe(0, 2) * z(1, i + 1);
+        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(0, 1) * y(2, i + 1) + Rframe(0, 2) * z(2, i + 1);
+
+        y(0, i) = Rframe(1, 0) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(1, 2) * z(0, i + 1);
+        y(1, i) = Rframe(1, 0) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(1, 2) * z(1, i + 1);
+        y(2, i) = Rframe(1, 0) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(1, 2) * z(2, i + 1);
+
+        z(0, i) = Rframe(2, 0) * x(0, i + 1) + Rframe(2, 1) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
+        z(1, i) = Rframe(2, 0) * x(1, i + 1) + Rframe(2, 1) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
+        z(2, i) = Rframe(2, 0) * x(2, i + 1) + Rframe(2, 1) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
 
         //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
         //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";

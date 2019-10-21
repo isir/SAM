@@ -6,14 +6,14 @@
 #include <string.h>
 
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
-static const int nbFrames = 4;
-static const int nbLinks = 3;
-static const std::string rel = "0yyz";
+//static const int nbFrames = 4;
+//static const int nbLinks = 3;
+//static const std::string rel = "0yyz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
-//static const int nbFrames = 3;
-//static const int nbLinks = 2;
-//static const std::string rel = "0yz";
+static const int nbFrames = 3;
+static const int nbLinks = 2;
+static const std::string rel = "0yz";
 
 class LawJacobian {
 public:
@@ -26,6 +26,7 @@ public:
     void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
     void bufferingOldValues();
     void updateFrames(double theta[]);
+    void updateFramesinEE(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
     void controlLaw(Eigen::Vector3d posA, int k, int lambda[], double threshold[], int _cnt);
     void writeDebugData(double debug[], double theta[]);
@@ -52,6 +53,7 @@ private:
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot;
 
     Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, I3; // rotation matrices
+    //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
 };
 
 #endif // LAWJACOBIAN_H
