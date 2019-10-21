@@ -34,10 +34,8 @@ GeneralFormulationIMU::GeneralFormulationIMU(std::shared_ptr<SAM::Components> ro
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
-    _menu->add_item(_robot->joints.hand->menu());
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
+    if (_robot->joints.hand)
+        _menu->add_item(_robot->joints.hand->menu());
 
     if (_robot->joints.wrist_flexion) {
         _menu->add_item(_robot->joints.wrist_flexion->menu());
@@ -48,6 +46,9 @@ GeneralFormulationIMU::GeneralFormulationIMU(std::shared_ptr<SAM::Components> ro
         nbDOF = 2;
         debug() << "nDOF: " << nbDOF;
     }
+
+    pullUpDnControl(_pin_up, PUD_UP);
+    pullUpDnControl(_pin_down, PUD_UP);
 }
 
 GeneralFormulationIMU::~GeneralFormulationIMU()
@@ -75,9 +76,11 @@ void GeneralFormulationIMU::tare_IMU()
 void GeneralFormulationIMU::calibrations()
 {
     // HAND
-    _robot->joints.hand->take_ownership();
-    _robot->joints.hand->init_sequence();
-    _robot->joints.hand->move(14);
+    if (_robot->joints.hand) {
+        _robot->joints.hand->take_ownership();
+        _robot->joints.hand->init_sequence();
+        _robot->joints.hand->move(14);
+    }
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
         _robot->joints.elbow_flexion->calibrate();
@@ -342,6 +345,7 @@ void GeneralFormulationIMU::cleanup()
     if (_robot->joints.wrist_flexion)
         _robot->joints.wrist_flexion->forward(0);
     //    _robot->joints.elbow_flexion->move_to(0, 20);
-    _robot->joints.hand->release_ownership();
+    if (_robot->joints.hand)
+        _robot->joints.hand->release_ownership();
     _file.close();
 }
