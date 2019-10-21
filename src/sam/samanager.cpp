@@ -34,11 +34,12 @@ SAManager::~SAManager()
 void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
-    _robot->user_feedback.leds->set(LedStrip::white, 10);
+    if (_robot->user_feedback.leds)
+        _robot->user_feedback.leds->set(LedStrip::white, 10);
 
     instantiate_controllers();
     fill_menus();
-    autostart_demo();
+    //    autostart_demo();
 
     std::unique_lock lock(_cv_mutex);
     _cv.wait(lock);
