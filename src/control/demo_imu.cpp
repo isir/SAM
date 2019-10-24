@@ -100,7 +100,7 @@ void DemoIMU::loop(double dt, clock::time_point time)
         prev_pin_status_value = pin_status_value;
     }
 
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+    //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void DemoIMU::action_loop_imu()
