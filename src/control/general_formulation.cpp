@@ -389,12 +389,12 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.initialization(posA, qHip, 1 / period());
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, qHip, qTrunk, _cnt, init_cnt);
-        _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, qTrunk);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
     } else {
-        _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, qTrunk);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
