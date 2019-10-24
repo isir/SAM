@@ -2,7 +2,6 @@
 #define GENERAL_FORMULATION_H
 
 #include "algo/lawjacobian.h"
-#include "components/external/optitrack_listener.h"
 #include "sam/sam.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"

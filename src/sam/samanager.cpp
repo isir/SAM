@@ -8,9 +8,6 @@ SAManager::SAManager()
 {
     wiringPiSetup();
 
-    pinMode(SAM::Components::pin_demo, INPUT);
-    pullUpDnControl(SAM::Components::pin_demo, PUD_UP);
-
     if (isatty(fileno(stdin))) {
         _menu_console_binding = std::make_unique<MenuConsole>();
     } else {
@@ -111,7 +108,7 @@ void SAManager::instantiate_controllers()
 void SAManager::autostart_demo()
 {
     if (_demo) {
-        if (digitalRead(SAM::Components::pin_demo)) {
+        if (_robot->demo_gpio) {
             _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
         } else {
             _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);

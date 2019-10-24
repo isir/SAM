@@ -1,7 +1,6 @@
 #include "general_formulation.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 #include <iostream>
 
@@ -158,8 +157,8 @@ void GeneralFormulation::receiveData()
 
 void GeneralFormulation::displayPin()
 {
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
     debug() << "PinUp: " << pin_up_value;
     debug() << "PinDown: " << pin_down_value;
 }
@@ -381,8 +380,8 @@ void GeneralFormulation::loop(double, clock::time_point time)
     }
 
     /// PIN PUSH-BUTTONS CONTROL
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
 
     /// CONTROL LOOP
     if (_cnt == 0) {

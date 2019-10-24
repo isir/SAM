@@ -15,9 +15,6 @@ public:
 
 private:
     std::shared_ptr<SAM::Components> _robot;
-
-    int _pin_up;
-    int _pin_down;
 };
 
 #endif // DEMO_H

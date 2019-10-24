@@ -8,6 +8,11 @@ SafeStream::SafeStream(Logger::MessageType t, std::string str)
 {
 }
 
+SafeStream::SafeStream(const SafeStream&& ss)
+    : SafeStream(ss._t, ss.str())
+{
+}
+
 SafeStream::~SafeStream()
 {
     Logger::instance().enqueue(_t, str());

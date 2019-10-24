@@ -2,7 +2,6 @@
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include <filesystem>
-#include <wiringPi.h>
 
 VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Voluntary control")
@@ -12,16 +11,11 @@ VoluntaryControl::VoluntaryControl(std::shared_ptr<SAM::Components> robot)
         throw std::runtime_error("Volontary Control is missing components");
     }
 
-    _pin_up = 24;
-    _pin_down = 22;
     set_period(0.01);
 
     _menu->set_description("Voluntary Control");
     _menu->set_code("vc");
     _menu->add_item(_robot->joints.elbow_flexion->menu());
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
 }
 
 VoluntaryControl::~VoluntaryControl()
@@ -56,8 +50,8 @@ bool VoluntaryControl::setup()
 void VoluntaryControl::loop(double, clock::time_point)
 {
     static int prev_pin_up_value = 1, prev_pin_down_value = 1;
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
 
     /// ELBOW
     //    double beta = _osmer.angle() * M_PI / 180.;

@@ -1,7 +1,6 @@
 #include "compensation_optitrack.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 
 CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> robot)
@@ -42,11 +41,6 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
         _menu->add_item(_robot->joints.hand->menu());
 
     _menu->set_activated_callback([this] { on_activated(); });
-
-    _pin_up = 24;
-    _pin_down = 22;
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
 
     _abs_time_start = clock::now();
 }
@@ -244,7 +238,7 @@ void CompensationOptitrack::cleanup()
 void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, double dt, clock::time_point time)
 {
     const unsigned int init_cnt = 10;
-    int btn_sync = digitalRead(29);
+    int btn_sync = 0;
 
     Eigen::Vector3f posA, posElbow, posFA, posEE, posHip;
     Eigen::Quaternionf qHip, qFA_record;
@@ -405,8 +399,8 @@ void CompensationOptitrack::on_new_data_vol(optitrack_data_t data, double dt, cl
     }
     _old_time = timeWithDelta;
     static int prev_pin_up_value = 1, prev_pin_down_value = 1;
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
 
     /// ELBOW
     //    double beta = _osmer.angle() * M_PI / 180.;

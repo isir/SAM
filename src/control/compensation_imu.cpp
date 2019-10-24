@@ -1,7 +1,6 @@
 #include "compensation_imu.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 
 CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
@@ -14,8 +13,6 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _lambdaW(0)
     , _lambda(0)
     , _thresholdW(5.)
-    , _pin_up(24)
-    , _pin_down(22)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.yellow_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
@@ -96,8 +93,8 @@ void CompensationIMU::receiveData()
 
 void CompensationIMU::displayPin()
 {
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
     debug() << "PinUp: " << pin_up_value;
     debug() << "PinDown: " << pin_down_value;
 }
@@ -196,8 +193,8 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 
     _lawimu.writeDebugData(debugData);
 
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
 
     _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
     _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
