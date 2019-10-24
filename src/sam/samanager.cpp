@@ -27,8 +27,10 @@ SAManager::~SAManager()
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 10);
-    if (_robot->joints.elbow_flexion)
+    if (_robot->joints.elbow_flexion) {
         _robot->joints.elbow_flexion->move_to(0, 20);
+        usleep(3 * 1000000);
+    }
 }
 
 void SAManager::run()
@@ -39,7 +41,7 @@ void SAManager::run()
 
     instantiate_controllers();
     fill_menus();
-    //    autostart_demo();
+    autostart_demo();
 
     std::unique_lock lock(_cv_mutex);
     _cv.wait(lock);
