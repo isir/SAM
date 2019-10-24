@@ -6,14 +6,14 @@
 #include <string.h>
 
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
-//static const int nbFrames = 4;
-//static const int nbLinks = 3;
-//static const std::string rel = "0yyz";
+static const int nbFrames = 4;
+static const int nbLinks = 3;
+static const std::string rel = "0yyz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
-static const int nbFrames = 3;
-static const int nbLinks = 2;
-static const std::string rel = "0yz";
+//static const int nbFrames = 3;
+//static const int nbLinks = 2;
+//static const std::string rel = "0yz";
 
 class LawJacobian {
 public:
@@ -21,7 +21,8 @@ public:
     ~LawJacobian();
     void initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, unsigned int freq);
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
-    void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
+    void idealFrames(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
+    void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
     void bufferingOldValues();
@@ -41,7 +42,7 @@ private:
     Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> pinvJ, dlsJ; // pseudo inverse of jacobian matrix
     //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
-    Eigen::Vector3d xref, yref;
+    Eigen::Vector3d xref, yref, zref;
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
     Eigen::Vector3d posAinHip, posAinTrunk; // position of the acromion and the elbow in hip frame
@@ -54,6 +55,9 @@ private:
 
     Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, I3; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
+
+    double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation
+    Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
 };
 
 #endif // LAWJACOBIAN_H

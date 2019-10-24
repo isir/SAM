@@ -27,11 +27,33 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     qHip0.x() = 0.;
     qHip0.y() = 0.;
     qHip0.z() = 0.;
+    qRecalH.w() = 0.;
+    qRecalH.x() = 0.;
+    qRecalH.y() = 0.;
+    qRecalH.z() = 0.;
+    qIdealH.w() = 0.;
+    qIdealH.x() = 0.;
+    qIdealH.y() = 0.;
+    qIdealH.z() = 0.;
     qHip_filt_old = qHip;
     qHip_filt.w() = 0.;
     qHip_filt.x() = 0.;
     qHip_filt.y() = 0.;
     qHip_filt.z() = 0.;
+
+    qTrunk0.w() = 0.;
+    qTrunk0.x() = 0.;
+    qTrunk0.y() = 0.;
+    qTrunk0.z() = 0.;
+    qRecalT.w() = 0.;
+    qRecalT.x() = 0.;
+    qRecalT.y() = 0.;
+    qRecalT.z() = 0.;
+    qIdealT.w() = 0.;
+    qIdealT.x() = 0.;
+    qIdealT.y() = 0.;
+    qIdealT.z() = 0.;
+
     /// FRAMES
     for (int i = 0; i < nbFrames; i++) {
         x(0, i) = 1.;
@@ -46,6 +68,7 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     }
     xref << 1., 0., 0.;
     yref << 0., 1., 0.;
+    zref << 0., 0., 1.;
     samplePeriod = 1. / freq;
     coeff = samplePeriod / (0.03 + samplePeriod);
     delta[0] = 0;
@@ -61,10 +84,16 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     dlsJ = Eigen::MatrixXd::Zero(nbLinks, 3);
     OO = Eigen::MatrixXd::Zero(3, nbLinks);
 
-    // Rotation matrix from IMU or hand rigid body frame to theoretical arm frame
-    R0 << 0., 1., 0.,
-        0., 0., 1.,
-        1., 0., 0.;
+    // Rotation matrix from IMU or hand rigid body frame to theoretical arm
+    if (nbLinks == 2) {
+        R0 << 0., 1., 0.,
+            0., 0., 1.,
+            1., 0., 0.;
+    } else if (nbLinks == 3) {
+        R0 << 1., 0., 0.,
+            0., 0., -1.,
+            0., 1., 0.;
+    }
     // Identity matrix
     I3 << 1., 0., 0.,
         0., 1., 0.,
@@ -122,18 +151,75 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
 }
 
 /**
- * @brief LawOpti::rotationMatrices compute the rotation matrices of the hip and forearm frames with respect to the global frame
- * @param qHip quaternions of the hip cluster
- * @param qFA_record quaternions of the forearm cluster
+ * @brief LawJacobian::idealFrames correct the IMU frames to make the axis that should be vertical really vertical
+ * @param qHand quaternions of the hand IMU
+ * @param qHip quaternions of the hip IMU
+ * @param qTrunk quaternions of the trunk IMU
  */
-void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts)
+void LawJacobian::idealFrames(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts)
 {
-    //    qHip_filt.w() = qHip_filt_old.w() + coeff * (qHip.w() - qHip_filt_old.w());
-    //    qHip_filt.x() = qHip_filt_old.x() + coeff * (qHip.x() - qHip_filt_old.x());
-    //    qHip_filt.y() = qHip_filt_old.y() + coeff * (qHip.y() - qHip_filt_old.y());
-    //    qHip_filt.z() = qHip_filt_old.z() + coeff * (qHip.z() - qHip_filt_old.z());
 
+    /// compute tilt between initial IMu orientation and vertical
+    if (initCounter == initCounts) {
+        /// HIP
+        Eigen::Quaterniond Yquat;
+        Yquat.w() = 0;
+        Yquat.vec() = yref;
+
+        Eigen::Quaterniond Zquat;
+        Zquat.w() = 0;
+        Zquat.vec() = zref;
+
+        Eigen::Quaterniond rotatedYquat = qHip0.inverse() * Yquat * qHip0;
+        Eigen::Vector3d rotatedY = rotatedYquat.vec();
+
+        Eigen::Vector3d crossP = rotatedY.cross(zref);
+        crossP = crossP.normalized();
+        theta0H = acos(rotatedY.dot(zref));
+        qRecalH.w() = cos(-theta0H / 2);
+        qRecalH.x() = sin(-theta0H / 2) * crossP(0);
+        qRecalH.y() = sin(-theta0H / 2) * crossP(1);
+        qRecalH.z() = sin(-theta0H / 2) * crossP(2);
+
+        /// TRUNK
+        rotatedYquat = qTrunk0.inverse() * Yquat * qTrunk0;
+        rotatedY = rotatedYquat.vec();
+
+        crossP = rotatedY.cross(zref);
+        crossP = crossP.normalized();
+        theta0T = acos(rotatedY.dot(zref));
+        qRecalT.w() = cos(-theta0T / 2);
+        qRecalT.x() = sin(-theta0T / 2) * crossP(0);
+        qRecalT.y() = sin(-theta0T / 2) * crossP(1);
+        qRecalT.z() = sin(-theta0T / 2) * crossP(2);
+
+        qIdealH = qHip * qRecalH;
+        qIdealH = qIdealH.normalized();
+
+        qIdealT = qTrunk * qRecalT;
+        qIdealT = qIdealT.normalized();
+
+    } else if (initCounter > initCounts) {
+        qIdealH = qHip * qRecalH;
+        qIdealH = qIdealH.normalized();
+
+        qIdealT = qTrunk * qRecalT;
+        qIdealT = qIdealT.normalized();
+    }
+}
+
+/**
+ * @brief LawOpti::rotationMatrices compute the rotation matrices of the hip and forearm frames with respect to the global frame
+ * @param qHip quaternions of the hip IMU
+ * @param qhand quaternions of the hand IMU
+ * @param qTrunk quaternions of the trunk IMU
+ */
+void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk)
+{
     ///  From quaternions to orientation
+    //    Rhip = qIdealH.toRotationMatrix();
+    //    Rtrunk = qIdealT.toRotationMatrix();
+
     Rhip = qHip.toRotationMatrix();
     Rtrunk = qTrunk.toRotationMatrix();
     Rhand = qHand.toRotationMatrix();
@@ -399,7 +485,7 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int k, int lambda[], double t
     if (_cnt % 50 == 0) {
         debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
         //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
-        debug() << "thetaNew(after threshold): ";
+        debug() << "thetaNew(after threshold, deg): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;
         }
@@ -407,6 +493,10 @@ void LawJacobian::controlLaw(Eigen::Vector3d posA, int k, int lambda[], double t
     // Angular velocities
     for (int i = 0; i < nbLinks; i++) {
         thetaDot(i) = lambda[i] * thetaNew(i);
+        // speed limits
+        if (abs(thetaDot(i)) > 80 * M_PI / 180) {
+            thetaDot(i) = thetaDot(i) / abs(thetaDot(i)) * 80 * M_PI / 180;
+        }
     }
 }
 
@@ -426,13 +516,4 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + j] = delta(j);
     }
-
-    for (int i = 0; i < nbLinks; i++) {
-        for (int j = 0; j < 3; j++) {
-            d[6 * nbLinks + 3 + j + 3 * i] = dlsJ(i, j);
-        }
-    }
-    d[6 * nbLinks + 6 + 3 * nbLinks] = posAinHip[0];
-    d[6 * nbLinks + 6 + 3 * nbLinks + 1] = posAinHip[1];
-    d[6 * nbLinks + 6 + 3 * nbLinks + 2] = posAinHip[2];
 }
