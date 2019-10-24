@@ -79,7 +79,7 @@ void GeneralFormulationIMU::calibrations()
     if (_robot->joints.hand) {
         _robot->joints.hand->take_ownership();
         _robot->joints.hand->init_sequence();
-        _robot->joints.hand->move(14);
+        //        _robot->joints.hand->move(14);
     }
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
@@ -130,8 +130,6 @@ bool GeneralFormulationIMU::setup()
     //        }
     //    }
 
-    _robot->joints.wrist_pronation->set_encoder_position(0);
-
     // OPEN AND NAME DATA FILE
     std::string filename("GalFIMU");
     std::string suffix;
@@ -180,7 +178,7 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
     /// WRIST
     double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
-    //    debug() << "pronosup encoder: " << pronoSupEncoder;
+    debug() << "pronosup encoder: " << pronoSupEncoder;
     double wristFlexEncoder = 0.;
 
     /// PROTO with wrist flexor
@@ -200,7 +198,7 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
 
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
-        theta[1] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        theta[1] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
         theta[2] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
@@ -290,12 +288,12 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
         _lawJ.initialization(posA, qHip, 1 / period());
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, qHip, qTrunk, _cnt, init_cnt);
-        _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, qTrunk);
         _lawJ.projectionInHipIMU(_lt, _lsh, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
     } else {
-        _lawJ.rotationMatrices(qHand, qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.rotationMatrices(qHand, qHip, qTrunk);
         _lawJ.projectionInHipIMU(_lt, _lsh, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
@@ -304,9 +302,9 @@ void GeneralFormulationIMU::loop(double, clock::time_point time)
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
         if (_robot->joints.wrist_flexion) {
-            //            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
-            //            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
-            //            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
+            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
+            _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[1]);
+            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
             if (_cnt % 50 == 0) {
                 debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
                 debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
