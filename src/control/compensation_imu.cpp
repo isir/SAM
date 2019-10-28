@@ -30,9 +30,6 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     if (_robot->joints.hand)
         _menu->add_item(_robot->joints.hand->menu());
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
 }
 
 CompensationIMU::~CompensationIMU()
