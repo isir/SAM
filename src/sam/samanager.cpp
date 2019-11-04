@@ -63,8 +63,8 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_demoimu);
-    _main_menu->add_submenu_from_user(_galf);
-    _main_menu->add_submenu_from_user(_galfIMU);
+    _main_menu->add_submenu_from_user(_jfOpti);
+    _main_menu->add_submenu_from_user(_jfIMU);
 
     _main_menu->activate();
 }
@@ -96,11 +96,11 @@ void SAManager::instantiate_controllers()
     } catch (std::exception&) {
     }
     try {
-        _galf = std::make_unique<GeneralFormulation>(_robot);
+        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
     } catch (std::exception&) {
     }
     try {
-        _galfIMU = std::make_unique<GeneralFormulationIMU>(_robot);
+        _jfIMU = std::make_unique<JacobianFormulationIMU>(_robot);
     } catch (std::exception&) {
     }
 }
