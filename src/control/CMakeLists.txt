@@ -9,7 +9,10 @@ set(SOURCES
     compensation_imu.cpp
     compensation_optitrack.cpp
     demo.cpp
-    general_formulation.cpp
+    demo_imu.cpp
+    controlimu.cpp
+    jf_opti.cpp
+    jf_imu.cpp
     matlab_receiver.cpp
     remote_computer_control.cpp
     voluntary_control.cpp)
