@@ -19,8 +19,11 @@ class LawJacobian {
 public:
     LawJacobian();
     ~LawJacobian();
-    void initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, unsigned int freq);
-    void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
+    void initialization(Eigen::Quaterniond qHip, unsigned int freq); // common initialization
+    void initializationOpti(Eigen::Vector3d posA); // init special for Optitrack
+    void initializationIMU(); // init special for IMU
+    void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
+    void initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
     void idealFrames(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
@@ -29,7 +32,7 @@ public:
     void updateFrames(double theta[]);
     void updateFramesinEE(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
-    void controlLaw(Eigen::Vector3d posA, int k, int lambda[], double threshold[], int _cnt);
+    void controlLaw(int k, int lambda[], double threshold[], int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA

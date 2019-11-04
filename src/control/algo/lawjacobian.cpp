@@ -15,14 +15,9 @@ LawJacobian::~LawJacobian()
 {
 }
 
-void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, unsigned int freq)
+void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
 {
     /// POSITIONS AND QUATERNIONS
-    posA0 = Eigen::Vector3d::Zero();
-    posAinHip = posA;
-    posA0inHip = posA;
-    posAinTrunk = Eigen::Vector3d::Zero();
-    posHip0 = Eigen::Vector3d::Zero();
     qHip0.w() = 0.;
     qHip0.x() = 0.;
     qHip0.y() = 0.;
@@ -40,19 +35,6 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     qHip_filt.x() = 0.;
     qHip_filt.y() = 0.;
     qHip_filt.z() = 0.;
-
-    qTrunk0.w() = 0.;
-    qTrunk0.x() = 0.;
-    qTrunk0.y() = 0.;
-    qTrunk0.z() = 0.;
-    qRecalT.w() = 0.;
-    qRecalT.x() = 0.;
-    qRecalT.y() = 0.;
-    qRecalT.z() = 0.;
-    qIdealT.w() = 0.;
-    qIdealT.x() = 0.;
-    qIdealT.y() = 0.;
-    qIdealT.z() = 0.;
 
     /// FRAMES
     for (int i = 0; i < nbFrames; i++) {
@@ -76,7 +58,6 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
     delta[2] = 0;
     Rhip = Eigen::Matrix3d::Zero();
     Rhand = Eigen::Matrix3d::Zero();
-    Rframe = Eigen::Matrix3d::Zero();
     thetaNew = Eigen::MatrixXd::Zero(nbLinks, 1);
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
     J = Eigen::MatrixXd::Zero(3, nbLinks);
@@ -100,20 +81,65 @@ void LawJacobian::initialization(Eigen::Vector3d posA, Eigen::Quaterniond qHip, 
         0., 0., 1.;
     //    I3 = Eigen::Matrix<int, 3, 3>::Identity();
 }
+
+void LawJacobian::initializationOpti(Eigen::Vector3d posA)
+{
+    /// POSITIONS AND QUATERNIONS
+    posA0 = Eigen::Vector3d::Zero();
+    posAinHip = posA;
+    posA0inHip = posA;
+    posAinTrunk = Eigen::Vector3d::Zero();
+    posHip0 = Eigen::Vector3d::Zero();
+}
+
+void LawJacobian::initializationIMU()
+{
+    qTrunk0.w() = 0.;
+    qTrunk0.x() = 0.;
+    qTrunk0.y() = 0.;
+    qTrunk0.z() = 0.;
+    qRecalT.w() = 0.;
+    qRecalT.x() = 0.;
+    qRecalT.y() = 0.;
+    qRecalT.z() = 0.;
+    qIdealT.w() = 0.;
+    qIdealT.x() = 0.;
+    qIdealT.y() = 0.;
+    qIdealT.z() = 0.;
+    Rframe = Eigen::Matrix3d::Zero();
+}
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
  *  and the initial position + orientation of the hip cluster = mean over the initCounts first measures
  * @param posA cartesian coordinates of the acromion marker (from optitrack)
  * @param posHip cartesian coordinates of the hip marker (from optitrack)
- * @param qHip quaternions of the hip marker (from optitrack)
  * @param initCounter counter of time steps
  * @param initCounts number of time step to take into account to compute the initial position
  */
-void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts)
+void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
     if (initCounter < initCounts) {
         posA0 += posA;
         posHip0 += posHip;
+    }
+    if (initCounter == initCounts) {
+        posA0 += posA;
+        posA0 = posA0 / initCounts;
+        posHip0 += posHip;
+        posHip0 = posHip0 / initCounts;
+    }
+}
+
+/**
+ * @brief LawJacobian::initialQuat computes the initial quaternions = mean over the initCounts first measures (linear approximation)
+ * @param qHip quaternions of the hip
+ * @param qTrunk quaternions of the trunk
+ * @param initCounter counter
+ * @param initCounts number of time steps for the initialization
+ */
+void LawJacobian::initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts)
+{
+    if (initCounter < initCounts) {
         qHip0.w() += qHip.w();
         qHip0.x() += qHip.x();
         qHip0.y() += qHip.y();
@@ -124,10 +150,6 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
         qTrunk0.z() += qTrunk.z();
     }
     if (initCounter == initCounts) {
-        posA0 += posA;
-        posA0 = posA0 / initCounts;
-        posHip0 += posHip;
-        posHip0 = posHip0 / initCounts;
         qHip0.w() += qHip.w();
         qHip0.x() += qHip.x();
         qHip0.y() += qHip.y();
@@ -449,7 +471,7 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
     }
 }
 
-void LawJacobian::controlLaw(Eigen::Vector3d posA, int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw(int k, int lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
