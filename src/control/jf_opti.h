@@ -1,5 +1,5 @@
-#ifndef GENERAL_FORMULATION_H
-#define GENERAL_FORMULATION_H
+#ifndef JACOBIAN_FORMULATION_OPTI_H
+#define JACOBIAN_FORMULATION_OPTI_H
 
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
@@ -7,10 +7,10 @@
 #include "utils/threaded_loop.h"
 #include <fstream>
 
-class GeneralFormulation : public ThreadedLoop {
+class JacobianFormulationOpti : public ThreadedLoop {
 public:
-    explicit GeneralFormulation(std::shared_ptr<SAM::Components> robot);
-    ~GeneralFormulation() override;
+    explicit JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot);
+    ~JacobianFormulationOpti() override;
 
 private:
     void tare_IMU();
@@ -30,7 +30,7 @@ private:
 
     LawJacobian _lawJ;
     int nbDOF;
-    int _Lt;
+    int _lt;
     //    int _Lua;
     //    int _Lfa;
     //    int _lhand;

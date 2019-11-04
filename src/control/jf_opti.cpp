@@ -1,14 +1,14 @@
-#include "general_formulation.h"
+#include "jf_opti.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include <filesystem>
 #include <iostream>
 
-GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
+JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("General Formulation Optitrack", 0.01)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
-    , _Lt(40)
+    , _lt(40)
     //    , _lua(30)
     //    , _lfa(20)
     //    , _lwrist(5)
@@ -59,14 +59,14 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     //    }
 }
 
-GeneralFormulation::~GeneralFormulation()
+JacobianFormulationOpti::~JacobianFormulationOpti()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
     stop_and_join();
 }
 
-void GeneralFormulation::tare_IMU()
+void JacobianFormulationOpti::tare_IMU()
 {
     if (_robot->sensors.white_imu)
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
@@ -81,7 +81,7 @@ void GeneralFormulation::tare_IMU()
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 }
 
-void GeneralFormulation::calibrations()
+void JacobianFormulationOpti::calibrations()
 {
     // HAND
     if (_robot->joints.hand) {
@@ -115,7 +115,7 @@ void GeneralFormulation::calibrations()
     _robot->joints.elbow_flexion->move_to(-60, 20);
 }
 
-void GeneralFormulation::receiveData()
+void JacobianFormulationOpti::receiveData()
 {
     while (_receiver.available()) {
 
@@ -152,7 +152,7 @@ void GeneralFormulation::receiveData()
     }
 }
 
-void GeneralFormulation::displayPin()
+void JacobianFormulationOpti::displayPin()
 {
     int pin_down_value = _robot->btn2;
     int pin_up_value = _robot->btn1;
@@ -160,7 +160,7 @@ void GeneralFormulation::displayPin()
     debug() << "PinDown: " << pin_down_value;
 }
 
-bool GeneralFormulation::setup()
+bool JacobianFormulationOpti::setup()
 {
     // Check for calibration
     //    if (_robot->joints.wrist_flexion) {
@@ -205,7 +205,7 @@ bool GeneralFormulation::setup()
     return true;
 }
 
-void GeneralFormulation::loop(double, clock::time_point time)
+void JacobianFormulationOpti::loop(double, clock::time_point time)
 {
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
@@ -382,9 +382,11 @@ void GeneralFormulation::loop(double, clock::time_point time)
 
     /// CONTROL LOOP
     if (_cnt == 0) {
-        _lawJ.initialization(posA, qHip, 1 / period());
+        _lawJ.initialization(qHip, 1 / period());
+        _lawJ.initializationOpti(posA);
     } else if (_cnt <= init_cnt) {
-        _lawJ.initialPositions(posA, posHip, qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
+        _lawJ.initialQuat(qHip, qTrunk, _cnt, init_cnt);
         _lawJ.rotationMatrices(qHand, qHip, qTrunk);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
@@ -394,7 +396,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
-        _lawJ.controlLaw(posA, _k, _lambda, _threshold, _cnt);
+        _lawJ.controlLaw(_k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -440,7 +442,7 @@ void GeneralFormulation::loop(double, clock::time_point time)
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
-void GeneralFormulation::cleanup()
+void JacobianFormulationOpti::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
     if (_robot->joints.wrist_flexion)
