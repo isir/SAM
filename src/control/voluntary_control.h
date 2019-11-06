@@ -1,7 +1,6 @@
 #ifndef VOLUNTARYCONTROL_H
 #define VOLUNTARYCONTROL_H
 
-#include "components/external/optitrack_listener.h"
 #include "sam/sam.h"
 #include "utils/threaded_loop.h"
 #include <fstream>
@@ -20,9 +19,6 @@ private:
 
     std::shared_ptr<SAM::Components> _robot;
     bool _need_to_write_header;
-
-    int _pin_up;
-    int _pin_down;
 };
 
 #endif // VOLUNTARYCONTROL_H

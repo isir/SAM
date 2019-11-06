@@ -27,7 +27,9 @@
 #ifndef XIMU_H
 #define XIMU_H
 
+#include "utils/serial_port.h"
 #include "utils/threaded_loop.h"
+
 #include <mutex>
 #include <string>
 #include <termios.h>
@@ -42,7 +44,7 @@
 
 class XIMU : public ThreadedLoop {
 public:
-    XIMU(std::string filename, int level = XIMU_LOGLEVEL_NONE, int baudrate = XIMU_BAUDRATE);
+    XIMU(std::string filename, int level = XIMU_LOGLEVEL_NONE, unsigned int baudrate = XIMU_BAUDRATE);
     ~XIMU() override;
 
     int set_loglevel(int i);
@@ -257,7 +259,6 @@ private:
     void loop(double dt, clock::time_point time) override;
 
     void init_imudata();
-    bool open_port(const char* fn, int baudrate);
 
     bool check_len(int len, int check);
 
@@ -292,8 +293,9 @@ private:
     }
     float to_float(int d, unsigned int q) { return ((float)d) / ((float)(1 << q)); }
 
-    std::vector<unsigned char> _rx_packet_buffer;
-    int fd;
+    SerialPort _sp;
+
+    std::vector<std::byte> _rx_packet_buffer;
     int loglevel;
     bool device_detected;
 

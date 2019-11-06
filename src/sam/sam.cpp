@@ -9,9 +9,9 @@ Sensors::Sensors()
         myoband->start();
     }
 
-    arm_imu = Components::make_component<XIMU>("white_imu", "/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    trunk_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
-    fa_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
+    arm_imu = Components::make_component<XIMU>("white_imu", "/dev/ximu_white", XIMU::XIMU_LOGLEVEL_NONE, B115200);
+    trunk_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, B115200);
+    fa_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, B115200);
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
     adc1 = Components::make_component<Adafruit_ADS1115>("adc1", "/dev/i2c-1", 0x49);
@@ -26,7 +26,7 @@ Sensors::Sensors()
 
 UserFeedback::UserFeedback()
 {
-    buzzer = std::make_unique<Buzzer>(Components::pin_buzzer);
+    buzzer = std::make_unique<Buzzer>(29);
     buzzer->set_prio(90);
     buzzer->set_preferred_cpu(2);
 
@@ -51,5 +51,10 @@ Joints::Joints()
     }
 }
 
-Components::Components() {}
+Components::Components()
+    : demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn2(22, GPIO::DIR_INPUT, GPIO::PULL_UP)
+{
+}
 }

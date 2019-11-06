@@ -6,8 +6,7 @@
 
 namespace Monitoring {
 
-class CPULoadMonitor : public AbstractMonitor
-{
+class CPULoadMonitor : public AbstractMonitor {
 public:
     CPULoadMonitor();
     ~CPULoadMonitor() override;
@@ -17,11 +16,11 @@ public:
 
 private:
     static const int _ncpus = 4;
-    std::array<int,_ncpus+1> _old_usr;
-    std::array<int,_ncpus+1> _old_nice;
-    std::array<int,_ncpus+1> _old_sys;
-    std::array<int,_ncpus+1> _old_idle;
-    std::array<double,_ncpus+1> _cpu_load;
+    std::array<int, _ncpus + 1> _old_usr;
+    std::array<int, _ncpus + 1> _old_nice;
+    std::array<int, _ncpus + 1> _old_sys;
+    std::array<int, _ncpus + 1> _old_idle;
+    std::array<double, _ncpus + 1> _cpu_load;
 };
 
 }

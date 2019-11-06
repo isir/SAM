@@ -27,12 +27,6 @@ Demo::Demo(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
-
-    _pin_up = 24;
-    _pin_down = 22;
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
 }
 
 Demo::~Demo()
@@ -133,10 +127,10 @@ void Demo::loop(double, clock::time_point)
         }
     }
 
-    if (digitalRead(_pin_down) == 0) {
+    if (!_robot->btn1) {
         emg[0] = 80;
     }
-    if (digitalRead(_pin_up) == 0) {
+    if (!_robot->btn2) {
         emg[1] = 80;
     }
 

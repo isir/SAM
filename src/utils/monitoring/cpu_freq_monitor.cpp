@@ -4,6 +4,7 @@
 namespace Monitoring {
 
 CPUFreqMonitor::CPUFreqMonitor()
+    : _freq(0)
 {
 }
 

@@ -34,17 +34,14 @@
 
 #define RXBUFSIZE 256
 
-XIMU::XIMU(std::string filename, int level, int baudrate)
+XIMU::XIMU(std::string filename, int level, unsigned int baudrate)
     : ThreadedLoop(filename.substr(5), 0.001)
 {
-    fd = -1;
     pending_command = -1;
 
     set_loglevel(level);
 
-    if (!open_port(filename.c_str(), baudrate)) {
-        throw std::runtime_error(std::string(filename) + ": " + std::string(strerror(errno)));
-    }
+    _sp.open(filename, baudrate);
 
     _rx_packet_buffer.reserve(RX_PACKET_BUFFER_SIZE);
 
@@ -55,9 +52,8 @@ XIMU::XIMU(std::string filename, int level, int baudrate)
 
 XIMU::~XIMU()
 {
-    if (fd != -1) {
-        close(fd);
-    }
+    stop_and_join();
+    _sp.close();
 }
 
 void XIMU::init_imudata()
@@ -127,18 +123,14 @@ int XIMU::set_loglevel(int i)
 
 void XIMU::loop(double, clock::time_point)
 {
-    int rxcount;
-    std::vector<unsigned char> buf;
-    buf.reserve(RXBUFSIZE);
-    rxcount = read(fd, buf.data(), RXBUFSIZE);
-
+    std::vector<std::byte> buf = _sp.read_all();
     _rx_packet_buffer.insert(_rx_packet_buffer.end(), buf.begin(), buf.end());
 
     for (unsigned int i = 0; i < _rx_packet_buffer.size(); i++) {
-        if (_rx_packet_buffer[i] & 0x80) {
+        if (static_cast<unsigned char>(_rx_packet_buffer[i]) & 0x80) {
             //we have a full packet in packet buffer -> process!
-            process_packet(_rx_packet_buffer.data(), static_cast<int>(i));
-            _rx_packet_buffer.erase(_rx_packet_buffer.begin(), _rx_packet_buffer.begin() + static_cast<int>(i));
+            process_packet(reinterpret_cast<unsigned char*>(_rx_packet_buffer.data()), static_cast<int>(i) + 1);
+            _rx_packet_buffer.erase(_rx_packet_buffer.begin(), _rx_packet_buffer.begin() + static_cast<int>(i) + 1);
             i = 0;
         }
     }
@@ -199,66 +191,6 @@ bool XIMU::get_time(struct tm* time)
     imudata_time_available = false;
 
     return result;
-}
-
-bool XIMU::open_port(const char* fn, int baudrate)
-{
-    fd = open(fn, O_RDWR | O_NOCTTY);
-    if (fd == -1) {
-        return false;
-    } else {
-        //set serial speed
-        struct termios termOptions;
-        //get the current options:
-        tcgetattr(fd, &termOptions);
-
-        //baudrate
-        cfsetispeed(&termOptions, baudrate);
-        cfsetospeed(&termOptions, baudrate);
-
-        ///// Input flags - Turn off input processing
-        // convert break to null byte, no CR to NL translation,
-        // no NL to CR translation, don't mark parity errors or breaks
-        // no input parity check, don't strip high bit off,
-        // no XON/XOFF software flow control
-        //
-        termOptions.c_iflag = IGNPAR;
-        //
-        // Output flags - Turn off output processing
-        // no CR to NL translation, no NL to CR-NL translation,
-        // no NL to CR translation, no column 0 CR suppression,
-        // no Ctrl-D suppression, no fill characters, no case mapping,
-        // no local output processing
-        //
-        // config.c_oflag &= ~(OCRNL | ONLCR | ONLRET |
-        //                     ONOCR | ONOEOT| OFILL | OLCUC | OPOST);
-        termOptions.c_oflag = 0;
-        //
-        // No line processing:
-        // echo off, echo newline off, canonical mode off,
-        // extended input processing off, signal chars off
-        //
-        termOptions.c_lflag &= 0;
-        //
-        // Turn off character processing
-        // clear current char size mask, no parity checking,
-        // no output processing, force 8 bit input
-        //
-        termOptions.c_cflag = B115200 | CS8 | CLOCAL | CREAD;
-
-        //
-        // One input byte is enough to return from read()
-        // Inter-character timer off
-
-        // Now set the term options (set immediately)
-        tcsetattr(fd, TCSANOW, &termOptions);
-        //flush io
-        tcflush(fd, TCIOFLUSH);
-        usleep(100000);
-        tcflush(fd, TCIOFLUSH);
-        usleep(100000);
-    }
-    return true;
 }
 
 void XIMU::process_packet(unsigned char* packet_ptr, int len)
@@ -487,7 +419,7 @@ void XIMU::send_packet(unsigned char* buf, unsigned int len)
     // CHANGED unsigned char shift_reg[encoded_len];
     // CHANGED unsigned char encoded_buf[encoded_len];
     unsigned char shift_reg[100];
-    unsigned char encoded_buf[100];
+    char encoded_buf[100];
 
     //copy data to shift_reg
     for (int i = 0; i < encoded_len; i++) {
@@ -509,7 +441,7 @@ void XIMU::send_packet(unsigned char* buf, unsigned int len)
     //set msb of framing byte
     encoded_buf[encoded_len - 1] |= 0x80;
 
-    write(fd, encoded_buf, encoded_len);
+    _sp.write(encoded_buf, encoded_len);
     //printf("wrote %d bytes [%d->%d]\n",res,len,encoded_len);
 }
 

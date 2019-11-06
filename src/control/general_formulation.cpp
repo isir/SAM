@@ -1,7 +1,6 @@
 #include "general_formulation.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 #include <iostream>
 
@@ -14,8 +13,6 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     , _lhand(0.)
     , _lambdaW(0)
     , _lambda(0)
-    , _pin_up(24)
-    , _pin_down(22)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.wrist_flexion)) { //}, _robot->sensors.optitrack)) {
         throw std::runtime_error("General Formulation Control is missing components");
@@ -33,9 +30,6 @@ GeneralFormulation::GeneralFormulation(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.wrist_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.hand->menu());
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
 
     for (int i = 1; i < nbLinks; i++) {
         _threshold[i] = 0.;
@@ -104,8 +98,8 @@ void GeneralFormulation::receiveData()
 
 void GeneralFormulation::displayPin()
 {
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
     debug() << "PinUp: " << pin_up_value;
     debug() << "PinDown: " << pin_down_value;
 }
@@ -226,8 +220,8 @@ void GeneralFormulation::loop(double, clock::time_point time)
     _robot->sensors.trunk_imu->get_quat(qTronc);
     _robot->sensors.fa_imu->get_quat(qFA);
     /// PIN PUSH-BUTTONS CONTROL
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
 
     /// CONTROL LOOP
     if (_cnt == 0) {

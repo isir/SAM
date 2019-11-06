@@ -1,7 +1,7 @@
 #ifndef ACTUATOR_H
 #define ACTUATOR_H
 
-#include "components/internal/roboclaw/roboclaw.h"
+#include "roboclaw/roboclaw.h"
 #include "utils/interfaces/menu_user.h"
 #include <string>
 

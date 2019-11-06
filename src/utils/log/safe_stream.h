@@ -7,6 +7,7 @@ namespace Log {
 class SafeStream : public std::ostringstream {
 public:
     SafeStream(Logger::MessageType t, std::string str = "");
+    SafeStream(const SafeStream&& ss);
     ~SafeStream();
 
     template <Logger::MessageType t>

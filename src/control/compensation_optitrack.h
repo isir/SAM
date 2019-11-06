@@ -2,7 +2,7 @@
 #define COMPENSATION_OPTITRACK_H
 
 #include "algo/lawopti.h"
-#include "components/external/optitrack_listener.h"
+#include "components/external/optitrack/optitrack_listener.h"
 #include "sam/sam.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
@@ -64,8 +64,6 @@ private:
     int _lambdaW, _lambda;
     double _thresholdW, _threshold;
     int _pinArduino;
-    int _pin_up;
-    int _pin_down;
 };
 
 #endif // COMPENSATION_OPTITRACK_H
