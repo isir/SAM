@@ -34,6 +34,7 @@ set(SOURCES
     src/control/matlab_receiver.cpp
     src/control/remote_computer_control.cpp
     src/control/voluntary_control.cpp
+    src/control/read_adc.cpp
     src/main.cpp
     src/sam/sam.cpp
     src/sam/samanager.cpp

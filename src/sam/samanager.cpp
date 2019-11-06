@@ -50,6 +50,9 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
+   // _main_menu->add_submenu_from_user(_robot->sensors.adc0);
+    _main_menu->add_submenu_from_user(_adc);
+
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
     _main_menu->add_submenu_from_user(_robot->joints.wrist_pronation);
@@ -89,6 +92,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _galf = std::make_unique<GeneralFormulation>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _adc = std::make_unique<ReadADC>(_robot);
     } catch (std::exception&) {
     }
 }

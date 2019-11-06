@@ -8,6 +8,7 @@
 #include "control/matlab_receiver.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
+#include "control/read_adc.h"
 #include "sam/sam.h"
 #include "sam/system_monitor.h"
 #include "ui/menu/menu_console.h"
@@ -38,6 +39,7 @@ private:
     std::unique_ptr<MatlabReceiver> _mr;
     std::unique_ptr<Demo> _demo;
     std::unique_ptr<SystemMonitor> _sm;
+    std::unique_ptr<ReadADC> _adc;
 
     std::unique_ptr<MenuBackend> _main_menu;
     std::unique_ptr<MenuMQTT> _menu_mqtt_binding;
