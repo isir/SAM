@@ -13,7 +13,10 @@ Sensors::Sensors()
     trunk_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, 115200);
     fa_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, 115200);
 
-    adc = Components::make_component<Adafruit_ADS1115>("adc", "/dev/i2c-1", 0x48);
+    adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
+    adc1 = Components::make_component<Adafruit_ADS1115>("adc1", "/dev/i2c-1", 0x49);
+    adc2 = Components::make_component<Adafruit_ADS1115>("adc2", "/dev/i2c-1", 0x4B);
+    adc3 = Components::make_component<Adafruit_ADS1115>("adc3", "/dev/i2c-1", 0x4A);
 
     optitrack = Components::make_component<OptiListener>("optitrack");
     if (optitrack) {
