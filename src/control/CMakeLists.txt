@@ -14,6 +14,7 @@ set(SOURCES
     jf_opti.cpp
     jfimu.cpp
     jfimu_v3.cpp
+    jfimu_v4.cpp
     matlab_receiver.cpp
     remote_computer_control.cpp
     voluntary_control.cpp)

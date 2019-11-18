@@ -66,6 +66,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_jfOpti);
     _main_menu->add_submenu_from_user(_jfIMU1);
     _main_menu->add_submenu_from_user(_jfIMU3);
+    _main_menu->add_submenu_from_user(_jfIMU4);
 
     _main_menu->activate();
 }
@@ -106,6 +107,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _jfIMU3 = std::make_unique<JFIMU_v3>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
     } catch (std::exception&) {
     }
 }
