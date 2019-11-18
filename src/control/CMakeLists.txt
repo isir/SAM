@@ -12,7 +12,8 @@ set(SOURCES
     demo_imu.cpp
     controlimu.cpp
     jf_opti.cpp
-    jf_imu.cpp
+    jfimu.cpp
+    jfimu_v3.cpp
     matlab_receiver.cpp
     remote_computer_control.cpp
     voluntary_control.cpp)
