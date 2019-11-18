@@ -6,14 +6,15 @@
 #include <string.h>
 
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
-static const int nbFrames = 4;
-static const int nbLinks = 3;
-static const std::string rel = "0yyz";
+//static const int nbFrames = 4;
+//static const int nbLinks = 3;
+//static const std::string rel = "0yyz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
-//static const int nbFrames = 3;
-//static const int nbLinks = 2;
-//static const std::string rel = "0yz";
+static const int nbFrames = 3;
+static const int nbLinks = 2;
+static const std::string rel = "0yz";
+#define ROW ;
 
 class LawJacobian {
 public:
@@ -23,7 +24,7 @@ public:
     void initializationOpti(Eigen::Vector3d posA); // init special for Optitrack
     void initializationIMU(); // init special for IMU
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
-    void initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
+    void initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm, int initCounter, int initCounts);
     void idealFrames(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
@@ -32,7 +33,12 @@ public:
     void updateFrames(double theta[]);
     void updateFramesinEE(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
-    void controlLaw(int k, int lambda[], double threshold[], int _cnt);
+    void computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk);
+    void computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm);
+    void controlLaw_v1(int k, int lambda[], double threshold[], int _cnt);
+    void controlLaw_v2(int k, int lambda[], double threshold[], int _cnt);
+    void controlLaw_v3(int lt, int lsh, int k, int lambda[], double threshold[], int _cnt);
+    void controlLaw_v4(int lt, int lsh, int k, int lambda[], double threshold[], int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
@@ -41,26 +47,35 @@ public:
 
 private:
     Eigen::Matrix<double, 3, nbFrames, Eigen::DontAlign> x, y, z; // frames
-    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J; // jacobian matrix
-    Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> pinvJ, dlsJ; // pseudo inverse of jacobian matrix
+    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J;
+    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> Jp;
+    Eigen::Matrix<double, 3, nbLinks - 1, Eigen::DontAlign> Jo; // jacobian matrices
+    Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> dlsJ; // damped least square solutions from jacobian matrix
+    Eigen::RowVector3d dlsJp;
+#ifdef ROW
+    Eigen::RowVector3d dlsJo; // for Eigen, matrix of one line must be defined as a RowVector
+#else
+    Eigen::Matrix<double, nbLinks - 1, 3, Eigen::DontAlign> dlsJo;
+#endif
     //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
     Eigen::Vector3d xref, yref, zref;
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
-    Eigen::Vector3d posAinHip, posAinTrunk; // position of the acromion and the elbow in hip frame
+    Eigen::Vector3d posAinHip, posAinHand, IO; // position of the acromion and the elbow in hip frame
     Eigen::Vector3d delta; // displacement between acromion initial (=reference) position and current position
     Eigen::Vector3d posHip0; // initial position of hip
-    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old; // quaternions for hip and trunk frames
     double samplePeriod;
     double coeff; // coefficient for low-pass filtering
-    Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot;
+    Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot; // joint angles and angular velocities command
+    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA; // Trunk and Arm Euler angles, expressed in hand frame
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, I3; // rotation matrices
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, RtrunkInHand, RArmInHand, I3; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
 
     double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
+    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0; // quaternions for hip, arm and trunk frames
 };
 
 #endif // LAWJACOBIAN_H
