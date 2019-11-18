@@ -1,4 +1,4 @@
-#include "jf_imu.h"
+#include "jfimu.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include "wiringPi.h"
@@ -6,7 +6,7 @@
 #include <iostream>
 
 JacobianFormulationIMU::JacobianFormulationIMU(std::shared_ptr<SAM::Components> robot)
-    : ControlIMU("General Formulation IMU", "GalFIMU", robot)
+    : ControlIMU("Jacobian Formulation IMU 1", "JFIMU1", robot)
 {
     _menu->set_description("Jacobian Formulation IMU v1");
     _menu->set_code("jfi1");
@@ -23,20 +23,20 @@ void JacobianFormulationIMU::initializationLaw(Eigen::Quaterniond qHi, double p)
     _lawJ.initializationIMU();
 }
 
-void JacobianFormulationIMU::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt)
+void JacobianFormulationIMU::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt)
 {
-    _lawJ.initialQuat(qHi, qT, cnt, init_cnt);
+    _lawJ.initialQuat(qHi, qT, qA, cnt, init_cnt);
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.projectionInHipIMU(lt, lsh, cnt, init_cnt);
     _lawJ.updateFrames(theta);
     _lawJ.computeOriginsVectors(l, nbDOF);
 }
 
-void JacobianFormulationIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
+void JacobianFormulationIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
 {
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.projectionInHipIMU(lt, lsh, cnt, init_cnt);
     _lawJ.updateFrames(theta);
     _lawJ.computeOriginsVectors(l, nbDOF);
-    _lawJ.controlLaw(k, lambda, threshold, cnt);
+    _lawJ.controlLaw_v1(k, lambda, threshold, cnt);
 }

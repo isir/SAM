@@ -5,7 +5,7 @@
 #include <iostream>
 
 JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("General Formulation Optitrack", 0.01)
+    : ThreadedLoop("Jacobian Formulation Optitrack", 0.01)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
     , _lt(40)
@@ -27,7 +27,7 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.optitrack)) {
-        throw std::runtime_error("General Formulation Control is missing components");
+        throw std::runtime_error("Jacobian Formulation Control is missing components");
     }
 
     if (!_receiver.bind("0.0.0.0", 45457)) {
@@ -267,6 +267,12 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     qTrunk.y() = 0.;
     qTrunk.z() = 0.;
 
+    Eigen::Quaterniond qArm;
+    qArm.w() = 0.;
+    qArm.x() = 0.;
+    qArm.y() = 0.;
+    qArm.z() = 0.;
+
     for (int i = 0; i < nbRigidBodies; i++) {
         if (data.rigidBodies[i].ID == 3) {
             posA[0] = data.rigidBodies[i].x * 100;
@@ -373,6 +379,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     }
     if (_robot->sensors.yellow_imu) {
         _robot->sensors.yellow_imu->get_quat(qYellow);
+        qArm.w() = qYellow[0];
+        qArm.x() = qYellow[1];
+        qArm.y() = qYellow[2];
+        qArm.z() = qYellow[3];
         //        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
     }
 
@@ -386,7 +396,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.initializationOpti(posA);
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
-        _lawJ.initialQuat(qHip, qTrunk, _cnt, init_cnt);
+        _lawJ.initialQuat(qHip, qTrunk, qArm, _cnt, init_cnt);
         _lawJ.rotationMatrices(qHand, qHip, qTrunk);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
@@ -396,7 +406,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
-        _lawJ.controlLaw(_k, _lambda, _threshold, _cnt);
+        _lawJ.controlLaw_v1(_k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 

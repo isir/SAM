@@ -23,8 +23,8 @@ ControlIMU::ControlIMU(std::string name, std::string filename, std::shared_ptr<S
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.white_imu, _robot->sensors.red_imu, _robot->sensors.yellow_imu)) {
-        throw std::runtime_error("General Formulation Control is missing components");
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.white_imu, _robot->sensors.yellow_imu)) {
+        throw std::runtime_error("Jacobian Formulation Control is missing components");
     }
 
     _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
@@ -111,7 +111,7 @@ void ControlIMU::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(-60, 20);
+    //    _robot->joints.elbow_flexion->move_to(-60, 20);
 }
 
 void ControlIMU::displayPin()
@@ -184,7 +184,7 @@ void ControlIMU::loop(double, clock::time_point time)
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
     /// WRIST
     double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
-    debug() << "pronosup encoder: " << pronoSupEncoder;
+    //    debug() << "pronosup encoder: " << pronoSupEncoder;
     double wristFlexEncoder = 0.;
 
     /// PROTO with wrist flexor
@@ -256,6 +256,10 @@ void ControlIMU::loop(double, clock::time_point time)
     _qTrunk.x() = 0.;
     _qTrunk.y() = 0.;
     _qTrunk.z() = 0.;
+    _qArm.w() = 0.;
+    _qArm.x() = 0.;
+    _qArm.y() = 0.;
+    _qArm.z() = 0.;
 
     double qWhite[4], qRed[4], qYellow[4];
     if (_robot->sensors.white_imu) {
@@ -271,6 +275,10 @@ void ControlIMU::loop(double, clock::time_point time)
         _qHip.x() = qRed[1];
         _qHip.y() = qRed[2];
         _qHip.z() = qRed[3];
+        //        _qArm.w() = qRed[0];
+        //        _qArm.x() = qRed[1];
+        //        _qArm.y() = qRed[2];
+        //        _qArm.z() = qRed[3];
         //        debug() << "qRed: " << _qHip.w() << "; " << _qHip.x() << "; " << _qHip.y() << "; " << _qHip.z();
     }
     if (_robot->sensors.yellow_imu) {
@@ -288,11 +296,11 @@ void ControlIMU::loop(double, clock::time_point time)
 
     /// CONTROL LOOP
     if (_cnt == 0) {
-        initializationLaw(_qHip, 1 / period());
+        initializationLaw(_qHip, period());
     } else if (_cnt <= _init_cnt) {
-        initialPositionsLaw(_qHand, _qHip, _qTrunk, _theta, _lt, _lsh, _l, _nbDOF, _cnt, _init_cnt);
+        initialPositionsLaw(_qHand, _qHip, _qTrunk, _qArm, _theta, _lt, _lsh, _l, _nbDOF, _cnt, _init_cnt);
     } else {
-        controlLaw(_qHand, _qHip, _qTrunk, _theta, _lt, _lsh, _l, _nbDOF, _k, _lambda, _threshold, _cnt, _init_cnt);
+        controlLaw(_qHand, _qHip, _qTrunk, _qArm, _theta, _lt, _lsh, _l, _nbDOF, _k, _lambda, _threshold, _cnt, _init_cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> _thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -347,10 +355,10 @@ void ControlIMU::initializationLaw(Eigen::Quaterniond qHi, double p)
 {
 }
 
-void ControlIMU::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt)
+void ControlIMU::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt)
 {
 }
 
-void ControlIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
+void ControlIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
 {
 }

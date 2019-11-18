@@ -32,8 +32,8 @@ public:
 
 protected:
     virtual void initializationLaw(Eigen::Quaterniond qHi, double p);
-    virtual void initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt);
-    virtual void controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt);
+    virtual void initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt);
+    virtual void controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt);
 
 private:
     Param<int> _k; // damping parameter for inverse kinematics
@@ -59,7 +59,7 @@ private:
     double _threshold[nbLinks];
     int _l[nbLinks];
 
-    Eigen::Quaterniond _qHip, _qTrunk, _qHand;
+    Eigen::Quaterniond _qHip, _qTrunk, _qHand, _qArm;
 };
 
 #endif // CONTROL_IMU_H
