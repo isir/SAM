@@ -111,7 +111,7 @@ void ControlIMU::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    //    _robot->joints.elbow_flexion->move_to(-60, 20);
+    _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void ControlIMU::displayPin()
@@ -268,6 +268,7 @@ void ControlIMU::loop(double, clock::time_point time)
         _qHand.x() = qWhite[1];
         _qHand.y() = qWhite[2];
         _qHand.z() = qWhite[3];
+        //        debug() << "qwhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
     }
     if (_robot->sensors.red_imu) {
         _robot->sensors.red_imu->get_quat(qRed);
