@@ -59,6 +59,7 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     Rhip = Eigen::Matrix3d::Zero();
     Rhand = Eigen::Matrix3d::Zero();
     RtrunkInHand = Eigen::Matrix3d::Zero();
+    RtrunkHipInHand = Eigen::Matrix3d::Zero();
     RArmInHand = Eigen::Matrix3d::Zero();
     thetaNew = Eigen::MatrixXd::Zero(nbLinks, 1);
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
@@ -325,13 +326,17 @@ void LawJacobian::projectionInHipIMU(int lt, int lsh, int initCounter, int initC
  * @param qHand quaternions of the hand IMU
  * @param qTrunk quaternions of the trunk IMU
  */
-void LawJacobian::computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk)
+void LawJacobian::computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qHip)
 {
     RtrunkInHand = R0 * ((qHand * qTrunk0.conjugate() * qTrunk * qHand.conjugate()).toRotationMatrix()) * R0.transpose();
-    //    RtrunkInHand = R0 * RtrunkInHand * R0.transpose();
     eulerT(0) = atan2(RtrunkInHand(1, 2), RtrunkInHand(2, 2)); //rotation around X-axis
     eulerT(1) = -atan(RtrunkInHand(0, 2) / sqrt(1 - RtrunkInHand(0, 2) * RtrunkInHand(0, 2))); //rotation around Y-axis
     eulerT(2) = atan2(RtrunkInHand(0, 1), RtrunkInHand(0, 0)); //rotation around Z-axis
+
+    //    RtrunkHipInHand = R0 * ((qHand * qHip.conjugate() * qHip0 * qTrunk0.conjugate() * qTrunk * qHand.conjugate()).toRotationMatrix()) * R0.transpose();
+    //    eulerT(0) = atan2(RtrunkHipInHand(1, 2), RtrunkHipInHand(2, 2)); //rotation around X-axis
+    //    eulerT(1) = -atan(RtrunkHipInHand(0, 2) / sqrt(1 - RtrunkHipInHand(0, 2) * RtrunkHipInHand(0, 2))); //rotation around Y-axis
+    //    eulerT(2) = atan2(RtrunkHipInHand(0, 1), RtrunkHipInHand(0, 0)); //rotation around Z-axis
 }
 
 /**
@@ -699,7 +704,7 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, int lambda[], double thr
     }
 
     IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
-    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref));
+    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref)); // + lsh * xref));
     if (nbLinks == 2) { // no wrist flexion
         thetaNew = dlsJ * delta;
     } else if (nbLinks == 3) { // wrist flexion -> from shoulder rotation
@@ -756,5 +761,8 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 6 + j] = eulerT(j);
+    }
+    for (int j = 0; j < 3; j++) {
+        d[6 * nbLinks + 9 + j] = eulerA(j);
     }
 }

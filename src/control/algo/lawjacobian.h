@@ -33,7 +33,7 @@ public:
     void updateFrames(double theta[]);
     void updateFramesinEE(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
-    void computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk);
+    void computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qHip);
     void computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm);
     void controlLaw_v1(int k, int lambda[], double threshold[], int _cnt);
     void controlLaw_v2(int k, int lambda[], double threshold[], int _cnt);
@@ -70,7 +70,7 @@ private:
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot; // joint angles and angular velocities command
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA; // Trunk and Arm Euler angles, expressed in hand frame
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, RtrunkInHand, RArmInHand, I3; // rotation matrices
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
 
     double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation
