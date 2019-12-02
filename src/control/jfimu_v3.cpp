@@ -36,6 +36,6 @@ void JFIMU_v3::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen:
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.updateFrames(theta);
     _lawJ.computeOriginsVectors(l, nbDOF);
-    _lawJ.computeTrunkAngles(qHa, qT);
+    _lawJ.computeTrunkAngles(qHa, qT, qHi);
     _lawJ.controlLaw_v3(lt, lsh, k, lambda, threshold, cnt);
 }

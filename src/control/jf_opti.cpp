@@ -178,7 +178,7 @@ bool JacobianFormulationOpti::setup()
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     // OPEN AND NAME DATA FILE
-    std::string filename("GalF");
+    std::string filename("JFOpti");
     std::string suffix;
 
     int cnt = 0;

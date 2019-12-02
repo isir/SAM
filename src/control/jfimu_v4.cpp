@@ -9,7 +9,7 @@ JFIMU_v4::JFIMU_v4(std::shared_ptr<SAM::Components> robot)
     : ControlIMU("Jacobian Formulation IMU 4", "JFIMU4", robot)
 {
     _menu->set_description("Jacobian Formulation IMU v4");
-    _menu->set_code("jfi3");
+    _menu->set_code("jfi4");
 }
 
 JFIMU_v4::~JFIMU_v4()
@@ -36,7 +36,7 @@ void JFIMU_v4::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen:
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.updateFrames(theta);
     _lawJ.computeOriginsVectors(l, nbDOF);
-    _lawJ.computeTrunkAngles(qHa, qT);
+    _lawJ.computeTrunkAngles(qHa, qT, qHi);
     _lawJ.computeArmAngles(qHa, qT, qA);
     _lawJ.controlLaw_v4(lt, lsh, k, lambda, threshold, cnt);
 }
