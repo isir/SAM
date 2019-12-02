@@ -17,6 +17,7 @@ public:
     void stop();
     void zero();
     void tareIMU();
+    void calibrations();
     void display_parameters();
     void display_lengths();
 
@@ -56,14 +57,22 @@ private:
     unsigned int _ind;
     unsigned int _infoSent;
 
-    int _Lt;
-    double _Lua;
-    double _Lfa;
+    //    int _Lt;
+    //    double _Lua;
+    //    double _Lfa;
     double _l;
-    int _lsh;
-    int _lambdaW, _lambda;
-    double _thresholdW, _threshold;
+    //    int _lsh;
+    //    int _lambdaW, _lambda;
+    //    double _thresholdW, _threshold;
     int _pinArduino;
+
+    Param<int> _lt; // length of the trunk
+    Param<int> _lua; // upper-arm length
+    Param<int> _lfa; // forearm length
+    Param<int> _lambdaE; // gain for elbow flexion
+    Param<int> _lambdaWPS; // gain for wrist pronosupination
+    Param<double> _thresholdE; // threshold for elbow flexion
+    Param<double> _thresholdWPS; // thresold for wrist pronosupination
 };
 
 #endif // COMPENSATION_OPTITRACK_H
