@@ -26,7 +26,7 @@ SAManager::~SAManager()
         _robot->user_feedback.leds->set(LedStrip::none, 10);
     if (_robot->joints.elbow_flexion) {
         _robot->joints.elbow_flexion->move_to(0, 20);
-        usleep(3 * 1000000);
+        usleep(4 * 1000000);
     }
 }
 
