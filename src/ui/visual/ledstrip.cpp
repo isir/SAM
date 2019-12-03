@@ -6,6 +6,7 @@ static const uint8_t led_value = 50;
 
 LedStrip::color LedStrip::white(led_value, led_value, led_value, 1);
 LedStrip::color LedStrip::red(led_value, 0, 0, 1);
+LedStrip::color LedStrip::red_bright(3*led_value, 0, 0, 1);
 LedStrip::color LedStrip::green(0, led_value, 0, 1);
 LedStrip::color LedStrip::blue(0, 0, led_value, 1);
 LedStrip::color LedStrip::none(0, 0, 0, 0);
