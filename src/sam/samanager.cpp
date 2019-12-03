@@ -33,7 +33,7 @@ void SAManager::run()
 
     instantiate_controllers();
     fill_menus();
-    autostart_demo();
+    //autostart_demo();
     autostart_adc();
 
     std::unique_lock lock(_cv_mutex);
@@ -48,7 +48,6 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
-   // _main_menu->add_submenu_from_user(_robot->sensors.adc0);
     _main_menu->add_submenu_from_user(_adc);
 
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
