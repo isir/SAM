@@ -53,6 +53,7 @@ Joints::Joints()
 
 Components::Components()
     : demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , adc_gpio(27, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn2(22, GPIO::DIR_INPUT, GPIO::PULL_UP)
 {

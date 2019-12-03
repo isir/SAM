@@ -34,6 +34,7 @@ void SAManager::run()
     instantiate_controllers();
     fill_menus();
     autostart_demo();
+    autostart_adc();
 
     std::unique_lock lock(_cv_mutex);
     _cv.wait(lock);
@@ -106,6 +107,19 @@ void SAManager::autostart_demo()
             _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
             _main_menu->activate_item("demo");
             _demo->start();
+        }
+    }
+}
+
+void SAManager::autostart_adc()
+{
+    if (_adc) {
+        if (_robot->adc_gpio) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
+            _main_menu->activate_item("adc");
+            _adc->start();
         }
     }
 }

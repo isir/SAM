@@ -83,6 +83,7 @@ public:
     Joints joints;
 
     GPIO demo_gpio;
+    GPIO adc_gpio;
     GPIO btn1;
     GPIO btn2;
 

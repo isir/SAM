@@ -28,6 +28,7 @@ private:
     void fill_menus();
     void instantiate_controllers();
     void autostart_demo();
+    void autostart_adc();
 
     std::condition_variable _cv;
     std::mutex _cv_mutex;
