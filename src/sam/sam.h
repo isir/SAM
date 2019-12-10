@@ -11,6 +11,7 @@
 #include "components/internal/actuators/shoulder_rotator.h"
 #include "components/internal/actuators/wrist_flexor.h"
 #include "components/internal/actuators/wrist_rotator.h"
+#include "components/internal/actuators/wrist_cybathlon.h"
 #include "components/internal/actuators/elbow_cybathlon.h"
 #include "components/internal/adc/adafruit_ads1115.h"
 #include "components/internal/gpio/gpio.h"

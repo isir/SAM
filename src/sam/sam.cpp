@@ -44,6 +44,9 @@ Joints::Joints()
 
     if (!wrist_pronation) {
         wrist_pronation = Components::make_component<PronoSupination>("wrist_pronation_v1");
+        if (!wrist_pronation) {
+            wrist_pronation = Components::make_component<WristCybathlon>("wrist_pronation_cybathlon");
+        }
     }
 
     if (!elbow_flexion) {
