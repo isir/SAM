@@ -14,6 +14,7 @@
 #include "components/internal/actuators/wrist_cybathlon.h"
 #include "components/internal/actuators/elbow_cybathlon.h"
 #include "components/internal/adc/adafruit_ads1115.h"
+#include "components/internal/dac/mcp4728.h"
 #include "components/internal/gpio/gpio.h"
 #include "components/internal/hand/touch_bionics_hand.h"
 #include "ui/sound/buzzer.h"
@@ -54,6 +55,8 @@ public:
     std::unique_ptr<Adafruit_ADS1115> adc1;
     std::unique_ptr<Adafruit_ADS1115> adc2;
     std::unique_ptr<Adafruit_ADS1115> adc3;
+    std::unique_ptr<MCP4728> dac0;
+    std::unique_ptr<MCP4728> dac1;
     std::unique_ptr<OptiListener> optitrack;
 };
 

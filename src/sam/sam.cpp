@@ -18,6 +18,9 @@ Sensors::Sensors()
     adc2 = Components::make_component<Adafruit_ADS1115>("adc2", "/dev/i2c-1", 0x4B);
     adc3 = Components::make_component<Adafruit_ADS1115>("adc3", "/dev/i2c-1", 0x4A);
 
+    dac0 = Components::make_component<MCP4728>("dac0", "/dev/i2c-1", 0x60);
+    dac1 = Components::make_component<MCP4728>("dac1", "/dev/i2c-1", 0x61);
+
     optitrack = Components::make_component<OptiListener>("optitrack");
     if (optitrack) {
         optitrack->begin(1511);
