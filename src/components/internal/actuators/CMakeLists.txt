@@ -8,7 +8,8 @@ set(SOURCES
     pronosupination.cpp
     shoulder_rotator.cpp
     wrist_flexor.cpp
-    wrist_rotator.cpp)
+    wrist_rotator.cpp
+    elbow_cybathlon.cpp)
 
 add_subdirectory(roboclaw)
 

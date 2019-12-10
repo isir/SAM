@@ -48,6 +48,9 @@ Joints::Joints()
 
     if (!elbow_flexion) {
         elbow_flexion = Components::make_component<OsmerElbow>("elbow_v1");
+        if (!elbow_flexion) {
+            elbow_flexion = Components::make_component<ElbowCybathlon>("elbow_cybathlon");
+        }
     }
 }
 
