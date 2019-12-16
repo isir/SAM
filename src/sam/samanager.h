@@ -13,6 +13,7 @@
 #include "control/recorddata.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
+#include "control/read_adc.h"
 #include "sam/sam.h"
 #include "sam/system_monitor.h"
 #include "ui/menu/menu_console.h"
@@ -32,6 +33,7 @@ private:
     void fill_menus();
     void instantiate_controllers();
     void autostart_demo();
+    void autostart_adc();
 
     std::condition_variable _cv;
     std::mutex _cv_mutex;
@@ -48,6 +50,7 @@ private:
     std::unique_ptr<Demo> _demo;
     std::unique_ptr<DemoIMU> _demoimu;
     std::unique_ptr<SystemMonitor> _sm;
+    std::unique_ptr<ReadADC> _adc;
 
     std::unique_ptr<MenuBackend> _main_menu;
     std::unique_ptr<MenuMQTT> _menu_mqtt_binding;

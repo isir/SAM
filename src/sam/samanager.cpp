@@ -24,6 +24,7 @@ SAManager::~SAManager()
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 10);
+    _robot->mosfet_gpio = false;
     if (_robot->joints.elbow_flexion) {
         _robot->joints.elbow_flexion->move_to(0, 20);
         usleep(4 * 1000000);
@@ -36,9 +37,12 @@ void SAManager::run()
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::white, 10);
 
+    _robot->mosfet_gpio = true;
+
     instantiate_controllers();
     fill_menus();
-    autostart_demo();
+    //autostart_demo();
+    autostart_adc();
 
     std::unique_lock lock(_cv_mutex);
     _cv.wait(lock);
@@ -51,6 +55,8 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("db", "Double Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ); });
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
+
+    _main_menu->add_submenu_from_user(_adc);
 
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
@@ -99,6 +105,10 @@ void SAManager::instantiate_controllers()
     } catch (std::exception&) {
     }
     try {
+        _adc = std::make_unique<ReadADC>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
         _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
     } catch (std::exception&) {
     }
@@ -129,6 +139,19 @@ void SAManager::autostart_demo()
             _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
             _main_menu->activate_item("demo");
             _demo->start();
+        }
+    }
+}
+
+void SAManager::autostart_adc()
+{
+    if (_adc) {
+        if (_robot->adc_gpio) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
+            _main_menu->activate_item("adc");
+            _adc->start();
         }
     }
 }

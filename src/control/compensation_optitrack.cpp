@@ -381,7 +381,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     if (_cnt == 0) {
         _file << _lua << ' ' << _lfa << ' ' << _l << std::endl;
     }
-    _file << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _robot->sensors.adc->readADC_SingleEnded(0) << ' ' << _robot->sensors.adc->readADC_SingleEnded(1) << ' ' << timerTask;
+    _file << deltaTtable << ' ' << timeWithDelta << ' ' << btn_sync << ' ' << absTtable << ' ' << _robot->sensors.adc0->readADC_SingleEnded(0) << ' ' << _robot->sensors.adc0->readADC_SingleEnded(1) << ' ' << timerTask;
     _file << ' ' << _pinArduino;
     _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     _file << ' ' << index_acromion << ' ' << index_EE << ' ' << index_elbow << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << posA[0] << ' ' << posA[1] << ' ' << posA[2];

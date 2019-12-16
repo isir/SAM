@@ -13,7 +13,13 @@ Sensors::Sensors()
     red_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, B115200);
     yellow_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, B115200);
 
-    adc = Components::make_component<Adafruit_ADS1115>("adc", "/dev/i2c-1", 0x48);
+    adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
+    adc1 = Components::make_component<Adafruit_ADS1115>("adc1", "/dev/i2c-1", 0x49);
+    adc2 = Components::make_component<Adafruit_ADS1115>("adc2", "/dev/i2c-1", 0x4B);
+    adc3 = Components::make_component<Adafruit_ADS1115>("adc3", "/dev/i2c-1", 0x4A);
+
+    dac0 = Components::make_component<MCP4728>("dac0", "/dev/i2c-1", 0x60);
+    dac1 = Components::make_component<MCP4728>("dac1", "/dev/i2c-1", 0x61);
 
     optitrack = Components::make_component<OptiListener>("optitrack");
     if (optitrack) {
@@ -41,15 +47,23 @@ Joints::Joints()
 
     if (!wrist_pronation) {
         wrist_pronation = Components::make_component<PronoSupination>("wrist_pronation_v1");
+        if (!wrist_pronation) {
+            wrist_pronation = Components::make_component<WristCybathlon>("wrist_pronation_cybathlon");
+        }
     }
 
     if (!elbow_flexion) {
         elbow_flexion = Components::make_component<OsmerElbow>("elbow_v1");
+        if (!elbow_flexion) {
+            elbow_flexion = Components::make_component<ElbowCybathlon>("elbow_cybathlon");
+        }
     }
 }
 
 Components::Components()
-    : demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    : mosfet_gpio(4,GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
+    , demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , adc_gpio(27, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn2(22, GPIO::DIR_INPUT, GPIO::PULL_UP)
 {

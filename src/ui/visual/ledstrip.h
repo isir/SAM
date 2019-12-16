@@ -28,7 +28,7 @@ public:
         uint8_t brightness;
     };
 
-    static color white, red, green, blue, none;
+    static color white, red, red_bright, green, blue, none;
 
     LedStrip();
     ~LedStrip();

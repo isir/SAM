@@ -14,7 +14,7 @@ public:
 
     double pos();
     using RC::RoboClaw::move_to;
-    void move_to(double deg, double speed, bool block = false);
+    virtual void move_to(double deg, double speed, bool block = false);
     void set_velocity(double deg_s);
     virtual void set_velocity_safe(double deg_s);
     virtual bool is_calibrated() { return _calibrated; }
