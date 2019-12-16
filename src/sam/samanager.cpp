@@ -24,12 +24,15 @@ SAManager::~SAManager()
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 10);
+    _robot->mosfet_gpio = false;
 }
 
 void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
     _robot->user_feedback.leds->set(LedStrip::white, 10);
+
+    _robot->mosfet_gpio = true;
 
     instantiate_controllers();
     fill_menus();

@@ -87,6 +87,7 @@ public:
     Sensors sensors;
     Joints joints;
 
+    GPIO mosfet_gpio;
     GPIO demo_gpio;
     GPIO adc_gpio;
     GPIO btn1;
