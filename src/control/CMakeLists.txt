@@ -17,6 +17,7 @@ set(SOURCES
     jfimu_v4.cpp
     matlab_receiver.cpp
     remote_computer_control.cpp
+    recorddata.cpp
     voluntary_control.cpp)
 
 add_library(control ${SOURCES})

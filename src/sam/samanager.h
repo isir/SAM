@@ -10,6 +10,7 @@
 #include "control/jfimu_v3.h"
 #include "control/jfimu_v4.h"
 #include "control/matlab_receiver.h"
+#include "control/recorddata.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
 #include "sam/sam.h"
@@ -40,6 +41,7 @@ private:
     std::unique_ptr<JacobianFormulationIMU> _jfIMU1;
     std::unique_ptr<JFIMU_v3> _jfIMU3;
     std::unique_ptr<JFIMU_v4> _jfIMU4;
+    std::unique_ptr<RecordData> _recordData;
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
     std::unique_ptr<MatlabReceiver> _mr;
