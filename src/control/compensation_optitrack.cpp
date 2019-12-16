@@ -352,7 +352,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
         //        _lawopti.computeEEfromFA(posFA, _l, qFA_record);
         //        _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _lua, _lfa, _l, _lambdaE, _thresholdE * M_PI / 180);
-        _lawopti.controlLawWrist(_lambdaWPS, _thresholdWPS * M_PI / 180);
+        //        _lawopti.controlLawWrist(_lambdaWPS, _thresholdWPS * M_PI / 180);
         _robot->joints.elbow_flexion->set_velocity_safe(_lawopti.returnBetaDot_deg());
         //        _robot->joints.elbow_flexion->set_velocity_safe(-10);
 

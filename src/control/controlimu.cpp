@@ -322,6 +322,17 @@ void ControlIMU::loop(double, clock::time_point time)
                 debug() << "elbow flex vel :" << _thetaDot_toSend[1] << "\n";
             }
         }
+
+        static int prev_pin_up_value = 1, prev_pin_down_value = 1;
+        int pin_down_value = _robot->btn2;
+        int pin_up_value = _robot->btn1;
+
+        if (pin_down_value == 0 && prev_pin_down_value == 1) {
+            _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
+        } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+            _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
+        } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+        }
     }
 
     _lawJ.writeDebugData(debugData, _theta);
