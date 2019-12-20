@@ -16,8 +16,9 @@ public:
 
 private:
     std::shared_ptr<SAM::Components> _robot;
-    int _th_low;
-    int _th_high;
+    static const uint16_t _n_electrodes=6;
+    int _th_low[_n_electrodes];
+    int _th_high[_n_electrodes];
 };
 
 #endif // READADC_H
