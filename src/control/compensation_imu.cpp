@@ -6,13 +6,8 @@
 CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Compensation IMU", 0.01)
     , _robot(robot)
-    , _Lt(40)
-    , _Lua(0.)
-    , _Lfa(0.)
-    , _l(0.)
-    , _lambdaW(0)
-    , _lambda(0)
-    , _thresholdW(5.)
+    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 0)
+    , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.yellow_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
@@ -45,47 +40,13 @@ void CompensationIMU::tare_IMU()
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
     if (_robot->sensors.red_imu)
         _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
-
-    _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
     debug("Wait ...");
 
     std::this_thread::sleep_for(std::chrono::seconds(6));
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
-}
-
-void CompensationIMU::receiveData()
-{
-    printf("in receiveData \n");
-    while (_receiver.available()) {
-        auto data = _receiver.receive();
-        std::string buf;
-        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
-        std::istringstream ts(buf);
-        int tmp;
-
-        ts >> tmp;
-        _Lua = tmp;
-
-        ts >> tmp;
-        _Lfa = tmp;
-
-        ts >> tmp;
-        _l = tmp;
-
-        ts >> tmp;
-        _lambda = tmp;
-
-        ts >> tmp;
-        _lambdaW = tmp;
-
-        ts >> tmp;
-        _threshold = tmp * M_PI / 180.; // dead zone limit for beta change, in rad.
-
-        ts >> tmp;
-        _thresholdW = tmp * M_PI / 180; // dead zone limit for wrist angle change, in rad.
-        printf("lambdaW:%d\n", _lambdaW);
-    }
 }
 
 void CompensationIMU::displayPin()
@@ -98,9 +59,6 @@ void CompensationIMU::displayPin()
 
 bool CompensationIMU::setup()
 {
-    if (_robot->joints.elbow_flexion) {
-        _robot->joints.elbow_flexion->calibrate();
-    }
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     std::string filename("compensationIMU");
@@ -153,9 +111,12 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
 
     double qBras[4], qTronc[4], qFA[4];
-    _robot->sensors.white_imu->get_quat(qBras);
-    _robot->sensors.red_imu->get_quat(qTronc);
-    _robot->sensors.yellow_imu->get_quat(qFA);
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->get_quat(qBras);
+    if (_robot->sensors.red_imu)
+        _robot->sensors.red_imu->get_quat(qTronc);
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->get_quat(qFA);
 
     //    qDebug("qfa: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
 
@@ -171,15 +132,9 @@ void CompensationIMU::loop(double dt, clock::time_point time)
         _lawimu.initialPositions(qFA_record, _cnt, init_cnt);
     } else {
         _lawimu.rotationMatrices(qFA_record);
-        _lawimu.controlLawWrist(_lambdaW, _thresholdW);
+        _lawimu.controlLawWrist(_lambdaW, _thresholdW * M_PI / 180);
 
-        if (_lawimu.returnWristVel_deg() > 0) {
-            _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
-        } else if (_lawimu.returnWristVel_deg() < 0) {
-            _robot->joints.wrist_pronation->set_velocity_safe(-_lawimu.returnWristVel_deg());
-        } else if (_lawimu.returnWristVel_deg() == 0) {
-            _robot->joints.wrist_pronation->forward(0);
-        }
+        _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
 
         if (_cnt % 50 == 0) {
             _lawimu.displayData();
