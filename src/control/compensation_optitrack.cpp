@@ -13,17 +13,10 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
-    //    , _Lt(40)
-    //    , _Lua(0.)
-    //    , _Lfa(0.)
     , _l(0.)
-    //    , _lsh(-35)
-    //    , _lambdaW(0)
-    //    , _lambda(0)
-    //    , _thresholdW(5.)
     , _pinArduino(0)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.red_imu, _robot->sensors.white_imu, _robot->sensors.optitrack)) {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.yellow_imu, _robot->sensors.white_imu, _robot->sensors.optitrack)) {
         throw std::runtime_error("Optitrack Compensation is missing components");
     }
 
@@ -63,18 +56,17 @@ void CompensationOptitrack::zero()
 
 void CompensationOptitrack::tareIMU()
 {
-    _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
-    _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
-    debug("Wait for triple bip");
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+    if (_robot->sensors.red_imu)
+        _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
-
-    double qBras[4], qTronc[4];
-    _robot->sensors.white_imu->get_quat(qBras);
-    _robot->sensors.red_imu->get_quat(qTronc);
-    debug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
-    debug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
 }
 
 void CompensationOptitrack::display_parameters()
@@ -264,8 +256,8 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     int timerTask = 1;
 
     double qBras[4], qTronc[4];
-    _robot->sensors.white_imu->get_quat(qBras);
-    _robot->sensors.red_imu->get_quat(qTronc);
+    //    _robot->sensors.white_imu->get_quat(qBras);
+    //    _robot->sensors.yellow_imu->get_quat(qTronc);
     //    debug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
     //    qDebug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
 
@@ -274,12 +266,12 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     int index_acromion = -1, index_FA = -1, index_EE = -1, index_elbow = -1, index_hip = -1;
 
     for (unsigned int i = 0; i < data.nRigidBodies; i++) {
-        if (data.rigidBodies[i].ID == 3) {
+        if (data.rigidBodies[i].ID == 6) {
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
             index_acromion = static_cast<int>(i);
-        } else if (data.rigidBodies[i].ID == 4) {
+        } else if (data.rigidBodies[i].ID == 3) {
             posFA[0] = data.rigidBodies[i].x * 100;
             posFA[1] = data.rigidBodies[i].y * 100;
             posFA[2] = data.rigidBodies[i].z * 100;
@@ -288,7 +280,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
             qFA_record.y() = data.rigidBodies[i].qy;
             qFA_record.z() = data.rigidBodies[i].qz;
             index_FA = static_cast<int>(i);
-        } else if (data.rigidBodies[i].ID == 6) {
+        } else if (data.rigidBodies[i].ID == 4) {
             posElbow[0] = data.rigidBodies[i].x * 100;
             posElbow[1] = data.rigidBodies[i].y * 100;
             posElbow[2] = data.rigidBodies[i].z * 100;
@@ -309,9 +301,9 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
             index_hip = static_cast<int>(i);
         }
     }
-    //    debug() << "qFA: " << qFA_record.w() << " " << qFA_record.x() << " " << qFA_record.y() << " " << qFA_record.z();
+    //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
 
-    double beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
+    double beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
     if (_need_to_write_header) {
         _file << "delta, time, btn_sync, abs_time, emg1, emg2, timerTask, pinArduino,";
@@ -353,7 +345,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
         //        _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _lua, _lfa, _l, _lambdaE, _thresholdE * M_PI / 180);
         //        _lawopti.controlLawWrist(_lambdaWPS, _thresholdWPS * M_PI / 180);
-        _robot->joints.elbow_flexion->set_velocity_safe(_lawopti.returnBetaDot_deg());
+        _robot->joints.elbow_flexion->set_velocity_safe(-_lawopti.returnBetaDot_deg());
         //        _robot->joints.elbow_flexion->set_velocity_safe(-10);
 
         //        if (_lawopti.returnWristVel_deg() < 0)
@@ -500,7 +492,7 @@ void CompensationOptitrack::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(-20, 20);
+    //    _robot->joints.elbow_flexion->move_to(20, 20);
 }
 
 void CompensationOptitrack::on_def()

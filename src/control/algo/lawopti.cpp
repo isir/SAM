@@ -262,8 +262,8 @@ void LawOpti::writeDebugData(double d[], Eigen::Vector3f posEE, double beta)
 void LawOpti::displayData(Eigen::Vector3f posEE, double beta)
 {
     //qDebug("posA0 : %lf; %lf, %lf", posA0[0], posA0[1], posA0[2]);
-    //    debug() << "posA0: " << posA0[0] << "; " << posA0[1] << ", " << posA0[2];
-    //    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << ", " << posEE[2];
+    debug() << "posA0: " << posA0[0] << "; " << posA0[1] << ", " << posA0[2];
+    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << ", " << posEE[2];
     //    debug() << "posEE in hip frame: " << posEEinHip[0] << "; " << posEEinHip[1] << ", " << posEEinHip[2];
     debug() << "beta (deg): " << (beta * 180 / M_PI) << " \n beta_new (deg): " << (beta_new * 180 / M_PI);
     //    debug() << "phi: %lf -- theta: %lf  -- wristAngle (deg): %lf ", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI;
