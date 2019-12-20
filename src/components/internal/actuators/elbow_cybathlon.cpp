@@ -8,7 +8,7 @@ ElbowCybathlon::ElbowCybathlon()
     _menu->set_description("Elbow Cybathlon - " + read_firmware_version());
     _menu->set_code("elbow");
 
-    _max_velocity = 15;
+    _max_velocity = 30;
 
     set_params_limits(0, 100.);
     set_params_technical(4065, 100);
@@ -18,7 +18,7 @@ ElbowCybathlon::ElbowCybathlon()
 
 void ElbowCybathlon::calibrate()
 {
-    Actuator::calibrate(-5, -15, 0.5, false);
+    Actuator::calibrate(-10, -15, 0.5, false);
     move_to(0, 15, true);
 }
 
