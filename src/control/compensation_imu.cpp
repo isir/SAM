@@ -87,8 +87,6 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
 
-    receiveData();
-
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
 
@@ -168,7 +166,6 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 
 void CompensationIMU::cleanup()
 {
-    //    _robot.elbow->forward(0);
     _robot->joints.wrist_pronation->forward(0);
     _file.close();
 }

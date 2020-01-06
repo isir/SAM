@@ -32,7 +32,7 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     _menu->set_code("opti");
     _menu->add_item("1", "Start (+ filename [comp for compensation, vol for voluntary control])", [this](std::string args) { this->start(args); });
     _menu->add_item("zero", "Back to 0°", [this](std::string) { this->zero(); });
-    _menu->add_item("disp", "Display law parameters", [this](std::string) { this->display_parameters(); });
+    _menu->add_item("tare", "Tare IMU", [this](std::string) { this->tareIMU(); });
     _menu->add_item("al", "Display anatomical lengths", [this](std::string) { this->display_lengths(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
 
@@ -256,8 +256,8 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     int timerTask = 1;
 
     double qBras[4], qTronc[4];
-    //    _robot->sensors.white_imu->get_quat(qBras);
-    //    _robot->sensors.yellow_imu->get_quat(qTronc);
+    _robot->sensors.white_imu->get_quat(qBras);
+    _robot->sensors.yellow_imu->get_quat(qTronc);
     //    debug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
     //    qDebug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
 
@@ -301,7 +301,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
             index_hip = static_cast<int>(i);
         }
     }
-    //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
+    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
 
     double beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
