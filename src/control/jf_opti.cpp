@@ -9,11 +9,6 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
     , _lt(40)
-    //    , _lua(30)
-    //    , _lfa(20)
-    //    , _lwrist(5)
-    //    , _lhand(10)
-    //    , _lambda(0.)
     , _pin_up(24)
     , _pin_down(22)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
@@ -28,10 +23,6 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.optitrack)) {
         throw std::runtime_error("Jacobian Formulation Control is missing components");
-    }
-
-    if (!_receiver.bind("0.0.0.0", 45457)) {
-        critical() << "General Formulation: Failed to bind receiver for parameters definition";
     }
 
     _menu->set_description("Jacobian Formulation Opti");
@@ -209,19 +200,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 {
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
-
-    //    receiveData();
-    //    if (_robot->joints.wrist_flexion) {
-    //        l[0] = _lhand; // from center of the hand to the pronosupination joint
-    //        l[1] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
-    //        l[2] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
-    //        l[3] = _lua; // from the elbow joint to the acromion/shoulder joint
-
-    //    } else {
-    //        l[0] = _lhand + _lwrist;
-    //        l[1] = _lfa;
-    //        l[2] = _lua;
-    //    }
 
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
