@@ -63,6 +63,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_robot->joints.wrist_pronation);
     _main_menu->add_submenu_from_user(_robot->joints.elbow_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.hand);
+    _main_menu->add_submenu_from_user(_robot->joints.hand_quantum);
     _main_menu->add_submenu_from_user(_vc);
     _main_menu->add_submenu_from_user(_rm);
     _main_menu->add_submenu_from_user(_mr);
