@@ -19,6 +19,7 @@ Actuator::Actuator(std::string name)
     _menu->add_item("s", "Stop", [this](std::string) { forward(0); });
     _menu->add_item("calib", "Calibrate", [this](std::string) { calibrate(); });
     _menu->add_item("e", "Read encoder", [this](std::string) { info() << "Position:" << read_encoder_position() << "steps"; });
+    _menu->add_item("a", "Read angle", [this](std::string) { info() << "Angle:" << pos() << " deg"; });
     _menu->add_item("g", "Go to", [this](std::string args) {if (args.length() > 0) move_to(std::stod(args), 10); });
     _menu->add_item("v", "Set velocity (deg/s)", [this](std::string args) { if (args.length() > 0) args = "0"; set_velocity_safe(std::stod(args)); });
     _menu->add_item("z", "Set encoder zero", [this](std::string) { set_encoder_position(0); });

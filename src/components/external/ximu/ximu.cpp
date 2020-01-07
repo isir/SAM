@@ -71,6 +71,7 @@ void XIMU::init_imudata()
     imudata_euler_available = false;
     imudata_cal_available = false;
     imudata_time_available = false;
+    imudata_analog_available = false;
     imudata_quat_available = false;
 
     for (int i = 0; i < NB_OLD_QUAT; i++)
@@ -134,6 +135,27 @@ void XIMU::loop(double, clock::time_point)
             i = 0;
         }
     }
+}
+
+bool XIMU::get_analog(double* a)
+{
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
+    bool result = imudata_analog_available;
+
+    //access data
+    a[0] = imudata_analog[0];
+    a[1] = imudata_analog[1];
+    a[2] = imudata_analog[2];
+    a[3] = imudata_analog[3];
+    a[4] = imudata_analog[4];
+    a[5] = imudata_analog[5];
+    a[6] = imudata_analog[6];
+    a[7] = imudata_analog[7];
+
+    printf("analog data: %lf, %lf, %lf, %lf, %lf, %lf, %lf, %lf \n", a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
+    imudata_analog_available = false;
+
+    return result;
 }
 
 bool XIMU::get_euler(double* e)
@@ -868,6 +890,12 @@ void XIMU::process_cal_analog_data(unsigned char* ptr, int len)
         }
         printf("] [FIXME: add implementation]\n");
     }
+
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
+    for (int i = 0; i < 8; i++) {
+        imudata_analog[i] = raw[i];
+    }
+    imudata_analog_available = true;
 }
 
 void XIMU::process_pwm_data(unsigned char* ptr, int len)

@@ -23,6 +23,7 @@ void OptiListener::update()
     while (_socket.available()) {
         packet = _socket.receive();
         _last_data = unpack(reinterpret_cast<char*>(packet.data()));
+        //        debug() << packet.size();
     }
 }
 

@@ -9,7 +9,7 @@ PronoSupination::PronoSupination()
     _menu->set_code("pronosup");
 
     set_params_limits(-100., 0.);
-    set_params_technical(23422, 100);
+    set_params_technical(102, 100);
     set_params_velocity(4.2f, 0.56f, 0, 6000);
     set_params_position(51., 1.4f, 428., 60., 0., -180., 180.);
 }

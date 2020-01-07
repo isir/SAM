@@ -9,10 +9,16 @@ set(SOURCES
     compensation_imu.cpp
     compensation_optitrack.cpp
     demo.cpp
-    general_formulation.cpp
+    demo_imu.cpp
+    controlimu.cpp
+    jf_opti.cpp
+    jfimu.cpp
+    jfimu_v3.cpp
+    jfimu_v4.cpp
     matlab_receiver.cpp
     read_adc.cpp
     remote_computer_control.cpp
+    recorddata.cpp
     voluntary_control.cpp)
 
 add_library(control ${SOURCES})

@@ -6,13 +6,13 @@
 #include "components/external/ximu/ximu.h"
 #include "components/internal/actuators/actuator.h"
 #include "components/internal/actuators/custom_elbow.h"
+#include "components/internal/actuators/elbow_cybathlon.h"
 #include "components/internal/actuators/osmer_elbow.h"
 #include "components/internal/actuators/pronosupination.h"
 #include "components/internal/actuators/shoulder_rotator.h"
+#include "components/internal/actuators/wrist_cybathlon.h"
 #include "components/internal/actuators/wrist_flexor.h"
 #include "components/internal/actuators/wrist_rotator.h"
-#include "components/internal/actuators/wrist_cybathlon.h"
-#include "components/internal/actuators/elbow_cybathlon.h"
 #include "components/internal/adc/adafruit_ads1115.h"
 //#include "components/internal/dac/mcp4728.h"
 #include "components/internal/gpio/gpio.h"
@@ -49,9 +49,9 @@ public:
     Sensors();
 
     std::unique_ptr<Myoband> myoband;
-    std::unique_ptr<XIMU> arm_imu;
-    std::unique_ptr<XIMU> trunk_imu;
-    std::unique_ptr<XIMU> fa_imu;
+    std::unique_ptr<XIMU> white_imu;
+    std::unique_ptr<XIMU> red_imu;
+    std::unique_ptr<XIMU> yellow_imu;
     std::unique_ptr<Adafruit_ADS1115> adc0;
     std::unique_ptr<Adafruit_ADS1115> adc1;
     std::unique_ptr<Adafruit_ADS1115> adc2;

@@ -14,7 +14,6 @@ public:
 
 private:
     void tare_IMU();
-    void receiveData();
     void displayPin();
 
     bool setup() override;
@@ -31,12 +30,8 @@ private:
     int _cnt;
     LawIMU _lawimu;
 
-    int _Lt;
-    double _Lua;
-    double _Lfa;
-    double _l;
-    int _lambdaW, _lambda;
-    double _thresholdW, _threshold;
+    Param<int> _lambdaW;
+    Param<double> _thresholdW;
 };
 
 #endif // COMPENSATION_IMU_H

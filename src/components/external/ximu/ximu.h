@@ -59,6 +59,7 @@ public:
     bool get_device_detected();
 
     int get_register(unsigned int register_address, unsigned int* val);
+    bool get_analog(double* a);
     bool get_euler(double* e);
     bool get_quat(double* e);
     bool get_cal(double* gyro, double* accel, double* mag);
@@ -299,6 +300,9 @@ private:
     int loglevel;
     bool device_detected;
 
+    //analog data
+    double imudata_analog[8];
+    bool imudata_analog_available;
     //euler data
     double imudata_euler[3];
     bool imudata_euler_available;

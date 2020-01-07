@@ -49,10 +49,10 @@ void LawOpti::initialization(Eigen::Vector3f posA, Eigen::Vector3f posEE, Eigen:
     z0[2] = 1.;
     samplePeriod = 1. / freq;
     coeff = samplePeriod / (0.03 + samplePeriod);
-    delta = 0;
+    delta = 0.;
     beta_new = -M_PI_2;
-    dBeta = 0;
-    betaDot = 0;
+    dBeta = 0.;
+    betaDot = 0.;
     R = Eigen::Matrix3f::Zero();
 }
 /**
@@ -194,9 +194,12 @@ void LawOpti::bufferingOldValues()
  */
 void LawOpti::controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold)
 {
+
+    //    debug() << "threshold (rad): " << threshold;
     // delta = distance between the initial acromion position (considered as the reference position) and the actual end-effector position
-    //    delta = (posEE-posA0).norm();
-    delta = (posEEinHip - posA0inHip).norm();
+    delta = (posEE - posA0).norm();
+    // projected in hip frame
+    //    delta = (posEEinHip - posA0inHip).norm();
     Lee = Lfa + l;
     // limit conditions
     if (delta > (Lua + Lee))
@@ -213,6 +216,9 @@ void LawOpti::controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double 
         dBeta = beta_new - beta - threshold;
     }
     betaDot = lambda * dBeta;
+    if (abs(betaDot) > 50 * M_PI / 180) {
+        betaDot = betaDot / abs(betaDot) * 50 * M_PI / 180;
+    }
 }
 /**
  * @brief LawOpti::controlLawWrist control law for prono-supination
@@ -235,13 +241,14 @@ void LawOpti::controlLawWrist(int lambdaW, double thresholdW)
 
 void LawOpti::writeDebugData(double d[], Eigen::Vector3f posEE, double beta)
 {
-    d[0] = posA0inHip[0];
-    d[1] = posA0inHip[1];
-    d[2] = posA0inHip[2];
-    d[3] = posEEinHip[0];
-    d[4] = posEEinHip[1];
-    d[5] = posEEinHip[2];
+    d[0] = posA0[0];
+    d[1] = posA0[1];
+    d[2] = posA0[2];
+    d[3] = posEE[0];
+    d[4] = posEE[1];
+    d[5] = posEE[2];
     d[6] = delta;
+
     d[9] = beta_new;
     d[10] = beta;
     d[11] = dBeta;
@@ -255,10 +262,10 @@ void LawOpti::writeDebugData(double d[], Eigen::Vector3f posEE, double beta)
 void LawOpti::displayData(Eigen::Vector3f posEE, double beta)
 {
     //qDebug("posA0 : %lf; %lf, %lf", posA0[0], posA0[1], posA0[2]);
-    debug() << "posA0 in hip frame: " << posA0inHip[0] << "; " << posA0inHip[1] << ", " << posA0inHip[2];
-    debug() << "posEE from FA: " << posEEfromFA[0] << "; " << posEEfromFA[1] << ", " << posEEfromFA[2];
-    debug() << "posEE in hip frame: " << posEEinHip[0] << "; " << posEEinHip[1] << ", " << posEEinHip[2];
+    debug() << "posA0: " << posA0[0] << "; " << posA0[1] << ", " << posA0[2];
+    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << ", " << posEE[2];
+    //    debug() << "posEE in hip frame: " << posEEinHip[0] << "; " << posEEinHip[1] << ", " << posEEinHip[2];
     debug() << "beta (deg): " << (beta * 180 / M_PI) << " \n beta_new (deg): " << (beta_new * 180 / M_PI);
-    debug() << "phi: %lf -- theta: %lf  -- wristAngle (deg): %lf ", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI;
-    debug() << "Wrist velocity (deg): " << (wristVel * 180 / M_PI);
+    //    debug() << "phi: %lf -- theta: %lf  -- wristAngle (deg): %lf ", phi * 180 / M_PI, theta * 180 / M_PI, wristAngle_new * 180 / M_PI;
+    //    debug() << "Wrist velocity (deg): " << (wristVel * 180 / M_PI);
 }
