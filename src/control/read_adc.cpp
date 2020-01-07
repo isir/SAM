@@ -90,8 +90,9 @@ void ReadADC::loop(double, clock::time_point time)
 {
     double timeWithDelta = (time - _start_time).count();
 
-    _robot->sensors.optitrack->update();
-    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    //    _robot->sensors.optitrack->update();
+    //    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    //    std::cout << data.nRigidBodies;
 
     double qBras[4], qTronc[4];
     //    _robot->sensors.white_imu->get_quat(qBras);
@@ -112,28 +113,28 @@ void ReadADC::loop(double, clock::time_point time)
     electrodes[4] = _robot->sensors.adc3->readADC_SingleEnded(2);
     electrodes[5] = _robot->sensors.adc3->readADC_SingleEnded(0);
 
-    if (electrodes[2] > _th_high[2] && electrodes[4] < _th_low[4] && electrodes[3] < _th_high[3]) {
-        _robot->joints.elbow_flexion->set_velocity_safe(25);
-    } else if (electrodes[4] > _th_high[4] && electrodes[2] < _th_low[2] && electrodes[3] < _th_high[3]) {
-        _robot->joints.elbow_flexion->set_velocity_safe(-25);
-    } else {
-        _robot->joints.elbow_flexion->set_velocity_safe(0);
-    }
+    //    if (electrodes[2] > _th_high[2] && electrodes[4] < _th_low[4] && electrodes[3] < _th_high[3]) {
+    //        _robot->joints.elbow_flexion->set_velocity_safe(25);
+    //    } else if (electrodes[4] > _th_high[4] && electrodes[2] < _th_low[2] && electrodes[3] < _th_high[3]) {
+    //        _robot->joints.elbow_flexion->set_velocity_safe(-25);
+    //    } else {
+    //        _robot->joints.elbow_flexion->set_velocity_safe(0);
+    //    }
 
-    if (electrodes[3] > _th_high[3] && electrodes[5] < _th_low[5]) {
-        _robot->joints.wrist_pronation->set_velocity_safe(-40);
-    } else if (electrodes[5] > _th_high[5] && electrodes[3] < _th_low[3]) {
-        _robot->joints.wrist_pronation->set_velocity_safe(40);
-    } else {
-        _robot->joints.wrist_pronation->set_velocity_safe(0);
-    }
+    //    if (electrodes[3] > _th_high[3] && electrodes[5] < _th_low[5]) {
+    //        _robot->joints.wrist_pronation->set_velocity_safe(-40);
+    //    } else if (electrodes[5] > _th_high[5] && electrodes[3] < _th_low[3]) {
+    //        _robot->joints.wrist_pronation->set_velocity_safe(40);
+    //    } else {
+    //        _robot->joints.wrist_pronation->set_velocity_safe(0);
+    //    }
 
-    if (electrodes[0] > _th_high[0] && electrodes[1] < _th_low[1]) {
-        // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,1);
-    } else if (electrodes[1] > _th_high[1] && electrodes[0] < _th_low[0]) {
-        // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,1);
-    } else {
-    }
+    //    if (electrodes[0] > _th_high[0] && electrodes[1] < _th_low[1]) {
+    //        // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,1);
+    //    } else if (electrodes[1] > _th_high[1] && electrodes[0] < _th_low[0]) {
+    //        // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,1);
+    //    } else {
+    //    }
 
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         colors[i] = LedStrip::white;
@@ -143,22 +144,22 @@ void ReadADC::loop(double, clock::time_point time)
         } else if (electrodes[i] > _th_low[i]) {
             colors[i] = LedStrip::green;
         }
-        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(electrodes[i]));
+        //        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(electrodes[i]));
         //        std::cout << electrodes[i] << "\t";
     }
 
-    std::cout << std::endl;
+    //    std::cout << std::endl;
     //    _robot->user_feedback.leds->set(colors);
 
-    _file << timeWithDelta << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << electrodes[2] << ' ' << electrodes[3] << ' ' << electrodes[4] << ' ' << electrodes[5];
-    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    _file << ' ' << beta;
-    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
-        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
-    }
-    _file << std::endl;
+    //    _file << timeWithDelta << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << electrodes[2] << ' ' << electrodes[3] << ' ' << electrodes[4] << ' ' << electrodes[5];
+    //    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+    //    _file << ' ' << beta;
+    //    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
+    //        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+    //        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+    //        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    //    }
+    //    _file << std::endl;
 
     //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
