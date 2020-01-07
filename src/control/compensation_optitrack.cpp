@@ -222,7 +222,7 @@ void CompensationOptitrack::loop(double dt, clock::time_point time)
     // listenArduino();
     _robot->sensors.optitrack->update();
 
-    //    debug() << "nb rigid bodies" << _robot->sensors.optitrack->get_last_data().nRigidBodies;
+    debug() << "nb rigid bodies" << _robot->sensors.optitrack->get_last_data().nRigidBodies;
 
     if (_mode == COMP) {
         on_new_data_compensation(_robot->sensors.optitrack->get_last_data(), dt, time);
@@ -301,7 +301,8 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
             index_hip = static_cast<int>(i);
         }
     }
-    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
+    //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
+    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << "; " << posEE[2];
 
     double beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
@@ -358,7 +359,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
         _lawopti.bufferingOldValues();
 
         if (_cnt % 50 == 0) {
-            _lawopti.displayData(posEE, beta);
+            //            _lawopti.displayData(posEE, beta);
             debug() << "lambda elbow: " << _lambdaE;
             debug() << "betaDot in deg:" << _lawopti.returnBetaDot_deg();
         }
