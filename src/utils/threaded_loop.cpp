@@ -4,7 +4,7 @@
 ThreadedLoop::ThreadedLoop(std::string name, double period_s)
     : NamedObject(name)
     , MenuUser("", "", [this] { stop(); })
-    , _period_s("period_ms", BaseParam::ReadWrite, this, period_s)
+    , _period_s("period_s", BaseParam::ReadWrite, this, period_s)
     , _pref_cpu("pref_cpu", BaseParam::ReadWrite, this, DEFAULT_CPU_CORE)
     , _prio("prio", BaseParam::ReadWrite, this, DEFAULT_THREAD_PRIO)
 {
