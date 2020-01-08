@@ -9,7 +9,7 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 0)
     , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.yellow_imu)) {
+    if (!check_ptr(_robot->joints.wrist_pronation, _robot->sensors.yellow_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
@@ -19,8 +19,8 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
 
     _menu->set_description("CompensationIMU");
     _menu->set_code("imu");
-    _menu->add_item("Tare IMUs", "tare", [this](std::string) { this->tare_IMU(); });
-    _menu->add_item("Display Pin data", "pin", [this](std::string) { this->displayPin(); });
+    _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
+    _menu->add_item("pin", "Display Pin data", [this](std::string) { this->displayPin(); });
 
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     if (_robot->joints.hand)
