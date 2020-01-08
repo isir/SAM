@@ -23,6 +23,7 @@ private:
     int _th_low[_n_electrodes];
     int _th_high[_n_electrodes];
 
+    std::ifstream _param_file;
     std::ofstream _file;
 };
 

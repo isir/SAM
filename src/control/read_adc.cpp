@@ -51,6 +51,22 @@ void ReadADC::tareIMU()
 
 bool ReadADC::setup()
 {
+    _param_file = std::ifstream("myo_thresholds");
+     if (!_param_file.good()) {
+         critical() << "Failed to open myo_thresholds file. Using default values instead.";
+     } else {
+         std::string number_string;
+         for (uint16_t i = 0; i < _n_electrodes; i++) {
+             std::getline(_param_file, number_string);
+             _th_low[i] = std::stoi(number_string);
+         }
+         for (uint16_t i = 0; i < _n_electrodes; i++) {
+             std::getline(_param_file, number_string);
+             _th_high[i] = std::stoi(number_string);
+         }
+     }
+     _param_file.close();
+
     if (_robot->joints.elbow_flexion->is_calibrated() == false)
         _robot->joints.elbow_flexion->calibrate();
     if (_robot->joints.wrist_flexion) {
