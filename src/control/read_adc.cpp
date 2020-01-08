@@ -26,7 +26,10 @@ ReadADC::ReadADC(std::shared_ptr<SAM::Components> robot)
     _th_high[4] = 2000;
     _th_high[5] = 5000;
 
-    _robot->user_feedback.leds->set(LedStrip::none, 10);
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        _electrodes[i] = 0;
+    }
+
 }
 
 ReadADC::~ReadADC()
@@ -48,6 +51,66 @@ void ReadADC::tareIMU()
     usleep(3 * 1000000);
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 }
+
+void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
+{
+     //clock::time_point time1 = clock::now();
+
+    // Set configuration bits
+    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
+        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
+        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
+        ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
+        ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
+        ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
+        _robot->sensors.adc0->getGain() | //Set PGA/voltage range
+        ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
+
+    uint16_t config_c0 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_0; //for channel 0
+    uint16_t config_c1 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_1; //for channel 1
+    uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
+    uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
+
+
+    //Write config register to the ADC
+    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+
+    // Wait for the conversion to complete
+    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+        ;
+
+    // Read the conversion results
+    _electrodes[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
+
+
+    //Write config register to the ADC
+    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
+    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
+    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
+
+    // Wait for the conversion to complete
+    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+        ;
+
+    // Read the conversion results
+    _electrodes[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[3] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[5] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
+
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        if (_electrodes[i] > 65500) {
+            _electrodes[i] = 0;
+        }
+    }
+
+    //clock::time_point time2 = clock::now();
+    //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time2 - time1).count() << std::endl;
+}
+
 
 bool ReadADC::setup()
 {
@@ -116,56 +179,58 @@ void ReadADC::loop(double, clock::time_point time)
 
     double beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
-    std::vector<uint16_t> electrodes(_n_electrodes, 0);
-
-    std::vector<LedStrip::color> colors(_n_electrodes, LedStrip::white);
+    std::vector<LedStrip::color> colors(11, LedStrip::white);
 
     std::string payload;
 
-    electrodes[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
-    electrodes[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
-    electrodes[2] = _robot->sensors.adc2->readADC_SingleEnded(2);
-    electrodes[3] = _robot->sensors.adc2->readADC_SingleEnded(0);
-    electrodes[4] = _robot->sensors.adc3->readADC_SingleEnded(2);
-    electrodes[5] = _robot->sensors.adc3->readADC_SingleEnded(0);
+    /* _electrodes[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+    _electrodes[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+    _electrodes[2] = _robot->sensors.adc2->readADC_SingleEnded(2);
+    _electrodes[3] = _robot->sensors.adc2->readADC_SingleEnded(0);
+    _electrodes[4] = _robot->sensors.adc3->readADC_SingleEnded(2);
+    _electrodes[5] = _robot->sensors.adc3->readADC_SingleEnded(0); */
 
-    //    if (electrodes[2] > _th_high[2] && electrodes[4] < _th_low[4] && electrodes[3] < _th_high[3]) {
-    //        _robot->joints.elbow_flexion->set_velocity_safe(25);
-    //    } else if (electrodes[4] > _th_high[4] && electrodes[2] < _th_low[2] && electrodes[3] < _th_high[3]) {
-    //        _robot->joints.elbow_flexion->set_velocity_safe(-25);
-    //    } else {
-    //        _robot->joints.elbow_flexion->set_velocity_safe(0);
-    //    }
+    readAllADC();
 
-    //    if (electrodes[3] > _th_high[3] && electrodes[5] < _th_low[5]) {
-    //        _robot->joints.wrist_pronation->set_velocity_safe(-40);
-    //    } else if (electrodes[5] > _th_high[5] && electrodes[3] < _th_low[3]) {
-    //        _robot->joints.wrist_pronation->set_velocity_safe(40);
-    //    } else {
-    //        _robot->joints.wrist_pronation->set_velocity_safe(0);
-    //    }
+   if (_electrodes[2] > _th_high[2] && _electrodes[4] < _th_low[4] && _electrodes[3] < _th_high[3]) {
+        _robot->joints.elbow_flexion->set_velocity_safe(25);
+    } else if (_electrodes[4] > _th_high[4] && _electrodes[2] < _th_low[2] && _electrodes[3] < _th_high[3]) {
+        _robot->joints.elbow_flexion->set_velocity_safe(-25);
+    } else {
+        _robot->joints.elbow_flexion->set_velocity_safe(0);
+    }
 
-    //    if (electrodes[0] > _th_high[0] && electrodes[1] < _th_low[1]) {
-    //        // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,1);
-    //    } else if (electrodes[1] > _th_high[1] && electrodes[0] < _th_low[0]) {
-    //        // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,1);
-    //    } else {
-    //    }
+    if (_electrodes[3] > _th_high[3] && _electrodes[5] < _th_low[5]) {
+        _robot->joints.wrist_pronation->set_velocity_safe(-40);
+    } else if (_electrodes[5] > _th_high[5] && _electrodes[3] < _th_low[3]) {
+        _robot->joints.wrist_pronation->set_velocity_safe(40);
+    } else {
+        _robot->joints.wrist_pronation->set_velocity_safe(0);
+    }
+
+    if (_electrodes[0] > _th_high[0] && _electrodes[1] < _th_low[1])
+    {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,1);
+    } else if (_electrodes[1] > _th_high[1] && _electrodes[0] < _th_low[0])
+    {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,1);
+    } else
+    {
+    }
 
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         colors[i] = LedStrip::white;
 
-        if (electrodes[i] > _th_high[i]) {
+        if (_electrodes[i] > _th_high[i]) {
             colors[i] = LedStrip::red_bright;
-        } else if (electrodes[i] > _th_low[i]) {
+        } else if (_electrodes[i] > _th_low[i]) {
             colors[i] = LedStrip::green;
         }
-        //        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(electrodes[i]));
-        //        std::cout << electrodes[i] << "\t";
+        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(_electrodes[i]));
+        std::cout << _electrodes[i] << "\t";
     }
-
-    //    std::cout << std::endl;
-    //    _robot->user_feedback.leds->set(colors);
+    std::cout << std::endl;
+    _robot->user_feedback.leds->set(colors);
 
     //    _file << timeWithDelta << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << electrodes[2] << ' ' << electrodes[3] << ' ' << electrodes[4] << ' ' << electrodes[5];
     //    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];

@@ -18,13 +18,17 @@ public:
     clock::time_point _start_time;
 
 private:
+    void readAllADC();
+
     std::shared_ptr<SAM::Components> _robot;
     static const uint16_t _n_electrodes = 6;
     int _th_low[_n_electrodes];
     int _th_high[_n_electrodes];
+    uint16_t _electrodes[_n_electrodes];
 
     std::ifstream _param_file;
     std::ofstream _file;
+
 };
 
 #endif // READADC_H
