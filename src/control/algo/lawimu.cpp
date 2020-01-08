@@ -68,7 +68,7 @@ void LawIMU::initialPositions(Eigen::Quaterniond qFA_record, int initCounter, in
 void LawIMU::rotationMatrices(Eigen::Quaterniond qFA_record)
 {
     qFA = qFA_record;
-    debug() << "qFA: " << qFA.w() << "; " << qFA.x() << "; " << qFA.y();
+    //    debug() << "qFA: " << qFA.w() << "; " << qFA.x() << "; " << qFA.y();
     qFA_relative = qFA.normalized() * qFA0.conjugate();
     /// For optitrack quaternion definition
     R_FA = qFA_relative.toRotationMatrix();
