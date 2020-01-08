@@ -24,6 +24,7 @@ private:
     int _th_high[_n_electrodes];
 
     std::ofstream _file;
+    std::ifstream _param_file;
 };
 
 #endif // READADC_H
