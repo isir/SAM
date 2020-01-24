@@ -1,7 +1,11 @@
 #include "compensation_imu.h"
+#include "algo/myocontrol.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include <filesystem>
+
+// indicate if optitrack is on
+#define OPTITRACK 0
 
 CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Compensation IMU", 0.0143)
@@ -120,10 +124,11 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     debug() << "cnt : " << _cnt;
     double timeWithDelta = (time - _start_time).count();
 
+#if OPTITRACK
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     debug() << "Rigid Bodies: " << data.nRigidBodies;
-
+#endif
     double debugData[10];
 
     if (_need_to_write_header) {
@@ -132,9 +137,11 @@ void CompensationIMU::loop(double dt, clock::time_point time)
         _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
         _file << " phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,";
         _file << " nbRigidBodies";
+#if OPTITRACK
         for (int i = 0; i < data.nRigidBodies; i++) {
             _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
         }
+#endif
         _file << "\r\n";
         _need_to_write_header = false;
     }
@@ -142,12 +149,52 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     /// HAND
     _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
     _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
-    if (_emg[0] > _th_high[0] && _emg[1] < _th_low[1]) {
-        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 1);
-    } else if (_emg[1] > _th_high[1] && _emg[0] < _th_low[0]) {
-        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 1);
-    } else {
+    static std::unique_ptr<MyoControl::Classifier> handcontrol;
+
+    static const unsigned int counts_after_mode_change = 15;
+    static const unsigned int counts_btn = 2;
+    static const unsigned int counts_before_bubble = 2;
+    static const unsigned int counts_after_bubble = 2;
+
+    static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
+
+    auto robot = _robot;
+
+    MyoControl::Action co_contraction("Co contraction",
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
+    MyoControl::Action double_contraction("Double contraction",
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
+    MyoControl::Action triple_contraction("Triple contraction",
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
+
+    std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
+
+    static bool first = true;
+    if (first) {
+        handcontrol = std::make_unique<MyoControl::QuantumClassifier>(s1, thresholds, counts_after_mode_change, counts_btn, counts_before_bubble, counts_after_bubble);
+        first = false;
     }
+
+    //EMG1 and EMG2 = hand
+    static bool btn = 0;
+    if (!_robot->btn1) {
+        btn = 1;
+    } else {
+        btn = 0;
+    }
+    handcontrol->process(_emg[0], _emg[1], btn);
 
     /// WRIST
     double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
@@ -240,13 +287,15 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
     _file << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
-    _file << ' ' << data.nRigidBodies;
 
+#if OPTITRACK
+    _file << ' ' << data.nRigidBodies;
     for (int i = 0; i < data.nRigidBodies; i++) {
         _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
         _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
         _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
     }
+#endif
     _file << std::endl;
 
     ++_cnt;
