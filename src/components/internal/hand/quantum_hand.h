@@ -22,13 +22,15 @@ public:
         int time_between_contractions_us;
         bool emg1_activated;
         bool emg2_activated;
+        bool opening_before;
+        int time_opening_before_us;
         uint16_t intensity;
     };
 
     QuantumHand();
     ~QuantumHand() override;
 
-    void makeContraction(CONTRACTION_TYPE contraction_type=SHORT_CONTRACTION, int emg=1, uint16_t intensity=2);
+    void makeContraction(CONTRACTION_TYPE contraction_type=SHORT_CONTRACTION, int emg=2, uint16_t intensity=2, bool opening=true);
 
 private:
     bool setup() override;
