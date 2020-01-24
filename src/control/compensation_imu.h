@@ -28,9 +28,11 @@ private:
     std::ofstream _file;
     bool _need_to_write_header;
     int _cnt;
+    uint16_t emg[2];
+    int buzzN, loopN;
     LawIMU _lawimu;
 
-    Param<int> _lambdaW;
+    Param<double> _lambdaW;
     Param<double> _thresholdW;
 };
 
