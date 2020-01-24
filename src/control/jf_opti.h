@@ -35,7 +35,7 @@ private:
     //    int _Lfa;
     //    int _lhand;
     //    int _lwrist;
-    int _lambda[nbLinks];
+    double _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
     double theta[nbLinks];
@@ -47,9 +47,9 @@ private:
     Param<double> _lua;
     Param<double> _lfa;
     Param<double> _lwrist;
-    Param<int> _lambdaE;
-    Param<int> _lambdaWF;
-    Param<int> _lambdaWPS;
+    Param<double> _lambdaE;
+    Param<double> _lambdaWF;
+    Param<double> _lambdaWPS;
     Param<double> _thresholdE;
     Param<double> _thresholdWF;
     Param<double> _thresholdWPS;

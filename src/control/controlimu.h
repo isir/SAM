@@ -33,7 +33,7 @@ public:
 protected:
     virtual void initializationLaw(Eigen::Quaterniond qHi, double p);
     virtual void initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt);
-    virtual void controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt);
+    virtual void controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt);
 
 private:
     Param<int> _k; // damping parameter for inverse kinematics
@@ -42,9 +42,9 @@ private:
     Param<int> _lua; // upper-arm length
     Param<int> _lfa; // forearm length
     Param<int> _lwrist; // length between flexion and pronosupination joints
-    Param<int> _lambdaE; // gain for elbow flexion
-    Param<int> _lambdaWF; // gain for wrist flexion
-    Param<int> _lambdaWPS; // gain for wrist pronosupination
+    Param<double> _lambdaE; // gain for elbow flexion
+    Param<double> _lambdaWF; // gain for wrist flexion
+    Param<double> _lambdaWPS; // gain for wrist pronosupination
     Param<double> _thresholdE; // threshold for elbow flexion
     Param<double> _thresholdWF; // threshold for wrist flexion
     Param<double> _thresholdWPS; // thresold for wrist pronosupination
@@ -52,7 +52,7 @@ private:
     int _nbDOF;
     int _init_cnt = 10;
     int _cnt;
-    int _lambda[nbLinks];
+    double _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
     double _theta[nbLinks];

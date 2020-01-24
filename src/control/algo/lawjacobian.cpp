@@ -535,7 +535,7 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v1(int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v1(int k, double lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -593,7 +593,7 @@ void LawJacobian::controlLaw_v1(int k, int lambda[], double threshold[], int _cn
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v2(int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v2(int k, double lambda[], double threshold[], int _cnt)
 {
     // Jacobian matrix for position control, taking only elbow into account
     Jp.block<3, 1>(0, 1) = z.block<3, 1>(0, nbLinks).cross(OO.block<3, 1>(0, nbLinks));
@@ -642,7 +642,7 @@ void LawJacobian::controlLaw_v2(int k, int lambda[], double threshold[], int _cn
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v3(int lt, int lsh, int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt)
 {
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
@@ -693,7 +693,7 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, int lambda[], double thr
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v4(int lt, int lsh, int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt)
 {
     // jacobian only for 2DOF
     for (int i = 0; i < 2; i++) {

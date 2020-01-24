@@ -32,7 +32,7 @@ void JacobianFormulationIMU::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::
     _lawJ.computeOriginsVectors(l, nbDOF);
 }
 
-void JacobianFormulationIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
+void JacobianFormulationIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.projectionInHipIMU(lt, lsh, cnt, init_cnt);

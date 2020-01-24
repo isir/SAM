@@ -28,7 +28,7 @@ private:
 
     LawIMU _lawimu;
     int _cnt;
-    int _lambdaW;
+    double _lambdaW;
     double _thresholdW;
     int _pin_up; // pin buttons for open-loop
     int _pin_down; // pin buttons for open-loop
