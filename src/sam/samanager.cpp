@@ -56,7 +56,7 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
-    //    _main_menu->add_submenu_from_user(_adc);
+    _main_menu->add_submenu_from_user(_adc);
 
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
@@ -69,8 +69,8 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_imu);
     _main_menu->add_submenu_from_user(_opti);
-    _main_menu->add_submenu_from_user(_demo);
-    _main_menu->add_submenu_from_user(_demoimu);
+    //    _main_menu->add_submenu_from_user(_demo);
+    //    _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_jfOpti);
     _main_menu->add_submenu_from_user(_jfIMU1);
     _main_menu->add_submenu_from_user(_jfIMU3);
