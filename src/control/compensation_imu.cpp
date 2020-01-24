@@ -25,6 +25,13 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     if (_robot->joints.hand)
         _menu->add_item(_robot->joints.hand->menu());
+
+    // threshold EMG
+    _th_low[0] = 3000;
+    _th_low[1] = 1500;
+
+    _th_high[0] = 3000;
+    _th_high[1] = 3000;
 }
 
 CompensationIMU::~CompensationIMU()
@@ -60,6 +67,24 @@ void CompensationIMU::displayPin()
 
 bool CompensationIMU::setup()
 {
+    // ADC setup
+    _param_file = std::ifstream("myo_thresholds");
+    if (!_param_file.good()) {
+        critical() << "Failed to open myo_thresholds file. Using default values instead.";
+    } else {
+        std::string number_string;
+        for (uint16_t i = 0; i < _n_electrodes; i++) {
+            std::getline(_param_file, number_string);
+            _th_low[i] = std::stoi(number_string);
+        }
+        for (uint16_t i = 0; i < _n_electrodes; i++) {
+            std::getline(_param_file, number_string);
+            _th_high[i] = std::stoi(number_string);
+        }
+    }
+    _param_file.close();
+
+    // Prosthesis setup
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     std::string filename("compensationIMU");
@@ -80,8 +105,8 @@ bool CompensationIMU::setup()
     _need_to_write_header = true;
     _cnt = 0.;
     _start_time = clock::now();
-    emg[0] = 0;
-    emg[1] = 0;
+    _emg[0] = 0;
+    _emg[1] = 0;
     // generate random number for buzzer
     int randN = rand() % 3;
     buzzN = floor(1 / period() + randN / period());
@@ -114,6 +139,16 @@ void CompensationIMU::loop(double dt, clock::time_point time)
         _need_to_write_header = false;
     }
 
+    /// HAND
+    _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+    _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+    if (_emg[0] > _th_high[0] && _emg[1] < _th_low[1]) {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 1);
+    } else if (_emg[1] > _th_high[1] && _emg[0] < _th_low[0]) {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 1);
+    } else {
+    }
+
     /// WRIST
     double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
 
@@ -134,10 +169,10 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     qFA_record.z() = qFA[3];
 
     int boolBuzz = 0;
-    if ((_cnt + 250) % buzzN == 0) {
-        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
-        boolBuzz = 1;
-    }
+    //    if ((_cnt + 250) % buzzN == 0) {
+    //        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+    //        boolBuzz = 1;
+    //    }
 
     if (_cnt == 0) {
         _lawimu.initialization();
@@ -164,9 +199,9 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 
     /// read EMG
     // Set configuration bits
-    //    emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
-    //    emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
-    //    debug() << "emg : " << emg[0] << "; " << emg[1];
+    //    _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+    //    _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+    //    debug() << "emg : " << _emg[0] << "; " << _emg[1];
     //    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
     //        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
     //        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
@@ -186,21 +221,21 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     //    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
     //        ;
     //    // Read the conversion results
-    //    emg[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    //    _emg[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
     //    //Write config register to the ADC
     //    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
     //    // Wait for the conversion to complete
     //    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
     //        ;
     //    // Read the conversion results
-    //    emg[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    //    _emg[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
     //    for (uint16_t i = 0; i < 2; i++) {
-    //        if (emg[i] > 65500) {
-    //            emg[i] = 0;
+    //        if (_emg[i] > 65500) {
+    //            _emg[i] = 0;
     //        }
     //    }
 
-    _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << boolBuzz << ' ' << emg[0] << ' ' << emg[1];
+    _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << boolBuzz << ' ' << _emg[0] << ' ' << _emg[1];
     _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
     _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];

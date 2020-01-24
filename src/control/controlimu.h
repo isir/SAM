@@ -59,6 +59,12 @@ private:
     double _threshold[nbLinks];
     int _l[nbLinks];
 
+    uint16_t _emg[2];
+    static const uint16_t _n_electrodes = 6;
+    int _th_low[_n_electrodes];
+    int _th_high[_n_electrodes];
+    std::ifstream _param_file;
+
     Eigen::Quaterniond _qHip, _qTrunk, _qHand, _qArm;
 };
 

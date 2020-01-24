@@ -50,6 +50,13 @@ ControlIMU::ControlIMU(std::string name, std::string filename, std::shared_ptr<S
     pullUpDnControl(_pin_down, PUD_UP);
 
     _filename = filename;
+
+    // threshold EMG
+    _th_low[0] = 3000;
+    _th_low[1] = 1500;
+
+    _th_high[0] = 3000;
+    _th_high[1] = 3000;
 }
 
 ControlIMU::~ControlIMU()
@@ -137,6 +144,23 @@ bool ControlIMU::setup()
     //        }
     //    }
 
+    // ADC setup
+    _param_file = std::ifstream("myo_thresholds");
+    if (!_param_file.good()) {
+        critical() << "Failed to open myo_thresholds file. Using default values instead.";
+    } else {
+        std::string number_string;
+        for (uint16_t i = 0; i < _n_electrodes; i++) {
+            std::getline(_param_file, number_string);
+            _th_low[i] = std::stoi(number_string);
+        }
+        for (uint16_t i = 0; i < _n_electrodes; i++) {
+            std::getline(_param_file, number_string);
+            _th_high[i] = std::stoi(number_string);
+        }
+    }
+    _param_file.close();
+
     // OPEN AND NAME DATA FILE
     std::string suffix;
 
@@ -178,6 +202,16 @@ void ControlIMU::loop(double, clock::time_point time)
         _file << " to complete,";
         _file << "\r\n";
         _need_to_write_header = false;
+    }
+
+    /// HAND
+    _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+    _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+    if (_emg[0] > _th_high[0] && _emg[1] < _th_low[1]) {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 1);
+    } else if (_emg[1] > _th_high[1] && _emg[0] < _th_low[0]) {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 1);
+    } else {
     }
 
     /// ELBOW
@@ -323,16 +357,17 @@ void ControlIMU::loop(double, clock::time_point time)
             }
         }
 
-        static int prev_pin_up_value = 1, prev_pin_down_value = 1;
-        int pin_down_value = _robot->btn2;
-        int pin_up_value = _robot->btn1;
+        // control with push buttons to mimick myo to control the hand
+        //        static int prev_pin_up_value = 1, prev_pin_down_value = 1;
+        //                int pin_down_value = _robot->btn2;
+        //        int pin_up_value = _robot->btn1;
 
-        if (pin_down_value == 0 && prev_pin_down_value == 1) {
-            _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
-        } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-            _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
-        } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-        }
+        //        if (pin_down_value == 0 && prev_pin_down_value == 1) {
+        //            _robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL);
+        //        } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+        //            _robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL);
+        //        } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+        //        }
     }
 
     _lawJ.writeDebugData(debugData, _theta);
