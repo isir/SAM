@@ -29,6 +29,8 @@ private:
     std::ifstream _param_file;
     std::ofstream _file;
 
+    // indicate whether to save data
+    bool saveData = true;
 };
 
 #endif // READADC_H

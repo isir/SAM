@@ -91,22 +91,24 @@ bool CompensationIMU::setup()
     // Prosthesis setup
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
-    std::string filename("compensationIMU");
-    std::string suffix;
+    if (saveData) {
+        std::string filename("compensationIMU");
+        std::string suffix;
 
-    int cnt = 0;
-    std::string extension(".txt");
-    do {
-        ++cnt;
-        suffix = "_" + std::to_string(cnt);
-    } while (std::filesystem::exists(filename + suffix + extension));
+        int cnt = 0;
+        std::string extension(".txt");
+        do {
+            ++cnt;
+            suffix = "_" + std::to_string(cnt);
+        } while (std::filesystem::exists(filename + suffix + extension));
 
-    _file = std::ofstream(filename + suffix + extension);
-    if (!_file.good()) {
-        critical() << "Failed to open" << (filename + suffix + extension);
-        return false;
+        _file = std::ofstream(filename + suffix + extension);
+        if (!_file.good()) {
+            critical() << "Failed to open" << (filename + suffix + extension);
+            return false;
+        }
+        _need_to_write_header = true;
     }
-    _need_to_write_header = true;
     _cnt = 0.;
     _start_time = clock::now();
     _emg[0] = 0;
@@ -131,21 +133,23 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 #endif
     double debugData[10];
 
-    if (_need_to_write_header) {
-        _file << " time, pinUp, pinDown,";
-        _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
-        _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
-        _file << " phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,";
-        _file << " nbRigidBodies";
-#if OPTITRACK
-        for (int i = 0; i < data.nRigidBodies; i++) {
-            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
-        }
-#endif
-        _file << "\r\n";
-        _need_to_write_header = false;
-    }
+    if (saveData) {
+        if (_need_to_write_header) {
+            _file << " time, pinUp, pinDown,";
+            _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
+            _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
+            _file << " phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,";
+            _file << " nbRigidBodies";
 
+#if OPTITRACK
+            for (int i = 0; i < data.nRigidBodies; i++) {
+                _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
+            }
+#endif
+            _file << "\r\n";
+            _need_to_write_header = false;
+        }
+    }
     /// HAND
     _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
     _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
@@ -282,21 +286,23 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     //        }
     //    }
 
-    _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << boolBuzz << ' ' << _emg[0] << ' ' << _emg[1];
-    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
-    _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
-    _file << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
+    if (saveData) {
+        _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << boolBuzz << ' ' << _emg[0] << ' ' << _emg[1];
+        _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+        _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
+        _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
+        _file << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
 
 #if OPTITRACK
-    _file << ' ' << data.nRigidBodies;
-    for (int i = 0; i < data.nRigidBodies; i++) {
-        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
-    }
+        _file << ' ' << data.nRigidBodies;
+        for (int i = 0; i < data.nRigidBodies; i++) {
+            _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+            _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+            _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        }
 #endif
-    _file << std::endl;
+        _file << std::endl;
+    }
 
     ++_cnt;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
@@ -305,5 +311,6 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 void CompensationIMU::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
-    _file.close();
+    if (saveData)
+        _file.close();
 }

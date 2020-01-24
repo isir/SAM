@@ -66,6 +66,10 @@ private:
     std::ifstream _param_file;
 
     Eigen::Quaterniond _qHip, _qTrunk, _qHand, _qArm;
+
+    // boolean to indicate which prototype and whether we save data
+    bool protoCyb = true;
+    bool saveData = true;
 };
 
 #endif // CONTROL_IMU_H

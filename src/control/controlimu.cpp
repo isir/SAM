@@ -6,6 +6,9 @@
 #include <filesystem>
 #include <iostream>
 
+// indicate if optitrack is on
+#define OPTITRACK 0
+
 ControlIMU::ControlIMU(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop(name, 0.01)
     , _robot(robot)
@@ -15,7 +18,7 @@ ControlIMU::ControlIMU(std::string name, std::string filename, std::shared_ptr<S
     , _pin_up(24)
     , _pin_down(22)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
-    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 35)
+    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 20)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
@@ -91,11 +94,11 @@ void ControlIMU::tare_IMU()
 void ControlIMU::calibrations()
 {
     // HAND
-    if (_robot->joints.hand) {
-        _robot->joints.hand->take_ownership();
-        _robot->joints.hand->init_sequence();
-        //        _robot->joints.hand->move(14);
-    }
+    //    if (_robot->joints.hand) {
+    //        _robot->joints.hand->take_ownership();
+    //        _robot->joints.hand->init_sequence();
+    //        //        _robot->joints.hand->move(14);
+    //    }
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
         _robot->joints.elbow_flexion->calibrate();
@@ -119,7 +122,10 @@ void ControlIMU::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(-90, 20);
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(90, 20);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void ControlIMU::displayPin()
@@ -162,22 +168,24 @@ bool ControlIMU::setup()
     }
     _param_file.close();
 
-    // OPEN AND NAME DATA FILE
-    std::string suffix;
+    if (saveData) {
+        // OPEN AND NAME DATA FILE
+        std::string suffix;
 
-    int cnt = 0;
-    std::string extension(".txt");
-    do {
-        ++cnt;
-        suffix = "_" + std::to_string(cnt);
-    } while (std::filesystem::exists(_filename + suffix + extension));
+        int cnt = 0;
+        std::string extension(".txt");
+        do {
+            ++cnt;
+            suffix = "_" + std::to_string(cnt);
+        } while (std::filesystem::exists(_filename + suffix + extension));
 
-    _file = std::ofstream(_filename + suffix + extension);
-    if (!_file.good()) {
-        critical() << "Failed to open" << (_filename + suffix + extension);
-        return false;
+        _file = std::ofstream(_filename + suffix + extension);
+        if (!_file.good()) {
+            critical() << "Failed to open" << (_filename + suffix + extension);
+            return false;
+        }
+        _need_to_write_header = true;
     }
-    _need_to_write_header = true;
     _start_time = clock::now();
 
     // INITIALIZATION
@@ -191,69 +199,79 @@ bool ControlIMU::setup()
 void ControlIMU::loop(double, clock::time_point time)
 {
 
+#if OPTITRACK
+    _robot->sensors.optitrack->update();
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    debug() << "Rigid Bodies: " << data.nRigidBodies;
+#endif
+
     double timeWithDelta = (time - _start_time).count();
 
     double debugData[40];
 
-    /// WRITE FILE HEADERS
-    if (_need_to_write_header) {
-        _file << " time, pinUp, pinDown,";
-        _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
-        _file << " qYellow.w, qYellow.x, qYellow.y, qYellow.z,";
-        _file << " to complete,";
-        _file << "\r\n";
-        _need_to_write_header = false;
+    if (saveData) {
+        /// WRITE FILE HEADERS
+        if (_need_to_write_header) {
+            _file << " time, pinUp, pinDown,";
+            _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
+            _file << " qYellow.w, qYellow.x, qYellow.y, qYellow.z,";
+            _file << " to complete,";
+            _file << "\r\n";
+            _need_to_write_header = false;
+        }
     }
 
     /// HAND
-    _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
-    _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
-    static std::unique_ptr<MyoControl::Classifier> handcontrol;
+    if (protoCyb) {
+        _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+        _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+        static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
-    static const unsigned int counts_after_mode_change = 15;
-    static const unsigned int counts_btn = 2;
-    static const unsigned int counts_before_bubble = 2;
-    static const unsigned int counts_after_bubble = 2;
+        static const unsigned int counts_after_mode_change = 15;
+        static const unsigned int counts_btn = 2;
+        static const unsigned int counts_before_bubble = 2;
+        static const unsigned int counts_after_bubble = 2;
 
-    static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
+        static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
 
-    auto robot = _robot;
+        auto robot = _robot;
 
-    MyoControl::Action co_contraction("Co contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
-    MyoControl::Action double_contraction("Double contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
-    MyoControl::Action triple_contraction("Triple contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
+        MyoControl::Action co_contraction("Co contraction",
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
+        MyoControl::Action double_contraction("Double contraction",
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
+        MyoControl::Action triple_contraction("Triple contraction",
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
 
-    std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
+        std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
 
-    static bool first = true;
-    if (first) {
-        handcontrol = std::make_unique<MyoControl::QuantumClassifier>(s1, thresholds, counts_after_mode_change, counts_btn, counts_before_bubble, counts_after_bubble);
-        first = false;
+        static bool first = true;
+        if (first) {
+            handcontrol = std::make_unique<MyoControl::QuantumClassifier>(s1, thresholds, counts_after_mode_change, counts_btn, counts_before_bubble, counts_after_bubble);
+            first = false;
+        }
+
+        //EMG1 and EMG2 = hand
+        static bool btn = 0;
+        if (!_robot->btn1) {
+            btn = 1;
+        } else {
+            btn = 0;
+        }
+        handcontrol->process(_emg[0], _emg[1], btn);
     }
-
-    //EMG1 and EMG2 = hand
-    static bool btn = 0;
-    if (!_robot->btn1) {
-        btn = 1;
-    } else {
-        btn = 0;
-    }
-    handcontrol->process(_emg[0], _emg[1], btn);
 
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
@@ -304,7 +322,10 @@ void ControlIMU::loop(double, clock::time_point time)
         _l[2] = _lua;
 
         _theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
-        _theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+        if (protoCyb)
+            _theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+        else
+            _theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
         if (_cnt % 50 == 0)
             debug() << "_theta(deg): " << _theta[0] << ", " << _theta[1] << "\r\n";
         // in radians:
@@ -390,11 +411,20 @@ void ControlIMU::loop(double, clock::time_point time)
                 debug() << "elbow flex vel :" << _thetaDot_toSend[2] << "\n";
             }
         } else {
-            _robot->joints.wrist_pronation->set_velocity_safe(-_thetaDot_toSend[0]);
-            _robot->joints.elbow_flexion->set_velocity_safe(-_thetaDot_toSend[1]);
-            if (_cnt % 50 == 0) {
-                debug() << "pronosup vel :" << _thetaDot_toSend[0] << "\n";
-                debug() << "elbow flex vel :" << _thetaDot_toSend[1] << "\n";
+            if (protoCyb) {
+                _robot->joints.wrist_pronation->set_velocity_safe(-_thetaDot_toSend[0]);
+                _robot->joints.elbow_flexion->set_velocity_safe(-_thetaDot_toSend[1]);
+                if (_cnt % 50 == 0) {
+                    debug() << "pronosup vel :" << -_thetaDot_toSend[0] << "\n";
+                    debug() << "elbow flex vel :" << -_thetaDot_toSend[1] << "\n";
+                }
+            } else {
+                _robot->joints.wrist_pronation->set_velocity_safe(-_thetaDot_toSend[0]);
+                _robot->joints.elbow_flexion->set_velocity_safe(_thetaDot_toSend[1]);
+                if (_cnt % 50 == 0) {
+                    debug() << "pronosup vel :" << -_thetaDot_toSend[0] << "\n";
+                    debug() << "elbow flex vel :" << _thetaDot_toSend[1] << "\n";
+                }
             }
         }
 
@@ -411,21 +441,32 @@ void ControlIMU::loop(double, clock::time_point time)
         //        }
     }
 
-    _lawJ.writeDebugData(debugData, _theta);
-    /// WRITE DATA
-    _file << _nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lt << ' ' << _lsh << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
-    _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
-    _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
-    _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
-    for (int i = 0; i < 40; i++) {
-        _file << ' ' << debugData[i];
-    }
-    _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
+    if (saveData) {
+        _lawJ.writeDebugData(debugData, _theta);
+        /// WRITE DATA
+        _file << _nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lt << ' ' << _lsh << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+        _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
+        _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
+        _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
+        for (int i = 0; i < 40; i++) {
+            _file << ' ' << debugData[i];
+        }
+        _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder << ' ' << _emg[0] << ' ' << _emg[1];
 
-    _file << std::endl;
+#if OPTITRACK
+        _file << ' ' << data.nRigidBodies;
+        for (int i = 0; i < data.nRigidBodies; i++) {
+            _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+            _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+            _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        }
+#endif
+
+        _file << std::endl;
+    }
 
     ++_cnt;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+    //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void ControlIMU::cleanup()
@@ -436,7 +477,8 @@ void ControlIMU::cleanup()
     //    _robot->joints.elbow_flexion->move_to(0, 20);
     if (_robot->joints.hand)
         _robot->joints.hand->release_ownership();
-    _file.close();
+    if (saveData)
+        _file.close();
 }
 
 void ControlIMU::initializationLaw(Eigen::Quaterniond qHi, double p)

@@ -1,8 +1,11 @@
 #include "read_adc.h"
+#include "algo/myocontrol.h"
 #include "ui/visual/ledstrip.h"
 #include <filesystem>
 #include <iostream>
-#include "algo/myocontrol.h"
+
+// indicate if optitrack is on
+#define OPTITRACK 0
 
 ReadADC::ReadADC(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Read ADC", .025)
@@ -142,23 +145,25 @@ bool ReadADC::setup()
     //    _robot->user_feedback.leds->set(LedStrip::white, 10);
     _robot->user_feedback.leds->set(LedStrip::none, 10);
 
-    std::string filename("myo");
-    std::string suffix;
+    if (saveData) {
+        std::string filename("myo");
+        std::string suffix;
 
-    int cnt = 0;
-    int nbRigidBodies = 0;
-    std::string extension(".txt");
-    do {
-        ++cnt;
-        suffix = "_" + std::to_string(cnt);
-    } while (std::filesystem::exists(filename + suffix + extension));
+        int cnt = 0;
+        std::string extension(".txt");
+        do {
+            ++cnt;
+            suffix = "_" + std::to_string(cnt);
+        } while (std::filesystem::exists(filename + suffix + extension));
 
-    _file = std::ofstream(filename + suffix + extension);
-    if (!_file.good()) {
-        critical() << "Failed to open" << (filename + suffix + extension);
-        return false;
+        _file = std::ofstream(filename + suffix + extension);
+        if (!_file.good()) {
+            critical() << "Failed to open" << (filename + suffix + extension);
+            return false;
+        }
     }
 
+    int nbRigidBodies = 0;
     _start_time = clock::now();
     return true;
 }
@@ -166,14 +171,17 @@ bool ReadADC::setup()
 void ReadADC::loop(double, clock::time_point time)
 {
     double timeWithDelta = (time - _start_time).count();
-
+#if OPTITRACK
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
-    //    std::cout << data.nRigidBodies;
+//    std::cout << data.nRigidBodies;
+#endif
 
     double qBras[4], qTronc[4];
-    _robot->sensors.white_imu->get_quat(qBras);
-    _robot->sensors.yellow_imu->get_quat(qTronc);
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->get_quat(qBras);
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->get_quat(qTronc);
 
     double beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
@@ -189,25 +197,25 @@ void ReadADC::loop(double, clock::time_point time)
     auto robot = _robot;
 
     MyoControl::Action co_contraction("Co contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
         [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
     MyoControl::Action double_contraction("Double contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
         [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
     MyoControl::Action triple_contraction("Triple contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
         [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
 
-    std::vector<MyoControl::Action> s1 {co_contraction, double_contraction, triple_contraction};
+    std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
 
     static bool first = true;
     if (first) {
@@ -229,10 +237,10 @@ void ReadADC::loop(double, clock::time_point time)
     readAllADC();
 
     //EMG3 and EMG5 = elbow
-    if (_electrodes[2]>_th_high[2] && _electrodes[4]<_th_low[4] && _electrodes[3]<(_electrodes[2]-1500)) { //EMG3 activation
+    if (_electrodes[2] > _th_high[2] && _electrodes[4] < _th_low[4] && _electrodes[3] < (_electrodes[2] - 1500)) { //EMG3 activation
         _robot->joints.elbow_flexion->set_velocity_safe(25); //Elbow flexion
         colors[2] = LedStrip::red_bright;
-    } else if (_electrodes[4]>_th_high[4] && _electrodes[2]<_th_low[2] && _electrodes[3]<_th_low[3] && _electrodes[5]<_th_low[3]) { //EMG5 activation
+    } else if (_electrodes[4] > _th_high[4] && _electrodes[2] < _th_low[2] && _electrodes[3] < _th_low[3] && _electrodes[5] < _th_low[3]) { //EMG5 activation
         _robot->joints.elbow_flexion->set_velocity_safe(-25); //Elbow extension
         colors[4] = LedStrip::red_bright;
     } else {
@@ -240,10 +248,10 @@ void ReadADC::loop(double, clock::time_point time)
     }
 
     //EMG4 and EMG6 = wrist rotator
-    if (_electrodes[3]>_th_high[3] && _electrodes[5]<(_electrodes[3]-500) && _electrodes[4]<(_electrodes[3]-500) && _electrodes[2]<_electrodes[3]) { //EMG4 activation
+    if (_electrodes[3] > _th_high[3] && _electrodes[5] < (_electrodes[3] - 500) && _electrodes[4] < (_electrodes[3] - 500) && _electrodes[2] < _electrodes[3]) { //EMG4 activation
         _robot->joints.wrist_pronation->set_velocity_safe(-40);
         colors[3] = LedStrip::red_bright;
-    } else if (_electrodes[5]>_th_high[5] && _electrodes[3]<_th_high[5] && _electrodes[4]<_th_high[5]) { //EMG6 activation
+    } else if (_electrodes[5] > _th_high[5] && _electrodes[3] < _th_high[5] && _electrodes[4] < _th_high[5]) { //EMG6 activation
         _robot->joints.wrist_pronation->set_velocity_safe(40);
         colors[5] = LedStrip::red_bright;
     } else {
@@ -275,15 +283,19 @@ void ReadADC::loop(double, clock::time_point time)
     std::cout << std::endl;
     //    _robot->user_feedback.leds->set(colors);
 
-    _file << timeWithDelta << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[2] << ' ' << _electrodes[3] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
-    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-    _file << ' ' << beta;
-    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
-        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    if (saveData) {
+        _file << timeWithDelta << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[2] << ' ' << _electrodes[3] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
+        _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
+        _file << ' ' << beta;
+#if OPTITRACK
+        for (unsigned int i = 0; i < data.nRigidBodies; i++) {
+            _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+            _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+            _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        }
+#endif
+        _file << std::endl;
     }
-    _file << std::endl;
 
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
@@ -293,5 +305,6 @@ void ReadADC::cleanup()
     _robot->joints.wrist_pronation->set_velocity_safe(0);
     _robot->joints.elbow_flexion->set_velocity_safe(0);
     _robot->user_feedback.leds->set(LedStrip::white, 11);
-    _file.close();
+    if (saveData)
+        _file.close();
 }

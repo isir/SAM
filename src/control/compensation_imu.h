@@ -27,6 +27,8 @@ private:
 
     std::ofstream _file;
     bool _need_to_write_header;
+    bool saveData = true;
+
     int _cnt;
     uint16_t _emg[2];
     int buzzN, loopN;
