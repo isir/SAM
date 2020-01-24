@@ -4,7 +4,7 @@
 #include <iostream>
 
 ReadADC::ReadADC(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Read ADC", .02)
+    : ThreadedLoop("Read ADC", .025)
     , _robot(robot)
 {
     _menu->set_description("Read ADC");
@@ -29,7 +29,6 @@ ReadADC::ReadADC(std::shared_ptr<SAM::Components> robot)
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         _electrodes[i] = 0;
     }
-
 }
 
 ReadADC::~ReadADC()
@@ -54,7 +53,7 @@ void ReadADC::tareIMU()
 
 void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
 {
-     //clock::time_point time1 = clock::now();
+    clock::time_point time1 = clock::now();
 
     // Set configuration bits
     uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
@@ -71,14 +70,13 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
     uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
     uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
 
-
     //Write config register to the ADC
     _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
     _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
     _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
 
     // Wait for the conversion to complete
-    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
         ;
 
     // Read the conversion results
@@ -86,14 +84,13 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
     _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
     _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
 
-
     //Write config register to the ADC
     _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
     _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
     _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
 
     // Wait for the conversion to complete
-    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
         ;
 
     // Read the conversion results
@@ -107,28 +104,27 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
         }
     }
 
-    //clock::time_point time2 = clock::now();
-    //std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time2 - time1).count() << std::endl;
+    clock::time_point time2 = clock::now();
+    std::cout << std::chrono::duration_cast<std::chrono::microseconds>(time2 - time1).count() << std::endl;
 }
-
 
 bool ReadADC::setup()
 {
     _param_file = std::ifstream("myo_thresholds");
-     if (!_param_file.good()) {
-         critical() << "Failed to open myo_thresholds file. Using default values instead.";
-     } else {
-         std::string number_string;
-         for (uint16_t i = 0; i < _n_electrodes; i++) {
-             std::getline(_param_file, number_string);
-             _th_low[i] = std::stoi(number_string);
-         }
-         for (uint16_t i = 0; i < _n_electrodes; i++) {
-             std::getline(_param_file, number_string);
-             _th_high[i] = std::stoi(number_string);
-         }
-     }
-     _param_file.close();
+    if (!_param_file.good()) {
+        critical() << "Failed to open myo_thresholds file. Using default values instead.";
+    } else {
+        std::string number_string;
+        for (uint16_t i = 0; i < _n_electrodes; i++) {
+            std::getline(_param_file, number_string);
+            _th_low[i] = std::stoi(number_string);
+        }
+        for (uint16_t i = 0; i < _n_electrodes; i++) {
+            std::getline(_param_file, number_string);
+            _th_high[i] = std::stoi(number_string);
+        }
+    }
+    _param_file.close();
 
     if (_robot->joints.elbow_flexion->is_calibrated() == false)
         _robot->joints.elbow_flexion->calibrate();
@@ -137,12 +133,13 @@ bool ReadADC::setup()
     }
     _robot->joints.wrist_pronation->calibrate();
 
-    _mqtt.publish("sam/emg/th/1", std::to_string(_th_low[0]));
-    _mqtt.publish("sam/emg/th/2", std::to_string(_th_high[0]));
-    _mqtt.subscribe("sam/emg/th/1", Mosquittopp::Client::QoS1)->add_callback(this, [this](Mosquittopp::Message msg) { this->_th_low[0] = std::stoi(msg.payload()); });
-    _mqtt.subscribe("sam/emg/th/2", Mosquittopp::Client::QoS1)->add_callback(this, [this](Mosquittopp::Message msg) { this->_th_high[0] = std::stoi(msg.payload()); });
+    //    _mqtt.publish("sam/emg/th/1", std::to_string(_th_low[0]));
+    //    _mqtt.publish("sam/emg/th/2", std::to_string(_th_high[0]));
+    //    _mqtt.subscribe("sam/emg/th/1", Mosquittopp::Client::QoS1)->add_callback(this, [this](Mosquittopp::Message msg) { this->_th_low[0] = std::stoi(msg.payload()); });
+    //    _mqtt.subscribe("sam/emg/th/2", Mosquittopp::Client::QoS1)->add_callback(this, [this](Mosquittopp::Message msg) { this->_th_high[0] = std::stoi(msg.payload()); });
 
     //    _robot->user_feedback.leds->set(LedStrip::white, 10);
+    _robot->user_feedback.leds->set(LedStrip::none, 10);
 
     std::string filename("myo");
     std::string suffix;
@@ -169,13 +166,13 @@ void ReadADC::loop(double, clock::time_point time)
 {
     double timeWithDelta = (time - _start_time).count();
 
-    //    _robot->sensors.optitrack->update();
-    //    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    _robot->sensors.optitrack->update();
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     //    std::cout << data.nRigidBodies;
 
     double qBras[4], qTronc[4];
-    //    _robot->sensors.white_imu->get_quat(qBras);
-    //    _robot->sensors.yellow_imu->get_quat(qTronc);
+    _robot->sensors.white_imu->get_quat(qBras);
+    _robot->sensors.yellow_imu->get_quat(qTronc);
 
     double beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
@@ -183,16 +180,17 @@ void ReadADC::loop(double, clock::time_point time)
 
     std::string payload;
 
-    /* _electrodes[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
-    _electrodes[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
-    _electrodes[2] = _robot->sensors.adc2->readADC_SingleEnded(2);
-    _electrodes[3] = _robot->sensors.adc2->readADC_SingleEnded(0);
-    _electrodes[4] = _robot->sensors.adc3->readADC_SingleEnded(2);
-    _electrodes[5] = _robot->sensors.adc3->readADC_SingleEnded(0); */
+    /// Old reading
+    //    _electrodes[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+    //    _electrodes[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+    //    _electrodes[2] = _robot->sensors.adc2->readADC_SingleEnded(2);
+    //    _electrodes[3] = _robot->sensors.adc2->readADC_SingleEnded(0);
+    //    _electrodes[4] = _robot->sensors.adc3->readADC_SingleEnded(2);
+    //    _electrodes[5] = _robot->sensors.adc3->readADC_SingleEnded(0);
 
     readAllADC();
 
-   if (_electrodes[2] > _th_high[2] && _electrodes[4] < _th_low[4] && _electrodes[3] < _th_high[3]) {
+    if (_electrodes[2] > _th_high[2] && _electrodes[4] < _th_low[4] && _electrodes[3] < _th_high[3]) {
         _robot->joints.elbow_flexion->set_velocity_safe(25);
     } else if (_electrodes[4] > _th_high[4] && _electrodes[2] < _th_low[2] && _electrodes[3] < _th_high[3]) {
         _robot->joints.elbow_flexion->set_velocity_safe(-25);
@@ -208,14 +206,11 @@ void ReadADC::loop(double, clock::time_point time)
         _robot->joints.wrist_pronation->set_velocity_safe(0);
     }
 
-    if (_electrodes[0] > _th_high[0] && _electrodes[1] < _th_low[1])
-    {
-        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,1);
-    } else if (_electrodes[1] > _th_high[1] && _electrodes[0] < _th_low[0])
-    {
-        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,1);
-    } else
-    {
+    if (_electrodes[0] > _th_high[0] && _electrodes[1] < _th_low[1]) {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 1);
+    } else if (_electrodes[1] > _th_high[1] && _electrodes[0] < _th_low[0]) {
+        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 1);
+    } else {
     }
 
     for (uint16_t i = 0; i < _n_electrodes; i++) {
@@ -226,26 +221,26 @@ void ReadADC::loop(double, clock::time_point time)
         } else if (_electrodes[i] > _th_low[i]) {
             colors[i] = LedStrip::green;
         }
-        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(_electrodes[i]));
+        //        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(_electrodes[i]));
         std::cout << _electrodes[i] << "\t";
     }
     std::cout << std::endl;
-    _robot->user_feedback.leds->set(colors);
+    //    _robot->user_feedback.leds->set(colors);
 
     std::cout << std::endl;
     //    _robot->user_feedback.leds->set(colors);
 
-    _file << timeWithDelta << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << electrodes[2] << ' ' << electrodes[3] << ' ' << electrodes[4] << ' ' << electrodes[5];
+    _file << timeWithDelta << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[2] << ' ' << _electrodes[3] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
     _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     _file << ' ' << beta;
-    //    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
-    //        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-    //        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-    //        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
-    //    }
+    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
+        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+    }
     _file << std::endl;
 
-    //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void ReadADC::cleanup()
