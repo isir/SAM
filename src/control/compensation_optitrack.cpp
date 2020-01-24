@@ -4,7 +4,7 @@
 #include <filesystem>
 
 CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("compensation_optitrack", 0.01)
+    : ThreadedLoop("compensation_optitrack", 0.0167)
     , _robot(robot)
     , _lt("lt(cm)", BaseParam::ReadWrite, this, 40)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
@@ -16,7 +16,7 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     , _l(0.)
     , _pinArduino(0)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.yellow_imu, _robot->sensors.white_imu, _robot->sensors.optitrack)) {
+    if (!check_ptr(_robot->joints.elbow_flexion)) { // _robot->sensors.yellow_imu, _robot->sensors.white_imu, _robot->sensors.optitrack)) {
         throw std::runtime_error("Optitrack Compensation is missing components");
     }
 
@@ -33,11 +33,12 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     _menu->add_item("1", "Start (+ filename [comp for compensation, vol for voluntary control])", [this](std::string args) { this->start(args); });
     _menu->add_item("zero", "Back to 0°", [this](std::string) { this->zero(); });
     _menu->add_item("tare", "Tare IMU", [this](std::string) { this->tareIMU(); });
-    _menu->add_item("al", "Display anatomical lengths", [this](std::string) { this->display_lengths(); });
+    _menu->add_item("data", "Display optitrack data", [this](std::string) { this->display_opti(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
-    _menu->add_item(_robot->joints.wrist_pronation->menu());
+    if (_robot->joints.wrist_pronation)
+        _menu->add_item(_robot->joints.wrist_pronation->menu());
     if (_robot->joints.hand)
         _menu->add_item(_robot->joints.hand->menu());
 
@@ -54,6 +55,24 @@ void CompensationOptitrack::zero()
     _robot->joints.elbow_flexion->move_to(0, 10, true);
 }
 
+void CompensationOptitrack::display_opti()
+{
+    int index_acromion = -1;
+    Eigen::Vector3f posA = Eigen::Vector3f::Zero();
+    _robot->sensors.optitrack->update();
+
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+
+    for (unsigned int i = 0; i < data.nRigidBodies; i++) {
+        if (data.rigidBodies[i].ID == 6) {
+            posA[0] = data.rigidBodies[i].x * 100;
+            posA[1] = data.rigidBodies[i].y * 100;
+            posA[2] = data.rigidBodies[i].z * 100;
+            index_acromion = static_cast<int>(i);
+        }
+    }
+    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
+}
 void CompensationOptitrack::tareIMU()
 {
     if (_robot->sensors.white_imu)
@@ -110,12 +129,12 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
     qFA_record.z() = 0.;
 
     for (unsigned int i = 0; i < data.nRigidBodies; i++) {
-        if (data.rigidBodies[i].ID == 3) {
+        if (data.rigidBodies[i].ID == 6) {
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
             index_acromion = static_cast<int>(i);
-        } else if (data.rigidBodies[i].ID == 4) {
+        } else if (data.rigidBodies[i].ID == 3) {
             posFA[0] = data.rigidBodies[i].x * 100;
             posFA[1] = data.rigidBodies[i].y * 100;
             posFA[2] = data.rigidBodies[i].z * 100;
@@ -124,7 +143,7 @@ void CompensationOptitrack::read_optiData(optitrack_data_t data)
             qFA_record.x() = data.rigidBodies[i].qx;
             qFA_record.y() = data.rigidBodies[i].qy;
             qFA_record.z() = data.rigidBodies[i].qz;
-        } else if (data.rigidBodies[i].ID == 6) {
+        } else if (data.rigidBodies[i].ID == 4) {
             posElbow[0] = data.rigidBodies[i].x * 100;
             posElbow[1] = data.rigidBodies[i].y * 100;
             posElbow[2] = data.rigidBodies[i].z * 100;
@@ -206,7 +225,8 @@ void CompensationOptitrack::stop()
 {
     _infoSent = 0;
     _robot->joints.elbow_flexion->forward(0);
-    _robot->joints.wrist_pronation->forward(0);
+    if (_robot->joints.wrist_pronation)
+        _robot->joints.wrist_pronation->forward(0);
 
     _file.close();
 }
@@ -256,8 +276,10 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     int timerTask = 1;
 
     double qBras[4], qTronc[4];
-    _robot->sensors.white_imu->get_quat(qBras);
-    _robot->sensors.yellow_imu->get_quat(qTronc);
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->get_quat(qBras);
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->get_quat(qTronc);
     //    debug() << "IMU Bras : " << qBras[0] << " " << qBras[1] << " " << qBras[2] << " " << qBras[3];
     //    qDebug() << "IMU Tronc : " << qTronc[0] << " " << qTronc[1] << " " << qTronc[2] << " " << qTronc[3];
 
@@ -302,7 +324,7 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
         }
     }
     //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
-    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << "; " << posEE[2];
+    //    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << "; " << posEE[2];
 
     double beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
 

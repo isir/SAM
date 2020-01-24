@@ -20,6 +20,7 @@ public:
     void calibrations();
     void display_parameters();
     void display_lengths();
+    void display_opti();
 
 private:
     enum Mode {
@@ -69,8 +70,8 @@ private:
     Param<int> _lt; // length of the trunk
     Param<int> _lua; // upper-arm length
     Param<int> _lfa; // forearm length
-    Param<int> _lambdaE; // gain for elbow flexion
-    Param<int> _lambdaWPS; // gain for wrist pronosupination
+    Param<double> _lambdaE; // gain for elbow flexion
+    Param<double> _lambdaWPS; // gain for wrist pronosupination
     Param<double> _thresholdE; // threshold for elbow flexion
     Param<double> _thresholdWPS; // thresold for wrist pronosupination
 };
