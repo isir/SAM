@@ -31,7 +31,7 @@ void JFIMU_v3::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qH
     _lawJ.computeOriginsVectors(l, nbDOF);
 }
 
-void JFIMU_v3::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
+void JFIMU_v3::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.updateFrames(theta);
