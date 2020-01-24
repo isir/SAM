@@ -39,16 +39,16 @@ private:
     std::mutex _cv_mutex;
 
     std::unique_ptr<VoluntaryControl> _vc;
-    //    std::unique_ptr<JacobianFormulationOpti> _jfOpti;
-    //    std::unique_ptr<JacobianFormulationIMU> _jfIMU1;
-    //    std::unique_ptr<JFIMU_v3> _jfIMU3;
-    //    std::unique_ptr<JFIMU_v4> _jfIMU4;
-    //    std::unique_ptr<RecordData> _recordData;
+    std::unique_ptr<JacobianFormulationOpti> _jfOpti;
+    std::unique_ptr<JacobianFormulationIMU> _jfIMU1;
+    std::unique_ptr<JFIMU_v3> _jfIMU3;
+    std::unique_ptr<JFIMU_v4> _jfIMU4;
+    std::unique_ptr<RecordData> _recordData;
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
     std::unique_ptr<MatlabReceiver> _mr;
-    //    std::unique_ptr<Demo> _demo;
-    //    std::unique_ptr<DemoIMU> _demoimu;
+    std::unique_ptr<Demo> _demo;
+    std::unique_ptr<DemoIMU> _demoimu;
     std::unique_ptr<SystemMonitor> _sm;
     std::unique_ptr<ReadADC> _adc;
     std::unique_ptr<CompensationIMU> _imu;
