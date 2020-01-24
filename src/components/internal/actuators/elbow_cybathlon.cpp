@@ -12,8 +12,10 @@ ElbowCybathlon::ElbowCybathlon()
 
     set_params_limits(0, 100.);
     set_params_technical(4065, 100);
-    set_params_velocity(0.06070f, 0.00427f, 0, 898312);
-    set_params_position(21.1098f, 0., 0., 0., 0., -180., 180.);
+//    set_params_velocity(0.06070f, 0.00427f, 0, 898312);
+//    set_params_position(21.1098f, 0., 0., 0., 0., -180., 180.);
+    set_params_velocity(0.04060f, 0.00325f, 0, 897000);
+    set_params_position(11.90776f, 0., 0., 0., 0., -180., 180.);
 }
 
 void ElbowCybathlon::calibrate()
