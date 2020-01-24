@@ -67,6 +67,8 @@ private:
     //    double _thresholdW, _threshold;
     int _pinArduino;
 
+    bool protoCyb = false;
+
     Param<int> _lt; // length of the trunk
     Param<int> _lua; // upper-arm length
     Param<int> _lfa; // forearm length

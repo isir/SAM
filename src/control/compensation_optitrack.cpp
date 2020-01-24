@@ -9,7 +9,7 @@ CompensationOptitrack::CompensationOptitrack(std::shared_ptr<SAM::Components> ro
     , _lt("lt(cm)", BaseParam::ReadWrite, this, 40)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 20)
-    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -288,12 +288,12 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     int index_acromion = -1, index_FA = -1, index_EE = -1, index_elbow = -1, index_hip = -1;
 
     for (unsigned int i = 0; i < data.nRigidBodies; i++) {
-        if (data.rigidBodies[i].ID == 6) {
+        if (data.rigidBodies[i].ID == 3) {
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
             index_acromion = static_cast<int>(i);
-        } else if (data.rigidBodies[i].ID == 3) {
+        } else if (data.rigidBodies[i].ID == 5) {
             posFA[0] = data.rigidBodies[i].x * 100;
             posFA[1] = data.rigidBodies[i].y * 100;
             posFA[2] = data.rigidBodies[i].z * 100;
@@ -326,7 +326,11 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
     //    debug() << "posA: " << posA[0] << " " << posA[1] << " " << posA[2];
     //    debug() << "posEE: " << posEE[0] << "; " << posEE[1] << "; " << posEE[2];
 
-    double beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
+    double beta;
+    if (protoCyb)
+        beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
+    else
+        beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
 
     if (_need_to_write_header) {
         _file << "delta, time, btn_sync, abs_time, emg1, emg2, timerTask, pinArduino,";
@@ -368,7 +372,10 @@ void CompensationOptitrack::on_new_data_compensation(optitrack_data_t data, doub
         //        _lawopti.projectionInHip(posA, posElbow, posHip, _cnt, init_cnt);
         _lawopti.controlLaw(posEE, beta, _lua, _lfa, _l, _lambdaE, _thresholdE * M_PI / 180);
         //        _lawopti.controlLawWrist(_lambdaWPS, _thresholdWPS * M_PI / 180);
-        _robot->joints.elbow_flexion->set_velocity_safe(-_lawopti.returnBetaDot_deg());
+        if (protoCyb)
+            _robot->joints.elbow_flexion->set_velocity_safe(-_lawopti.returnBetaDot_deg());
+        else
+            _robot->joints.elbow_flexion->set_velocity_safe(_lawopti.returnBetaDot_deg());
         //        _robot->joints.elbow_flexion->set_velocity_safe(-10);
 
         //        if (_lawopti.returnWristVel_deg() < 0)
