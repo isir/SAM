@@ -23,7 +23,7 @@ SAManager::~SAManager()
 {
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
-        _robot->user_feedback.leds->set(LedStrip::none, 10);
+        _robot->user_feedback.leds->set(LedStrip::none, 11);
     _robot->mosfet_gpio = false;
     if (_robot->joints.elbow_flexion) {
         _robot->joints.elbow_flexion->move_to(0, 20);
@@ -35,7 +35,7 @@ void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
     if (_robot->user_feedback.leds)
-        _robot->user_feedback.leds->set(LedStrip::white, 10);
+        _robot->user_feedback.leds->set(LedStrip::white, 11);
 
     _robot->mosfet_gpio = true;
 
