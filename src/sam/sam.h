@@ -91,6 +91,7 @@ public:
     GPIO adc_gpio;
     GPIO btn1;
     GPIO btn2;
+    GPIO btn3;
 
     template <typename U, typename... Ts>
     inline static std::unique_ptr<U> make_component(std::string name, Ts... args)

@@ -14,6 +14,7 @@
 #include "control/recorddata.h"
 #include "control/remote_computer_control.h"
 #include "control/voluntary_control.h"
+#include "control/cybathlon.h"
 #include "sam/sam.h"
 #include "sam/system_monitor.h"
 #include "ui/menu/menu_console.h"
@@ -52,6 +53,7 @@ private:
     std::unique_ptr<SystemMonitor> _sm;
     std::unique_ptr<ReadADC> _adc;
     std::unique_ptr<CompensationIMU> _imu;
+    std::unique_ptr<Cybathlon> _cyb;
 
     std::unique_ptr<MenuBackend> _main_menu;
     std::unique_ptr<MenuMQTT> _menu_mqtt_binding;

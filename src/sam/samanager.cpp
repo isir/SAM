@@ -57,6 +57,7 @@ void SAManager::fill_menus()
     _main_menu->add_item(buzzer_submenu);
 
     _main_menu->add_submenu_from_user(_adc);
+    _main_menu->add_submenu_from_user(_cyb);
 
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
@@ -113,6 +114,11 @@ void SAManager::instantiate_controllers()
     try {
         _adc = std::make_unique<ReadADC>(_robot);
     } catch (std::exception&) {
+    }
+    try {
+        _cyb = std::make_unique<Cybathlon>(_robot);
+    } catch (std::exception& e) {
+        critical() << "Couldn't create cybathlon menu : " << e.what() << ")";
     }
     //    try {
     //        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
