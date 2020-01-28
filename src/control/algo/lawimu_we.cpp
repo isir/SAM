@@ -412,30 +412,13 @@ void LawIMU_WE::display(int counter)
 
 void LawIMU_WE::writeDebugData(double debug[], double beta)
 {
-    debug[9] = beta_new;
-    //    debug[19] = R11A;
-    //    debug[20] = R12A;
-    //    debug[21] = R13A;
-    //    debug[22] = R21A;
-    //    debug[23] = R22A;
-    //    debug[24] = R23A;
-    //    debug[25] = R31A;
-    //    debug[26] = R32A;
-    //    debug[27] = R33A;
-    debug[17] = beta;
-    debug[18] = dBeta;
-    debug[19] = betaDot;
-    debug[20] = Xee;
-    debug[21] = Yee;
-    debug[22] = Zee;
-
-    debug[33] = Xbras[0];
-    debug[34] = Xbras[1];
-    debug[35] = Xbras[2];
-    debug[36] = Ybras[0];
-    debug[37] = Ybras[1];
-    debug[38] = Ybras[2];
-    debug[39] = Zbras[0];
-    debug[40] = Zbras[1];
-    debug[41] = Zbras[2];
+    debug[0] = beta_new;
+    debug[1] = beta;
+    debug[2] = dBeta;
+    debug[3] = betaDot;
+    debug[4] = Xee;
+    debug[5] = Yee;
+    debug[6] = Zee;
+    debug[7] = wristAngle_new;
+    debug[8] = wristVel;
 }
