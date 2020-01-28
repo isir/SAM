@@ -64,6 +64,7 @@ Components::Components()
     , adc_gpio(27, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn2(22, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn3(25, GPIO::DIR_INPUT, GPIO::PULL_UP)
 {
 }
 }

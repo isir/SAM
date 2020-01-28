@@ -57,6 +57,7 @@ void SAManager::fill_menus()
     _main_menu->add_item(buzzer_submenu);
 
     _main_menu->add_submenu_from_user(_adc);
+    _main_menu->add_submenu_from_user(_cyb);
 
     _main_menu->add_submenu_from_user(_robot->joints.wrist_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.shoulder_medial_rotation);
@@ -134,6 +135,31 @@ void SAManager::instantiate_controllers()
         _recordData = std::make_unique<RecordData>(_robot);
     } catch (std::exception&) {
     }
+    try {
+        _cyb = std::make_unique<Cybathlon>(_robot);
+    } catch (std::exception& e) {
+        critical() << "Couldn't create cybathlon menu : " << e.what() << ")";
+    }
+    //    try {
+    //        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
+    //    } catch (std::exception&) {
+    //    }
+    //    try {
+    //        _jfIMU1 = std::make_unique<JacobianFormulationIMU>(_robot);
+    //    } catch (std::exception&) {
+    //    }
+    //    try {
+    //        _jfIMU3 = std::make_unique<JFIMU_v3>(_robot);
+    //    } catch (std::exception&) {
+    //    }
+    //    try {
+    //        _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
+    //    } catch (std::exception&) {
+    //    }
+    //    try {
+    //        _recordData = std::make_unique<RecordData>(_robot);
+    //    } catch (std::exception&) {
+    //    }
 }
 
 void SAManager::autostart_demo()

@@ -9,6 +9,7 @@ set(SOURCES
     algo/myocontrol.cpp
     compensation_imu.cpp
     compensation_optitrack.cpp
+    cybathlon.cpp
     demo.cpp
     demo_imu.cpp
     imuwe.cpp
