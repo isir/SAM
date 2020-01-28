@@ -238,8 +238,6 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 
         if (_cnt % 50 == 0) {
             _lawimu.displayData();
-            // qDebug("lambdaW: %d", _lambdaW);
-            //            printf("lambdaW: %d\n", _lambdaW);
         }
     }
 
