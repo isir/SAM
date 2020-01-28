@@ -9,7 +9,7 @@ WristCybathlon::WristCybathlon()
     _menu->set_code("pronosup");
 
     set_params_limits(-60., 35.);
-    set_params_technical(1000, 100);
+    set_params_technical(102, 100);
     set_params_velocity(5.63265f, 0.58411f, 0, 5625);
     set_params_position(11.5974f, 0., 0., 0., 0., -180., 180.);
 }
