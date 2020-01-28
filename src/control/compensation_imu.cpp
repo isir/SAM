@@ -17,7 +17,7 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _lt("_lt(cm)", BaseParam::ReadWrite, this, 40)
     , _lua("_lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("_lfa(cm)", BaseParam::ReadWrite, this, 35)
-    , _lsh("_lsh(cm)", BaseParam::ReadWrite, this, 20)
+    , _lsh("_lsh(cm)", BaseParam::ReadWrite, this, -20)
 {
     if (!check_ptr(_robot->sensors.yellow_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
@@ -31,6 +31,7 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     _menu->set_code("imu");
     _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
     _menu->add_item("pin", "Display Pin data", [this](std::string) { this->displayPin(); });
+    _menu->add_item("calib", "Calibration", [this](std::string) { this->calibration(); });
 
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     if (_robot->joints.elbow_flexion)
@@ -75,6 +76,18 @@ void CompensationIMU::displayPin()
     int pin_up_value = _robot->btn1;
     debug() << "PinUp: " << pin_up_value;
     debug() << "PinDown: " << pin_down_value;
+}
+
+void CompensationIMU::calibration()
+{
+    // ELBOW
+    if (_robot->joints.elbow_flexion->is_calibrated() == false) {
+        _robot->joints.elbow_flexion->calibrate();
+    }
+    if (_robot->joints.elbow_flexion->is_calibrated())
+        debug() << "Calibration elbow: ok \n";
+
+    _robot->joints.elbow_flexion->move_to(90, 20);
 }
 
 bool CompensationIMU::setup()
@@ -131,7 +144,7 @@ bool CompensationIMU::setup()
 void CompensationIMU::loop(double dt, clock::time_point time)
 {
     int init_cnt = 10;
-    debug() << "cnt : " << _cnt;
+    //    debug() << "cnt : " << _cnt;
     double timeWithDe_lta = (time - _start_time).count();
 
 #if OPTITRACK
@@ -167,7 +180,8 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     if (_robot->sensors.yellow_imu)
         _robot->sensors.yellow_imu->get_quat(qYellow);
 
-    //    qDebug("qYellow: %lf; %lf; %lf; %lf", qYellow[0], qYellow[1], qYellow[2], qYellow[3]);
+    //    printf("qYellow: %lf; %lf; %lf; %lf\n", qYellow[0], qYellow[1], qYellow[2], qYellow[3]);
+    //    printf("qWhite: %lf; %lf; %lf; %lf\n", qWhite[0], qWhite[1], qWhite[2], qWhite[3]);
 
     qWhite_record.w() = qWhite[0];
     qWhite_record.x() = qWhite[1];
@@ -226,7 +240,7 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     }
 
     ++_cnt;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+    //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void CompensationIMU::law_elbowAndWrist(int init_cnt, double debugData[], double beta)

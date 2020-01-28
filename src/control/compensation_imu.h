@@ -16,6 +16,7 @@ public:
 private:
     void tare_IMU();
     void displayPin();
+    void calibration();
 
     bool setup() override;
     void loop(double dt, clock::time_point time) override;

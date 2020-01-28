@@ -268,6 +268,31 @@ void LawIMU_WE::moveToIdealFrames(Eigen::Quaterniond qTrunk, int initCounter, in
 
         qIdealT = qTrunk * qRecalT;
         qIdealT = qIdealT.normalized();
+
+        //        XQuat = qIdealT.inverse() * X0 * qIdealT;
+        //        Xtronc_init_vect = XQuat.vec();
+        //        Xtronc_init_vect = Xtronc.normalized();
+
+        //        YQuat = qIdealT.inverse() * Y0 * qIdealT;
+        //        Ytronc_init_vect = YQuat.vec();
+        //        Ytronc_init_vect = Ytronc.normalized();
+
+        //        ZQuat = qIdealT.inverse() * Z0 * qIdealT;
+        //        Ztronc_init_vect = ZQuat.vec();
+        //        Ztronc_init_vect = Ztronc.normalized();
+
+        XQuat = qTronc0.inverse() * X0 * qTronc0;
+        Xtronc_init_vect = XQuat.vec();
+        Xtronc_init_vect = Xtronc_init_vect.normalized();
+
+        YQuat = qTronc0.inverse() * Y0 * qTronc0;
+        Ytronc_init_vect = YQuat.vec();
+        Ytronc_init_vect = Ytronc_init_vect.normalized();
+
+        ZQuat = qTronc0.inverse() * Z0 * qTronc0;
+        Ztronc_init_vect = ZQuat.vec();
+        Ztronc_init_vect = Ztronc_init_vect.normalized();
+
     } else if (initCounter > initCounts) {
 
         qIdealT = qTrunk * qRecalT;
@@ -282,15 +307,27 @@ void LawIMU_WE::moveToIdealFrames(Eigen::Quaterniond qTrunk, int initCounter, in
  */
 void LawIMU_WE::computeAxis(Eigen::Quaterniond qTronc, Eigen::Quaterniond qBras)
 {
-    XQuat = qIdealT.inverse() * X0 * qIdealT;
+    //    XQuat = qIdealT.inverse() * X0 * qIdealT;
+    //    Xtronc = XQuat.vec();
+    //    Xtronc = Xtronc.normalized();
+
+    //    YQuat = qIdealT.inverse() * Y0 * qIdealT;
+    //    Ytronc = YQuat.vec();
+    //    Ytronc = Ytronc.normalized();
+
+    //    ZQuat = qIdealT.inverse() * Z0 * qIdealT;
+    //    Ztronc = ZQuat.vec();
+    //    Ztronc = Ztronc.normalized();
+
+    XQuat = qTronc.inverse() * X0 * qTronc;
     Xtronc = XQuat.vec();
     Xtronc = Xtronc.normalized();
 
-    YQuat = qIdealT.inverse() * Y0 * qIdealT;
+    YQuat = qTronc.inverse() * Y0 * qTronc;
     Ytronc = YQuat.vec();
     Ytronc = Ytronc.normalized();
 
-    ZQuat = qIdealT.inverse() * Z0 * qIdealT;
+    ZQuat = qTronc.inverse() * Z0 * qTronc;
     Ztronc = ZQuat.vec();
     Ztronc = Ztronc.normalized();
 
@@ -366,6 +403,9 @@ void LawIMU_WE::computeBetaDot(int Lua, int Lfa, double lambda, double threshold
     if (abs(betaDot) > 50 * M_PI / 180) {
         betaDot = betaDot / abs(betaDot) * 50 * M_PI / 180;
     }
+
+    //    printf("delta:%lf\n", delta);
+    //    printf("betaNew:%lf\n", beta_new);
 }
 
 void LawIMU_WE::rotationMatrices(Eigen::Quaterniond qBras)
@@ -384,7 +424,8 @@ void LawIMU_WE::computeWristVel(double lambdaW, double thresholdW)
 
     phi = atan2(R_Bras(1, 2), R_Bras(2, 2)); //rotation around X-axis
     //    debug() << "wrist angle: " << wristAngle_new * M_PI / 180 << "\n";
-    wristAngle_new = -atan(R_Bras(0, 2) / sqrt(1 - R_Bras(0, 2) * R_Bras(0, 2))); //rotation around Y-axis
+    //    wristAngle_new = -atan(R_Bras(0, 2) / sqrt(1 - R_Bras(0, 2) * R_Bras(0, 2))); //rotation around Y-axis
+    wristAngle_new = atan(R_Bras(0, 2) / sqrt(1 - R_Bras(0, 2) * R_Bras(0, 2))); //rotation around - Y-axis
     psi = atan2(R_Bras(0, 1), R_Bras(0, 0)); //rotation around Z-axis
     if (abs(wristAngle_new) < thresholdW)
         wristVel = 0.;
@@ -403,8 +444,15 @@ void LawIMU_WE::computeWristVel(double lambdaW, double thresholdW)
 void LawIMU_WE::display(int counter)
 {
     if (counter % 50 == 0) {
-        printf("betaDot:%lf\n", betaDot);
-        printf("wrist velocity: %lf\n", wristVel);
+        printf("Xtronc: %lf; %lf; %lf\n", Xtronc(0), Xtronc(1), Xtronc(2));
+        printf("Ytronc: %lf; %lf; %lf\n", Ytronc(0), Ytronc(1), Ytronc(2));
+        printf("Ztronc: %lf; %lf; %lf\n", Ztronc(0), Ztronc(1), Ztronc(2));
+        printf("Xbras: %lf; %lf; %lf\n", Xbras(0), Xbras(1), Xbras(2));
+        printf("Ybras: %lf; %lf; %lf\n", Ybras(0), Ybras(1), Ybras(2));
+        printf("Zbras: %lf; %lf; %lf\n", Zbras(0), Zbras(1), Zbras(2));
+        printf("Xee Yee Zee: %lf; %lf; %lf\n", Xee, Yee, Zee);
+        printf("dBeta:%lf\n", dBeta);
+        printf("wrist angle new: %lf\n", wristAngle_new);
         //printf("phi : %f, theta : %f, psi : %f \n dOx : %f, dOz : %f\n  lambda : %lf\n  dBeta : %f\n \n", phi_filt, theta_filt, psi_filt, deltaOx_filt, deltaOz_filt, lambda, dBeta*180/PI);
         //printf("Xee :%f, Yee : %f, Zee : %f\n distance hand : %f\n beta new : %f\n", Xee, Yee, Zee, sqrt((Xee-Xee_init)*(Xee-Xee_init) + (Yee-Yee_init)*(Yee-Yee_init) + (Zee-Zee_init)*(Zee-Zee_init)), beta_new*180/PI);
     }
