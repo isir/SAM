@@ -1,13 +1,13 @@
 #ifndef CYBATHLON_H
 #define CYBATHLON_H
 
-#include "control/algo/lawimu.h"
+#include "control/algo/lawimu_wrist.h"
 #include "sam/sam.h"
 #include "utils/interfaces/mqtt_user.h"
 #include "utils/threaded_loop.h"
 #include <fstream>
 
-class Cybathlon : public ThreadedLoop, public MqttUser  {
+class Cybathlon : public ThreadedLoop, public MqttUser {
 public:
     explicit Cybathlon(std::shared_ptr<SAM::Components> robot);
     ~Cybathlon() override;
@@ -27,7 +27,7 @@ private:
     clock::time_point _start_time;
 
     int _cnt;
-    LawIMU _lawimu;
+    LawIMU_wrist _lawimu;
 
     Param<int> _lambdaW;
     Param<double> _thresholdW;
