@@ -1,5 +1,5 @@
-#ifndef CONTROLIMU_H
-#define CONTROLIMU_H
+#ifndef JACOBIAN_FORMULATION_IMU_SK_H
+#define JACOBIAN_FORMULATION_IMU_SK_H
 
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
@@ -8,10 +8,10 @@
 #include "utils/threaded_loop.h"
 #include <fstream>
 
-class ControlIMU : public ThreadedLoop {
+class JacobianFormulationIMU_sk : public ThreadedLoop {
 public:
-    explicit ControlIMU(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot);
-    ~ControlIMU() override;
+    explicit JacobianFormulationIMU_sk(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot);
+    ~JacobianFormulationIMU_sk() override;
 
     std::shared_ptr<SAM::Components> _robot;
     std::ofstream _file;
@@ -72,4 +72,4 @@ private:
     bool saveData = true;
 };
 
-#endif // CONTROL_IMU_H
+#endif // JACOBIAN_FORMULATION_IMU_SK_H

@@ -1,15 +1,15 @@
-#ifndef LAWIMU_H
-#define LAWIMU_H
+#ifndef LawIMU_WRIST_H
+#define LawIMU_WRIST_H
 
 #include "math.h"
 #include <eigen3/Eigen/Dense>
 #include <eigen3/Eigen/Geometry>
 
-class LawIMU {
+class LawIMU_wrist {
 
 public:
-    LawIMU();
-    ~LawIMU();
+    LawIMU_wrist();
+    ~LawIMU_wrist();
     void initialization();
     void initialPositions(Eigen::Quaterniond qFA_record, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qFA_record);
@@ -29,4 +29,4 @@ private:
     double wristVel;
 };
 
-#endif // LawIMU_H
+#endif // LawIMU_wrist_H

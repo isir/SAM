@@ -1,5 +1,5 @@
-#include "controlimu.h"
 #include "algo/myocontrol.h"
+#include "jfimu_sk.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include "wiringPi.h"
@@ -9,7 +9,7 @@
 // indicate if optitrack is on
 #define OPTITRACK 0
 
-ControlIMU::ControlIMU(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot)
+JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop(name, 0.01)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
@@ -63,20 +63,20 @@ ControlIMU::ControlIMU(std::string name, std::string filename, std::shared_ptr<S
     _th_high[1] = 3000;
 }
 
-ControlIMU::~ControlIMU()
+JacobianFormulationIMU_sk::~JacobianFormulationIMU_sk()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
     stop_and_join();
 }
 
-void ControlIMU::analog_IMU()
+void JacobianFormulationIMU_sk::analog_IMU()
 {
     double a[8];
     _robot->sensors.white_imu->get_analog(a);
 }
 
-void ControlIMU::tare_IMU()
+void JacobianFormulationIMU_sk::tare_IMU()
 {
     if (_robot->sensors.white_imu)
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
@@ -91,7 +91,7 @@ void ControlIMU::tare_IMU()
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 }
 
-void ControlIMU::calibrations()
+void JacobianFormulationIMU_sk::calibrations()
 {
     // HAND
     //    if (_robot->joints.hand) {
@@ -128,7 +128,7 @@ void ControlIMU::calibrations()
         _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
-void ControlIMU::displayPin()
+void JacobianFormulationIMU_sk::displayPin()
 {
     int pin_down_value = digitalRead(_pin_down);
     int pin_up_value = digitalRead(_pin_up);
@@ -136,7 +136,7 @@ void ControlIMU::displayPin()
     debug() << "PinDown: " << pin_down_value;
 }
 
-bool ControlIMU::setup()
+bool JacobianFormulationIMU_sk::setup()
 {
     // Check for calibration
     //    if (_robot->joints.wrist_flexion) {
@@ -196,7 +196,7 @@ bool ControlIMU::setup()
     return true;
 }
 
-void ControlIMU::loop(double, clock::time_point time)
+void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
 {
 
 #if OPTITRACK
@@ -469,7 +469,7 @@ void ControlIMU::loop(double, clock::time_point time)
     //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
-void ControlIMU::cleanup()
+void JacobianFormulationIMU_sk::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
     if (_robot->joints.wrist_flexion)
@@ -481,14 +481,14 @@ void ControlIMU::cleanup()
         _file.close();
 }
 
-void ControlIMU::initializationLaw(Eigen::Quaterniond qHi, double p)
+void JacobianFormulationIMU_sk::initializationLaw(Eigen::Quaterniond qHi, double p)
 {
 }
 
-void ControlIMU::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt)
+void JacobianFormulationIMU_sk::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt)
 {
 }
 
-void ControlIMU::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
+void JacobianFormulationIMU_sk::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
 }

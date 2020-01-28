@@ -119,7 +119,7 @@ void SAManager::instantiate_controllers()
     } catch (std::exception&) {
     }
     try {
-        _jfIMU1 = std::make_unique<JacobianFormulationIMU>(_robot);
+        _jfIMU1 = std::make_unique<JFIMU_v1>(_robot);
     } catch (std::exception&) {
     }
     try {

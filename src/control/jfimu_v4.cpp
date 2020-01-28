@@ -6,7 +6,7 @@
 #include <iostream>
 
 JFIMU_v4::JFIMU_v4(std::shared_ptr<SAM::Components> robot)
-    : ControlIMU("Jacobian Formulation IMU 4", "JFIMU4", robot)
+    : JacobianFormulationIMU_sk("Jacobian Formulation IMU 4", "JFIMU4", robot)
 {
     _menu->set_description("Jacobian Formulation IMU v4");
     _menu->set_code("jfi4");

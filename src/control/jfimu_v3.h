@@ -1,10 +1,10 @@
 #ifndef JFIMU_v3_H
 #define JFIMU_v3_H
 
-#include "controlimu.h"
+#include "jfimu_sk.h"
 #include <fstream>
 
-class JFIMU_v3 : public ControlIMU {
+class JFIMU_v3 : public JacobianFormulationIMU_sk {
 public:
     explicit JFIMU_v3(std::shared_ptr<SAM::Components> robot);
     ~JFIMU_v3() override;

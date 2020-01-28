@@ -2,17 +2,19 @@ project(control CXX)
 
 set(SOURCES
     # cmake-format: sortable
-    algo/lawimu.cpp
+    algo/lawimu_wrist.cpp
     algo/lawjacobian.cpp
     algo/lawopti.cpp
+    algo/lawimu_we.cpp
     algo/myocontrol.cpp
     compensation_imu.cpp
     compensation_optitrack.cpp
     demo.cpp
     demo_imu.cpp
-    controlimu.cpp
+    imuwe.cpp
     jf_opti.cpp
-    jfimu.cpp
+    jfimu_sk.cpp
+    jfimu_v1.cpp
     jfimu_v3.cpp
     jfimu_v4.cpp
     matlab_receiver.cpp

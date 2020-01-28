@@ -1,13 +1,13 @@
-#ifndef JACOBIAN_FORMULATION_IMU_H
-#define JACOBIAN_FORMULATION_IMU_H
+#ifndef JACOBIAN_FORMULATION_IMU_v1_H
+#define JACOBIAN_FORMULATION_IMU_v1_H
 
-#include "controlimu.h"
+#include "jfimu_sk.h"
 #include <fstream>
 
-class JacobianFormulationIMU : public ControlIMU {
+class JFIMU_v1 : public JacobianFormulationIMU_sk {
 public:
-    explicit JacobianFormulationIMU(std::shared_ptr<SAM::Components> robot);
-    ~JacobianFormulationIMU() override;
+    explicit JFIMU_v1(std::shared_ptr<SAM::Components> robot);
+    ~JFIMU_v1() override;
 
 private:
     void initializationLaw(Eigen::Quaterniond qHi, double p) override;
