@@ -8,12 +8,18 @@
 #define OPTITRACK 0
 
 CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Compensation IMU", 0.0143)
+    : ThreadedLoop("CompensationIMU", 0.0143)
     , _robot(robot)
-    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 5)
+    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 5.)
     , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0.)
+    , _thresholdE("threshold elbow", BaseParam::ReadWrite, this, 5.)
+    , _lt("_lt(cm)", BaseParam::ReadWrite, this, 40)
+    , _lua("_lua(cm)", BaseParam::ReadWrite, this, 30)
+    , _lfa("_lfa(cm)", BaseParam::ReadWrite, this, 35)
+    , _lsh("_lsh(cm)", BaseParam::ReadWrite, this, 20)
 {
-    if (!check_ptr(_robot->joints.wrist_pronation, _robot->sensors.yellow_imu)) {
+    if (!check_ptr(_robot->sensors.yellow_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
@@ -27,6 +33,8 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     _menu->add_item("pin", "Display Pin data", [this](std::string) { this->displayPin(); });
 
     _menu->add_item(_robot->joints.wrist_pronation->menu());
+    if (_robot->joints.elbow_flexion)
+        _menu->add_item(_robot->joints.elbow_flexion->menu());
     if (_robot->joints.hand)
         _menu->add_item(_robot->joints.hand->menu());
 
@@ -74,7 +82,7 @@ bool CompensationIMU::setup()
     // ADC setup
     _param_file = std::ifstream("myo_thresholds");
     if (!_param_file.good()) {
-        critical() << "Failed to open myo_thresholds file. Using default values instead.";
+        critical() << "Failed to open myo_thresholds file. Using defau_lt values instead.";
     } else {
         std::string number_string;
         for (uint16_t i = 0; i < _n_electrodes; i++) {
@@ -124,7 +132,7 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 {
     int init_cnt = 10;
     debug() << "cnt : " << _cnt;
-    double timeWithDelta = (time - _start_time).count();
+    double timeWithDe_lta = (time - _start_time).count();
 
 #if OPTITRACK
     _robot->sensors.optitrack->update();
@@ -136,8 +144,8 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     if (saveData) {
         if (_need_to_write_header) {
             _file << " time, pinUp, pinDown,";
-            _file << " qBras.w, qBras.x, qBras.y, qBras.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
-            _file << " qFA.w, qFA.x, qFA.y, qFA.z,";
+            _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qRed.w, qRed.x, qRed.y, qRed.z,";
+            _file << " qYellow.w, qYellow.x, qYellow.y, qYellow.z,";
             _file << " phi wrist, theta wrist, wrist angle, wristAngVel, lambdaW, thresholdW, wristEncoder,";
             _file << " nbRigidBodies";
 
@@ -150,6 +158,79 @@ void CompensationIMU::loop(double dt, clock::time_point time)
             _need_to_write_header = false;
         }
     }
+
+    double qWhite[4], qRed[4], qYellow[4];
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->get_quat(qWhite);
+    if (_robot->sensors.red_imu)
+        _robot->sensors.red_imu->get_quat(qRed);
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+
+    //    qDebug("qYellow: %lf; %lf; %lf; %lf", qYellow[0], qYellow[1], qYellow[2], qYellow[3]);
+
+    qWhite_record.w() = qWhite[0];
+    qWhite_record.x() = qWhite[1];
+    qWhite_record.y() = qWhite[2];
+    qWhite_record.z() = qWhite[3];
+
+    qYellow_record.w() = qYellow[0];
+    qYellow_record.x() = qYellow[1];
+    qYellow_record.y() = qYellow[2];
+    qYellow_record.z() = qYellow[3];
+
+    /// WRIST
+    double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+    double elbowAngleEncoder = 0.;
+    double beta = 0.;
+    int boolBuzz = 0;
+    //    if ((_cnt + 250) % buzzN == 0) {
+    //        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+    //        boolBuzz = 1;
+    //    }
+
+    if (_robot->joints.elbow_flexion) {
+        elbowAngleEncoder = _robot->joints.elbow_flexion->read_encoder_position();
+        if (protoCyb) {
+            beta = -_robot->joints.elbow_flexion->pos() * M_PI / 180.;
+        } else {
+            beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
+        }
+        law_elbowAndWrist(init_cnt, debugData, beta);
+    } else {
+        law_wristOnly(init_cnt, debugData);
+    }
+
+    int pin_down_value = _robot->btn2;
+    int pin_up_value = _robot->btn1;
+
+    if (saveData) {
+        _file << timeWithDe_lta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << boolBuzz << ' ' << _emg[0] << ' ' << _emg[1];
+        _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
+        _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
+        _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3] << debugData[4] << ' ' << debugData[5] << ' ' << debugData[6] << ' ' << debugData[7] << ' ' << debugData[8];
+        _file << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
+        if (_robot->joints.elbow_flexion) {
+            _file << ' ' << _lambdaE << ' ' << _thresholdE << ' ' << elbowAngleEncoder;
+        }
+
+#if OPTITRACK
+        _file << ' ' << data.nRigidBodies;
+        for (int i = 0; i < data.nRigidBodies; i++) {
+            _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+            _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+            _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        }
+#endif
+        _file << std::endl;
+    }
+
+    ++_cnt;
+    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+}
+
+void CompensationIMU::law_elbowAndWrist(int init_cnt, double debugData[], double beta)
+{
     /// HAND
     _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
     _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
@@ -200,37 +281,49 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     }
     handcontrol->process(_emg[0], _emg[1], btn);
 
-    /// WRIST
-    double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+    if (_cnt == 0) {
+        _lawimuWE.initialization(_lt, _lua, _lfa, _lsh);
+        printf("Elbow and Wrist\n");
+    } else if (_cnt <= init_cnt) {
+        _lawimuWE.recordInitialPosition(qYellow_record, qWhite_record, _cnt, init_cnt);
 
-    double qBras[4], qTronc[4], qFA[4];
-    if (_robot->sensors.white_imu)
-        _robot->sensors.white_imu->get_quat(qBras);
-    if (_robot->sensors.red_imu)
-        _robot->sensors.red_imu->get_quat(qTronc);
-    if (_robot->sensors.yellow_imu)
-        _robot->sensors.yellow_imu->get_quat(qFA);
+        _lawimuWE.moveToIdealFrames(qYellow_record, _cnt, init_cnt);
+    } else {
 
-    //    qDebug("qfa: %lf; %lf; %lf; %lf", qFA[0], qFA[1], qFA[2], qFA[3]);
+        _lawimuWE.computeAxis(qYellow_record, qWhite_record);
+        //// compute Rotation matrices
+        _lawimuWE.rotationMatrices(qWhite_record);
+        /// Compute end-effector coordinates with compensation  motions
+        _lawimuWE.new_coordEE(_lt, _lua, _lfa, _lsh, beta);
+        /// Compute elbow velocity
+        _lawimuWE.computeBetaDot(_lua, _lfa, _lambdaE, _thresholdE * M_PI / 180, beta);
+        _lawimuWE.display(_cnt);
+        // Compute wrist ang. velocity
+        _lawimuWE.computeWristVel(_lambdaW, _thresholdW * M_PI / 180);
 
-    Eigen::Quaterniond qFA_record;
-    qFA_record.w() = qFA[0];
-    qFA_record.x() = qFA[1];
-    qFA_record.y() = qFA[2];
-    qFA_record.z() = qFA[3];
+        /// Send elbow velocity
+        if (protoCyb) {
+            _robot->joints.elbow_flexion->set_velocity_safe(-_lawimuWE.getBetaDot_deg());
+        } else {
+            _robot->joints.elbow_flexion->set_velocity_safe(_lawimuWE.getBetaDot_deg());
+        }
 
-    int boolBuzz = 0;
-    //    if ((_cnt + 250) % buzzN == 0) {
-    //        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
-    //        boolBuzz = 1;
-    //    }
+        /// Send wrist velocity
+        _robot->joints.wrist_pronation->set_velocity_safe(_lawimuWE.getWristVel());
+    }
+    // Write debug data file
+    _lawimuWE.writeDebugData(debugData, beta);
+}
 
+void CompensationIMU::law_wristOnly(int init_cnt, double debugData[])
+{
     if (_cnt == 0) {
         _lawimu.initialization();
+        printf("Wrist Only \n");
     } else if (_cnt <= init_cnt) {
-        _lawimu.initialPositions(qFA_record, _cnt, init_cnt);
+        _lawimu.initialPositions(qYellow_record, _cnt, init_cnt);
     } else {
-        _lawimu.rotationMatrices(qFA_record);
+        _lawimu.rotationMatrices(qYellow_record);
         _lawimu.controlLawWrist(_lambdaW, _thresholdW * M_PI / 180);
 
         _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
@@ -243,21 +336,18 @@ void CompensationIMU::loop(double dt, clock::time_point time)
 
     _lawimu.writeDebugData(debugData);
 
-    int pin_down_value = _robot->btn2;
-    int pin_up_value = _robot->btn1;
-
     /// read EMG
     // Set configuration bits
     //    _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
     //    _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
     //    debug() << "emg : " << _emg[0] << "; " << _emg[1];
-    //    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
-    //        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
-    //        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
-    //        ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
+    //    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (defau_lt val)
+    //        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (defau_lt val)
+    //        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (defau_lt val)
+    //        ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (defau_lt val)
     //        ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
-    //        ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
-    //        _robot->sensors.adc0->getGain() | //Set PGA/voltage range
+    //        ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (defau_lt)
+    //        _robot->sensors.adc0->getGain() | //Set PGA/vo_ltage range
     //        ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
 
     //    uint16_t config_c0 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_0; //for channel 0
@@ -269,41 +359,20 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     //    // Wait for the conversion to complete
     //    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
     //        ;
-    //    // Read the conversion results
+    //    // Read the conversion resu_lts
     //    _emg[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
     //    //Write config register to the ADC
     //    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
     //    // Wait for the conversion to complete
     //    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
     //        ;
-    //    // Read the conversion results
+    //    // Read the conversion resu_lts
     //    _emg[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
     //    for (uint16_t i = 0; i < 2; i++) {
     //        if (_emg[i] > 65500) {
     //            _emg[i] = 0;
     //        }
     //    }
-
-    if (saveData) {
-        _file << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << boolBuzz << ' ' << _emg[0] << ' ' << _emg[1];
-        _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-        _file << ' ' << qFA[0] << ' ' << qFA[1] << ' ' << qFA[2] << ' ' << qFA[3];
-        _file << ' ' << debugData[0] << ' ' << debugData[1] << ' ' << debugData[2] << ' ' << debugData[3];
-        _file << ' ' << _lambdaW << ' ' << _thresholdW << ' ' << wristAngleEncoder;
-
-#if OPTITRACK
-        _file << ' ' << data.nRigidBodies;
-        for (int i = 0; i < data.nRigidBodies; i++) {
-            _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-            _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-            _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
-        }
-#endif
-        _file << std::endl;
-    }
-
-    ++_cnt;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void CompensationIMU::cleanup()

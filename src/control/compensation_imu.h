@@ -1,6 +1,7 @@
 #ifndef COMPENSATIONIMU_H
 #define COMPENSATIONIMU_H
 
+#include "control/algo/lawimu_we.h"
 #include "control/algo/lawimu_wrist.h"
 #include "sam/sam.h"
 #include "utils/socket.h"
@@ -19,6 +20,8 @@ private:
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
     void cleanup() override;
+    void law_elbowAndWrist(int init_cnt, double debugData[], double beta);
+    void law_wristOnly(int init_cnt, double debugData[]);
 
     std::shared_ptr<SAM::Components> _robot;
     Socket _receiver;
@@ -38,9 +41,20 @@ private:
     std::ifstream _param_file;
 
     LawIMU_wrist _lawimu;
+    LawIMU_WE _lawimuWE;
+
+    bool protoCyb = true;
 
     Param<double> _lambdaW;
     Param<double> _thresholdW;
+    Param<double> _lambdaE;
+    Param<double> _thresholdE;
+    Param<int> _lt; // length of the trunk
+    Param<int> _lua; // upper-arm length
+    Param<int> _lfa; // forearm length
+    Param<int> _lsh; // from head to shoulder length
+
+    Eigen::Quaterniond qWhite_record, qYellow_record;
 };
 
 #endif // COMPENSATION_IMU_H
