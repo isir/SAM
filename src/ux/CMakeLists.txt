@@ -5,6 +5,7 @@ set(SOURCES
     menu/menu_backend.cpp menu/menu_broker.cpp menu/menu_item.cpp)
 
 add_subdirectory(mosquittopp)
+add_subdirectory(Osc99)
 
 add_library(ux ${SOURCES})
 
