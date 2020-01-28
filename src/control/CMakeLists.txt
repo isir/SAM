@@ -12,7 +12,6 @@ set(SOURCES
     cybathlon.cpp
     demo.cpp
     demo_imu.cpp
-    imuwe.cpp
     jf_opti.cpp
     jfimu_sk.cpp
     jfimu_v1.cpp
