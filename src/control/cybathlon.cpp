@@ -1,15 +1,15 @@
 #include "cybathlon.h"
+#include "algo/myocontrol.h"
+#include "ui/visual/ledstrip.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include <filesystem>
-#include "ui/visual/ledstrip.h"
 #include <iostream>
-#include "algo/myocontrol.h"
 
 Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Cybathlon", 0.01)
     , _robot(robot)
-    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 2)
+    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 7)
     , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
 {
     _menu->set_description("Cybathlon");
@@ -38,7 +38,6 @@ Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         _electrodes[i] = 0;
     }
-
 }
 
 Cybathlon::~Cybathlon()
@@ -88,14 +87,13 @@ void Cybathlon::readAllADC() //Optimized function to read all 6 electrodes
     uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
     uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
 
-
     //Write config register to the ADC
     _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
     _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
     _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
 
     // Wait for the conversion to complete
-    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
         ;
 
     // Read the conversion results
@@ -103,14 +101,13 @@ void Cybathlon::readAllADC() //Optimized function to read all 6 electrodes
     _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
     _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
 
-
     //Write config register to the ADC
     _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
     _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
     _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
 
     // Wait for the conversion to complete
-    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
         ;
 
     // Read the conversion results
@@ -128,7 +125,7 @@ void Cybathlon::readAllADC() //Optimized function to read all 6 electrodes
 bool Cybathlon::setup()
 {
     if (_robot->joints.elbow_flexion->is_calibrated() == false)
-         _robot->joints.elbow_flexion->calibrate();
+        _robot->joints.elbow_flexion->calibrate();
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     _robot->user_feedback.leds->set(LedStrip::white, 11);
@@ -147,28 +144,28 @@ void Cybathlon::loop(double dt, clock::time_point time)
     static const unsigned int counts_before_bubble = 2;
     static const unsigned int counts_after_bubble = 2;
 
-    static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
+    static const MyoControl::EMGThresholds thresholds(5000, 2200, 0, 5000, 2200, 0);
 
     auto robot = _robot;
     MyoControl::Action co_contraction("Co contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
         [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
     MyoControl::Action double_contraction("Double contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
         [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
     MyoControl::Action triple_contraction("Triple contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
         [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
-    std::vector<MyoControl::Action> s1 {co_contraction, double_contraction, triple_contraction};
+    std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
 
     static bool first = true;
     if (first) {
@@ -200,22 +197,22 @@ void Cybathlon::loop(double dt, clock::time_point time)
     static bool elbow_available = 1;
     static bool smoothly_changed_mode = true;
 
-//    if (_robot->btn1) {
-//        smoothly_changed_mode = true;
-//    }
-//    if (smoothly_changed_mode) {
-//        if (!_robot->btn1) {
-//            elbow_available = !elbow_available;
-//            smoothly_changed_mode = false;
-//        }
-//    }
+    //    if (_robot->btn1) {
+    //        smoothly_changed_mode = true;
+    //    }
+    //    if (smoothly_changed_mode) {
+    //        if (!_robot->btn1) {
+    //            elbow_available = !elbow_available;
+    //            smoothly_changed_mode = false;
+    //        }
+    //    }
 
     if (!_robot->btn1) {
         //EMG3 and EMG5 = elbow
-        if (_electrodes[2]>_th_high[2] && _electrodes[4]<_th_low[4] && _electrodes[3]<(_electrodes[2]-1500)) { //EMG3 activation
+        if (_electrodes[2] > _th_high[2] && _electrodes[4] < _th_low[4] && _electrodes[3] < (_electrodes[2] - 1500)) { //EMG3 activation
             _robot->joints.elbow_flexion->set_velocity_safe(25); //Elbow flexion
             colors[2] = LedStrip::red_bright;
-        } else if (_electrodes[4]>_th_high[4] && _electrodes[2]<_th_low[2] && _electrodes[3]<_th_low[3] && _electrodes[5]<_th_low[3]) { //EMG5 activation
+        } else if (_electrodes[4] > _th_high[4] && _electrodes[2] < _th_low[2] && _electrodes[3] < _th_low[3] && _electrodes[5] < _th_low[3]) { //EMG5 activation
             _robot->joints.elbow_flexion->set_velocity_safe(-25); //Elbow extension
             colors[4] = LedStrip::red_bright;
         } else {
@@ -227,12 +224,12 @@ void Cybathlon::loop(double dt, clock::time_point time)
 
     static int previous_value_wrist = 1;
 
-    if(!_robot->btn3) {
+    if (!_robot->btn3) {
         //EMG4 and EMG6 = wrist rotator
-        if (_electrodes[3]>_th_high[3] && _electrodes[5]<(_electrodes[3]-500) && _electrodes[4]<(_electrodes[3]-500) && _electrodes[2]<_electrodes[3]) { //EMG4 activation
+        if (_electrodes[3] > _th_high[3] && _electrodes[5] < (_electrodes[3] - 500) && _electrodes[4] < (_electrodes[3] - 500) && _electrodes[2] < _electrodes[3]) { //EMG4 activation
             _robot->joints.wrist_pronation->set_velocity_safe(-40);
             colors[3] = LedStrip::red_bright;
-        } else if (_electrodes[5]>_th_high[5] && _electrodes[3]<_th_high[5] && _electrodes[4]<_th_high[5]) { //EMG6 activation
+        } else if (_electrodes[5] > _th_high[5] && _electrodes[3] < _th_high[5] && _electrodes[4] < _th_high[5]) { //EMG6 activation
             _robot->joints.wrist_pronation->set_velocity_safe(40);
             colors[5] = LedStrip::red_bright;
         } else {
@@ -241,7 +238,7 @@ void Cybathlon::loop(double dt, clock::time_point time)
         previous_value_wrist = 0;
     } else {
         //compensation IMU
-        if (previous_value_wrist==0) {
+        if (previous_value_wrist == 0) {
             _cnt = 0;
         }
         int init_cnt = 10;
@@ -283,9 +280,7 @@ void Cybathlon::loop(double dt, clock::time_point time)
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         colors[i] = LedStrip::white;
     }
-
 }
-
 
 void Cybathlon::cleanup()
 {
