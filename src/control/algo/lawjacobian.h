@@ -70,12 +70,12 @@ private:
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot; // joint angles and angular velocities command
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA; // Trunk and Arm Euler angles, expressed in hand frame
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3; // rotation matrices
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
 
     double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
-    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0; // quaternions for hip, arm and trunk frames
+    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative; // quaternions for hip, arm and trunk frames
 };
 
 #endif // LAWJACOBIAN_H

@@ -75,9 +75,14 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
 
     // Rotation matrix from IMU or hand rigid body frame to theoretical arm
     if (nbLinks == 2) {
+        // if IMU on hand
+        //        R0 << 0., 1., 0.,
+        //            0., 0., 1.,
+        //            1., 0., 0.;
+        // if IMU on upper arm
         R0 << 0., 1., 0.,
-            0., 0., 1.,
-            1., 0., 0.;
+            -1., 0., 0.,
+            0., 0., 1.;
     } else if (nbLinks == 3) {
         R0 << 1., 0., 0.,
             0., 0., -1.,
@@ -271,6 +276,9 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
     Rhip = qHip.toRotationMatrix();
     Rtrunk = qTrunk.toRotationMatrix();
     Rhand = qHand.toRotationMatrix();
+    qHand_relative = qHand.normalized() * qArm0.conjugate();
+    /// For optitrack quaternion definition
+    Rhand_rel = qHand_relative.toRotationMatrix();
 }
 
 /**
@@ -468,17 +476,29 @@ void LawJacobian::updateFramesinEE(double theta[])
         }
 
         /// UPDATE FRAMES
-        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(0, 1) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
-        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(0, 1) * y(1, i + 1) + Rframe(0, 2) * z(1, i + 1);
-        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(0, 1) * y(2, i + 1) + Rframe(0, 2) * z(2, i + 1);
+        //        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(0, 1) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
+        //        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(0, 1) * y(1, i + 1) + Rframe(0, 2) * z(1, i + 1);
+        //        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(0, 1) * y(2, i + 1) + Rframe(0, 2) * z(2, i + 1);
 
-        y(0, i) = Rframe(1, 0) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(1, 2) * z(0, i + 1);
-        y(1, i) = Rframe(1, 0) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(1, 2) * z(1, i + 1);
-        y(2, i) = Rframe(1, 0) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(1, 2) * z(2, i + 1);
+        //        y(0, i) = Rframe(1, 0) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(1, 2) * z(0, i + 1);
+        //        y(1, i) = Rframe(1, 0) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(1, 2) * z(1, i + 1);
+        //        y(2, i) = Rframe(1, 0) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(1, 2) * z(2, i + 1);
 
-        z(0, i) = Rframe(2, 0) * x(0, i + 1) + Rframe(2, 1) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
-        z(1, i) = Rframe(2, 0) * x(1, i + 1) + Rframe(2, 1) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
-        z(2, i) = Rframe(2, 0) * x(2, i + 1) + Rframe(2, 1) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
+        //        z(0, i) = Rframe(2, 0) * x(0, i + 1) + Rframe(2, 1) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
+        //        z(1, i) = Rframe(2, 0) * x(1, i + 1) + Rframe(2, 1) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
+        //        z(2, i) = Rframe(2, 0) * x(2, i + 1) + Rframe(2, 1) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
+
+        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(1, 0) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
+        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(1, 0) * y(1, i + 1) + Rframe(2, 0) * z(1, i + 1);
+        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(1, 0) * y(2, i + 1) + Rframe(2, 0) * z(2, i + 1);
+
+        y(0, i) = Rframe(0, 1) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(2, 1) * z(0, i + 1);
+        y(1, i) = Rframe(0, 1) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(2, 1) * z(1, i + 1);
+        y(2, i) = Rframe(0, 1) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(2, 1) * z(2, i + 1);
+
+        z(0, i) = Rframe(0, 2) * x(0, i + 1) + Rframe(1, 2) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
+        z(1, i) = Rframe(0, 2) * x(1, i + 1) + Rframe(1, 2) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
+        z(2, i) = Rframe(0, 2) * x(2, i + 1) + Rframe(1, 2) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
 
         //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
         //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
@@ -711,6 +731,9 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double 
         thetaNew.block<2, 1>(1, 0) = dlsJ * delta;
         thetaNew(0) = eulerA(3);
     }
+
+    // wrist pronosup control with forearm rotation
+    thetaNew(0) = -atan(Rhand_rel(0, 2) / sqrt(1 - Rhand_rel(0, 2) * Rhand_rel(0, 2))); //rotation around Y-axis
 
     // deadzone
     for (int i = 0; i < nbLinks; i++) {
