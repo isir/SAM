@@ -5,7 +5,7 @@
 #include <iostream>
 
 // indicate if optitrack is on
-#define OPTITRACK 0
+#define OPTITRACK 1
 
 ReadADC::ReadADC(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Read ADC", .025)
@@ -163,6 +163,7 @@ bool ReadADC::setup()
         }
     }
 
+    _cnt = 0;
     int nbRigidBodies = 0;
     _start_time = clock::now();
     return true;
@@ -170,6 +171,22 @@ bool ReadADC::setup()
 
 void ReadADC::loop(double, clock::time_point time)
 {
+
+    int btnStart;
+    if (!_robot->btn3)
+        btnStart = 0;
+    else
+        btnStart = 1;
+
+    int boolBuzz = 0;
+    if (_cnt % 100 == 0) {
+        // generate random number for buzzer
+        boolBuzz = rand() % 2;
+        printf("boolBuzz: %d\n", boolBuzz);
+        if (boolBuzz == 1)
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+    }
+
     double timeWithDelta = (time - _start_time).count();
 #if OPTITRACK
     _robot->sensors.optitrack->update();
@@ -184,6 +201,7 @@ void ReadADC::loop(double, clock::time_point time)
         _robot->sensors.yellow_imu->get_quat(qTronc);
 
     double beta = _robot->joints.elbow_flexion->pos() * M_PI / 180.;
+    double wristAngle = _robot->joints.wrist_pronation->pos() * M_PI / 180.;
 
     static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
@@ -284,9 +302,9 @@ void ReadADC::loop(double, clock::time_point time)
     //    _robot->user_feedback.leds->set(colors);
 
     if (saveData) {
-        _file << timeWithDelta << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[2] << ' ' << _electrodes[3] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
+        _file << timeWithDelta << ' ' << boolBuzz << ' ' << btnStart << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[2] << ' ' << _electrodes[3] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
         _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
-        _file << ' ' << beta;
+        _file << ' ' << beta << ' ' << wristAngle;
 #if OPTITRACK
         for (unsigned int i = 0; i < data.nRigidBodies; i++) {
             _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
@@ -296,8 +314,8 @@ void ReadADC::loop(double, clock::time_point time)
 #endif
         _file << std::endl;
     }
-
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+    ++_cnt;
+    //    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
 void ReadADC::cleanup()

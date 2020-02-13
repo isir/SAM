@@ -29,6 +29,7 @@ private:
     std::ifstream _param_file;
     std::ofstream _file;
 
+    int _cnt;
     // indicate whether to save data
     bool saveData = true;
 };
