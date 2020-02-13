@@ -34,7 +34,8 @@ void JFIMU_v4::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qH
 void JFIMU_v4::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
     _lawJ.rotationMatrices(qHa, qHi, qT);
-    _lawJ.updateFrames(theta);
+    _lawJ.updateFramesinEE(theta);
+    //    _lawJ.updateFrames(theta);
     _lawJ.computeOriginsVectors(l, nbDOF);
     _lawJ.computeTrunkAngles(qHa, qT, qHi);
     _lawJ.computeArmAngles(qHa, qT, qA);

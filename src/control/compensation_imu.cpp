@@ -87,7 +87,10 @@ void CompensationIMU::calibration()
     if (_robot->joints.elbow_flexion->is_calibrated())
         debug() << "Calibration elbow: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(90, 20);
+    //    if (protoCyb)
+    //        _robot->joints.elbow_flexion->move_to(90, 20);
+    //    else
+    //        _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 bool CompensationIMU::setup()
@@ -134,10 +137,7 @@ bool CompensationIMU::setup()
     _start_time = clock::now();
     _emg[0] = 0;
     _emg[1] = 0;
-    // generate random number for buzzer
-    int randN = rand() % 3;
-    buzzN = floor(1 / period() + randN / period());
-    debug() << "buzzN : " << buzzN;
+
     return true;
 }
 
@@ -196,12 +196,15 @@ void CompensationIMU::loop(double dt, clock::time_point time)
     /// WRIST
     double wristAngleEncoder = _robot->joints.wrist_pronation->read_encoder_position();
     double elbowAngleEncoder = 0.;
-    double beta = 0.;
     int boolBuzz = 0;
-    //    if ((_cnt + 250) % buzzN == 0) {
-    //        _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
-    //        boolBuzz = 1;
-    //    }
+    double beta = 0.;
+    if (_cnt % 100 == 0) {
+        // generate random number for buzzer
+        boolBuzz = rand() % 2;
+        printf("boolBuzz: %d\n", boolBuzz);
+        if (boolBuzz == 1)
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+    }
 
     if (_robot->joints.elbow_flexion) {
         elbowAngleEncoder = _robot->joints.elbow_flexion->read_encoder_position();
@@ -392,6 +395,8 @@ void CompensationIMU::law_wristOnly(int init_cnt, double debugData[])
 void CompensationIMU::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
+    if (_robot->joints.elbow_flexion)
+        _robot->joints.elbow_flexion->forward(0);
     if (saveData)
         _file.close();
 }

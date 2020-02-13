@@ -1,5 +1,5 @@
-#include "algo/myocontrol.h"
 #include "jfimu_sk.h"
+#include "algo/myocontrol.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include "wiringPi.h"
@@ -7,10 +7,10 @@
 #include <iostream>
 
 // indicate if optitrack is on
-#define OPTITRACK 0
+#define OPTITRACK 1
 
 JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop(name, 0.01)
+    : ThreadedLoop(name, 0.0167)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
     , _lt("lt(cm)", BaseParam::ReadWrite, this, 40)
@@ -18,7 +18,7 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
     , _pin_up(24)
     , _pin_down(22)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
-    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 20)
+    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 38)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
@@ -122,10 +122,10 @@ void JacobianFormulationIMU_sk::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    if (protoCyb)
-        _robot->joints.elbow_flexion->move_to(90, 20);
-    else
-        _robot->joints.elbow_flexion->move_to(-90, 20);
+    //    if (protoCyb)
+    //        _robot->joints.elbow_flexion->move_to(90, 20);
+    //    else
+    //        _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void JacobianFormulationIMU_sk::displayPin()
@@ -198,11 +198,26 @@ bool JacobianFormulationIMU_sk::setup()
 
 void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
 {
+    int btnStart;
+    if (!_robot->btn3)
+        btnStart = 0;
+    else
+        btnStart = 1;
+
+    int boolBuzz = 0;
+    if (_cnt % 100 == 0) {
+        // generate random number for buzzer
+        boolBuzz = rand() % 2;
+        printf("boolBuzz: %d\n", boolBuzz);
+        if (boolBuzz == 1)
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+    }
 
 #if OPTITRACK
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
-    debug() << "Rigid Bodies: " << data.nRigidBodies;
+    if (_cnt == 0)
+        debug() << "Rigid Bodies: " << data.nRigidBodies;
 #endif
 
     double timeWithDelta = (time - _start_time).count();
@@ -395,7 +410,7 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
     if (_cnt == 0) {
         initializationLaw(_qHip, period());
     } else if (_cnt <= _init_cnt) {
-        initialPositionsLaw(_qHand, _qHip, _qTrunk, _qArm, _theta, _lt, _lsh, _l, _nbDOF, _cnt, _init_cnt);
+        initialPositionsLaw(_qHand, _qHip, _qTrunk, _qHand, _theta, _lt, _lsh, _l, _nbDOF, _cnt, _init_cnt);
     } else {
         controlLaw(_qHand, _qHip, _qTrunk, _qArm, _theta, _lt, _lsh, _l, _nbDOF, _k, _lambda, _threshold, _cnt, _init_cnt);
 
@@ -444,7 +459,7 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
     if (saveData) {
         _lawJ.writeDebugData(debugData, _theta);
         /// WRITE DATA
-        _file << _nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lt << ' ' << _lsh << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+        _file << boolBuzz << ' ' << timeWithDelta << ' ' << btnStart << ' ' << _lt << ' ' << _lsh << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
         _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
         _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
@@ -472,6 +487,7 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
 void JacobianFormulationIMU_sk::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
+    _robot->joints.elbow_flexion->forward(0);
     if (_robot->joints.wrist_flexion)
         _robot->joints.wrist_flexion->forward(0);
     //    _robot->joints.elbow_flexion->move_to(0, 20);
