@@ -25,10 +25,10 @@ SAManager::~SAManager()
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 10);
     _robot->mosfet_gpio = false;
-    if (_robot->joints.elbow_flexion) {
-        _robot->joints.elbow_flexion->move_to(0, 20);
-        usleep(4 * 1000000);
-    }
+    //    if (_robot->joints.elbow_flexion) {
+    //        _robot->joints.elbow_flexion->move_to(0, 20);
+    //    usleep(4 * 1000000);
+    //}
 }
 
 void SAManager::run()
