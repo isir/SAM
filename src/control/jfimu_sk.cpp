@@ -18,7 +18,7 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
     , _pin_up(24)
     , _pin_down(22)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
-    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 38)
+    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 28)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
