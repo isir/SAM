@@ -444,13 +444,13 @@ void LawIMU_WE::computeWristVel(double lambdaW, double thresholdW)
 void LawIMU_WE::display(int counter)
 {
     if (counter % 50 == 0) {
-        printf("Xtronc: %lf; %lf; %lf\n", Xtronc(0), Xtronc(1), Xtronc(2));
-        printf("Ytronc: %lf; %lf; %lf\n", Ytronc(0), Ytronc(1), Ytronc(2));
-        printf("Ztronc: %lf; %lf; %lf\n", Ztronc(0), Ztronc(1), Ztronc(2));
-        printf("Xbras: %lf; %lf; %lf\n", Xbras(0), Xbras(1), Xbras(2));
-        printf("Ybras: %lf; %lf; %lf\n", Ybras(0), Ybras(1), Ybras(2));
-        printf("Zbras: %lf; %lf; %lf\n", Zbras(0), Zbras(1), Zbras(2));
-        printf("Xee Yee Zee: %lf; %lf; %lf\n", Xee, Yee, Zee);
+        //        printf("Xtronc: %lf; %lf; %lf\n", Xtronc(0), Xtronc(1), Xtronc(2));
+        //        printf("Ytronc: %lf; %lf; %lf\n", Ytronc(0), Ytronc(1), Ytronc(2));
+        //        printf("Ztronc: %lf; %lf; %lf\n", Ztronc(0), Ztronc(1), Ztronc(2));
+        //        printf("Xbras: %lf; %lf; %lf\n", Xbras(0), Xbras(1), Xbras(2));
+        //        printf("Ybras: %lf; %lf; %lf\n", Ybras(0), Ybras(1), Ybras(2));
+        //        printf("Zbras: %lf; %lf; %lf\n", Zbras(0), Zbras(1), Zbras(2));
+        //        printf("Xee Yee Zee: %lf; %lf; %lf\n", Xee, Yee, Zee);
         printf("dBeta:%lf\n", dBeta);
         printf("wrist angle new: %lf\n", wristAngle_new);
         //printf("phi : %f, theta : %f, psi : %f \n dOx : %f, dOz : %f\n  lambda : %lf\n  dBeta : %f\n \n", phi_filt, theta_filt, psi_filt, deltaOx_filt, deltaOz_filt, lambda, dBeta*180/PI);
