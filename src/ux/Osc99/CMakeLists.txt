@@ -1,13 +1,13 @@
-project(Osc99 C)
+project(Osc99 C CXX)
 
 set(SOURCES
     # cmake-format: sortable
     OscAddress.c 
-    OscBundle.c
     OscCommon.c
     OscError.c
-    OscMessage.c
-    OscPacket.c
-    OscSlip.c)
+    OscBundle.cpp
+    OscMessage.cpp
+    OscPacket.cpp
+    OscSlip.cpp)
 
 add_library(Osc99 ${SOURCES})

@@ -275,7 +275,7 @@ void ReadADC::loop(double, clock::time_point time)
         colors[i] = LedStrip::white;
     }
 
-    //    _file << timeWithDelta << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << electrodes[2] << ' ' << electrodes[3] << ' ' << electrodes[4] << ' ' << electrodes[5];
+    //    _file << timeWithDelta << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[2] << ' ' << _electrodes[3] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
     //    _file << ' ' << qBras[0] << ' ' << qBras[1] << ' ' << qBras[2] << ' ' << qBras[3] << ' ' << qTronc[0] << ' ' << qTronc[1] << ' ' << qTronc[2] << ' ' << qTronc[3];
     //    _file << ' ' << beta;
     //    for (unsigned int i = 0; i < data.nRigidBodies; i++) {

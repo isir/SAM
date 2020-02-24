@@ -25,10 +25,10 @@ SAManager::~SAManager()
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 11);
     _robot->mosfet_gpio = false;
-    if (_robot->joints.elbow_flexion) {
-        _robot->joints.elbow_flexion->move_to(0, 20);
-        usleep(4 * 1000000);
-    }
+//    if (_robot->joints.elbow_flexion) {
+//        _robot->joints.elbow_flexion->move_to(0, 20);
+//        usleep(4 * 1000000);
+//    }
 }
 
 void SAManager::run()
@@ -41,8 +41,8 @@ void SAManager::run()
 
     instantiate_controllers();
     fill_menus();
-    //autostart_demo();
-    autostart_adc();
+    autostart_demo();
+    //autostart_adc();
 
     std::unique_lock lock(_cv_mutex);
     _cv.wait(lock);
@@ -55,6 +55,10 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("db", "Double Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ); });
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
+
+    std::shared_ptr<MenuBackend> ngimu_submenu = std::make_shared<MenuBackend>("ngimu", "NGIMU submenu");
+    ngimu_submenu->add_item("id", "Identify", [this](std::string) { _robot->sensors.ng_imu->send_command_identify(); });
+    _main_menu->add_item(ngimu_submenu);
 
     _main_menu->add_submenu_from_user(_adc);
     _main_menu->add_submenu_from_user(_cyb);
@@ -69,8 +73,8 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_rm);
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_imu);
-    _main_menu->add_submenu_from_user(_opti); /*
-    _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_submenu_from_user(_opti);
+    _main_menu->add_submenu_from_user(_demo); /*
     _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_jfOpti);
     _main_menu->add_submenu_from_user(_jfIMU1);
@@ -103,14 +107,14 @@ void SAManager::instantiate_controllers()
         _imu = std::make_unique<CompensationIMU>(_robot);
     } catch (std::exception&) {
     }
-    //    try {
-    //        _demo = std::make_unique<Demo>(_robot);
-    //    } catch (std::exception&) {
-    //    }
-    //    try {
-    //        _demoimu = std::make_unique<DemoIMU>(_robot);
-    //    } catch (std::exception&) {
-    //    }
+        try {
+            _demo = std::make_unique<Demo>(_robot);
+        } catch (std::exception&) {
+        }
+//        try {
+//            _demoimu = std::make_unique<DemoIMU>(_robot);
+//        } catch (std::exception&) {
+//        }
     try {
         _adc = std::make_unique<ReadADC>(_robot);
     } catch (std::exception&) {

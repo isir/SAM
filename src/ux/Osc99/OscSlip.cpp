@@ -11,17 +11,29 @@
 
 #include "OscSlip.h"
 #include <stddef.h>
+#include "utils/log/log.h"
 
 //------------------------------------------------------------------------------
 // Definitions
 
-#define SLIP_END ((char)0xC0)
-#define SLIP_ESC ((char)0xDB)
-#define SLIP_ESC_END ((char)0xDC)
-#define SLIP_ESC_ESC ((char)0xDD)
+#define SLIP_END static_cast<char>(0xC0)
+#define SLIP_ESC static_cast<char>(0xDB)
+#define SLIP_ESC_END static_cast<char>(0xDC)
+#define SLIP_ESC_ESC static_cast<char>(0xDD)
 
 //------------------------------------------------------------------------------
 // Functions
+
+OscSlipDecoder::OscSlipDecoder()
+    : bufferIndex(0)
+{
+
+}
+
+OscSlipDecoder::~OscSlipDecoder()
+{
+
+}
 
 /**
  * @brief Encodes an OSC packet as a SLIP packet.
@@ -43,15 +55,15 @@
  * @param destinationSize Size of the destination.
  * @return Error code (0 if successful).
  */
-OscError OscSlipEncodePacket(const OscPacket * const oscPacket, size_t * const slipPacketSize, char * const destination, const size_t destinationSize) {
+OscError OscSlipDecoder::OscSlipEncodePacket(const OscPacket * const oscPacket, size_t * const slipPacketSize, char * const destination, const size_t destinationSize) {
     *slipPacketSize = 0; // size will be 0 if function unsuccessful
     unsigned int encodedPacketSize = 0;
     unsigned int packetIndex;
-    for (packetIndex = 0; packetIndex < oscPacket->size; packetIndex++) {
+    for (packetIndex = 0; packetIndex < oscPacket->OscPacketGetSize(); packetIndex++) {
         if ((encodedPacketSize + 1) > destinationSize) {
             return OscErrorDestinationTooSmall; // error: destination too small
         }
-        switch (oscPacket->contents[packetIndex]) {
+        switch (oscPacket->OscPacketGetContents(packetIndex)) {
             case SLIP_END:
                 destination[encodedPacketSize++] = SLIP_ESC;
                 destination[encodedPacketSize++] = SLIP_ESC_END;
@@ -61,38 +73,12 @@ OscError OscSlipEncodePacket(const OscPacket * const oscPacket, size_t * const s
                 destination[encodedPacketSize++] = SLIP_ESC_ESC;
                 break;
             default:
-                destination[encodedPacketSize++] = oscPacket->contents[packetIndex];
+                destination[encodedPacketSize++] = oscPacket->OscPacketGetContents(packetIndex);
         }
     }
     destination[encodedPacketSize++] = SLIP_END;
     *slipPacketSize = encodedPacketSize;
     return OscErrorNone;
-}
-
-/**
- * @brief Initialises an OSC SLIP decoder structure.
- *
- * An OSC SLIP decoder structure must be initialised before use.  A
- * ProcessPacket function must be implemented within the application and
- * assigned to the OSC SLIP decoder structure after initialisation.
- *
- * Example use:
- * @code
- * void ProcessPacket(OscPacket * const oscPacket){
- * }
- *
- * void Main() {
- *     OscSlipDecoder oscSlipDecoder;
- *     OscSlipDecoderInitialise(&oscSlipDecoder);
- *     oscSlipDecoder.processPacket = ProcessPacket;
- * }
- * @endcode
- *
- * @param oscSlipDecoder Address OSC SLIP decoder structure.
- */
-void OscSlipDecoderInitialise(OscSlipDecoder * const oscSlipDecoder) {
-    oscSlipDecoder->bufferIndex = 0;
-    oscSlipDecoder->processPacket = NULL;
 }
 
 /**
@@ -116,14 +102,14 @@ void OscSlipDecoderInitialise(OscSlipDecoder * const oscSlipDecoder) {
  * @param byte Byte received within serial stream.
  * @return Error code (0 if successful).
  */
-OscError OscSlipDecoderProcessByte(OscSlipDecoder * const oscSlipDecoder, const char byte) {
+OscError OscSlipDecoder::OscSlipProcessByte(const char byte, OscMessage * oscMessage, OscTimeTag * oscTimeTag) {
 
     // Add byte to buffer
-    oscSlipDecoder->buffer[oscSlipDecoder->bufferIndex] = byte;
+    buffer[bufferIndex] = byte;
 
     // Increment index with overflow
-    if (++oscSlipDecoder->bufferIndex >= OSC_SLIP_DECODER_BUFFER_SIZE) {
-        oscSlipDecoder->bufferIndex = 0;
+    if (++bufferIndex+1 >= OSC_SLIP_DECODER_BUFFER_SIZE) {
+        bufferIndex = 0;
         return OscErrorEncodedSlipPacketTooLong; // error: SLIP packet is too long
     }
 
@@ -133,54 +119,41 @@ OscError OscSlipDecoderProcessByte(OscSlipDecoder * const oscSlipDecoder, const 
     }
 
     // Reset index
-    oscSlipDecoder->bufferIndex = 0;
+    bufferIndex = 0;
 
     // Decode packet
     OscPacket oscPacket;
-    OscPacketInitialise(&oscPacket);
     unsigned int index = 0;
-    while (oscSlipDecoder->buffer[index] != SLIP_END) {
-        if (oscSlipDecoder->buffer[index] == SLIP_ESC) {
-            switch (oscSlipDecoder->buffer[++index]) {
+    while (buffer[index] != SLIP_END) {
+        if (buffer[index] == SLIP_ESC) {
+            switch (buffer[++index]) {
                 case SLIP_ESC_END:
-                    oscPacket.contents[oscPacket.size++] = SLIP_END;
+                    oscPacket.OscPacketSetContents(oscPacket.OscPacketGetSize(), SLIP_END);
                     break;
                 case SLIP_ESC_ESC:
-                    oscPacket.contents[oscPacket.size++] = SLIP_ESC;
+                    oscPacket.OscPacketSetContents(oscPacket.OscPacketGetSize(), SLIP_ESC);
                     break;
                 default:
                     return OscErrorUnexpectedByteAfterSlipEsc; // error: unexpected byte value
             }
         } else {
-            oscPacket.contents[oscPacket.size++] = oscSlipDecoder->buffer[index];
+            oscPacket.OscPacketSetContents(oscPacket.OscPacketGetSize(), buffer[index]);
         }
-        if (oscPacket.size > MAX_OSC_PACKET_SIZE) {
+        if (oscPacket.OscPacketGetSize() > MAX_OSC_PACKET_SIZE) {
             return OscErrorDecodedSlipPacketTooLong; // error: decoded packet too large
         }
         index++;
     }
 
-    // Call user function
-    if (oscSlipDecoder->processPacket == NULL) {
-        return OscErrorCallbackFunctionUndefined; // error: user function undefined
+    OscError oscError = oscPacket.OscPacketProcessMessages(oscMessage, oscTimeTag);
+    bufferIndex = 0;
+    if (oscError != OscErrorNone) {
+        return oscError;
     }
-    oscSlipDecoder->processPacket(&oscPacket);
     return OscErrorNone;
 }
 
-/**
- * @brief Clears the SLIP decoder receive buffer.
- *
- * Example use:
- * @code
- * OscSlipDecoderClearBuffer(&oscSlipDecoder);
- * @endcode
- *
- * @param oscSlipDecoder Address OSC SLIP decoder structure.
- */
-void OscSlipDecoderClearBuffer(OscSlipDecoder * const oscSlipDecoder) {
-    oscSlipDecoder->bufferIndex = 0;
-}
 
-//------------------------------------------------------------------------------
-// End of file
+void OscSlipDecoder::OscSlipClearBuffer() {
+    bufferIndex = 0;
+}

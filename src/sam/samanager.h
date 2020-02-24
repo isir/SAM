@@ -48,7 +48,7 @@ private:
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
     std::unique_ptr<MatlabReceiver> _mr;
-    //    std::unique_ptr<Demo> _demo;
+    std::unique_ptr<Demo> _demo;
     //    std::unique_ptr<DemoIMU> _demoimu;
     std::unique_ptr<SystemMonitor> _sm;
     std::unique_ptr<ReadADC> _adc;

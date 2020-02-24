@@ -31,10 +31,13 @@ extern "C" {
 #include "OscError.h"
 #include "OscPacket.h"
 #include "OscSlip.h"
+#include "OscCommon.h"
 
 #ifdef __cplusplus
 }
 #endif
+
+
 
 #endif
 //------------------------------------------------------------------------------

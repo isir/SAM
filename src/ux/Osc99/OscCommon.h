@@ -5,6 +5,11 @@
  * See http://opensoundcontrol.org/spec-1_0
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+
 #ifndef OSC_COMMON_H
 #define OSC_COMMON_H
 
@@ -199,5 +204,7 @@ bool OscContentsIsBundle(const void * const oscContents);
 
 #endif
 
-//------------------------------------------------------------------------------
-// End of file
+
+#ifdef __cplusplus
+}
+#endif

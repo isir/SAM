@@ -12,8 +12,8 @@
 //------------------------------------------------------------------------------
 // Includes
 
-#include "OscCommon.h"
 #include "OscError.h"
+#include "OscCommon.h"
 #include "OscMessage.h"
 #include <stddef.h>
 
@@ -45,41 +45,39 @@
 #define MAX_OSC_BUNDLE_ELEMENTS_SIZE (MAX_OSC_BUNDLE_SIZE - sizeof(OSC_BUNDLE_HEADER) - sizeof(OscTimeTag))
 
 /**
- * @brief OSC bundle structure.  Structure members are used internally and
- * should not be used by the user application.
- */
-typedef struct {
-    char header[sizeof (OSC_BUNDLE_HEADER)]; // must be the first member so that the first byte of structure is equal to '#'.
-    OscTimeTag oscTimeTag;
-    char oscBundleElements[MAX_OSC_BUNDLE_ELEMENTS_SIZE];
-    size_t oscBundleElementsSize;
-    unsigned int oscBundleElementsIndex;
-} OscBundle;
-
-/**
  * @brief OSC bundle element structure.  This structure is used internally and
  * should not be used by the user application.
  */
 typedef struct {
     OscArgument32 size; // int32
-    void * contents; // pointer to bundle element contents
+    char * contents; // pointer to bundle element contents
 } OscBundleElement;
 
-//------------------------------------------------------------------------------
-// Function prototypes
 
-void OscBundleInitialise(OscBundle * const oscBundle, const OscTimeTag oscTimeTag);
-OscError OscBundleAddContents(OscBundle * const oscBundle, const void * const oscContents);
-void OscBundleEmpty(OscBundle * const oscBundle);
-bool OscBundleIsEmpty(OscBundle * const oscBundle);
-size_t OscBundleGetRemainingCapacity(const OscBundle * const oscBundle);
-size_t OscBundleGetSize(const OscBundle * const oscBundle);
-OscError OscBundleToCharArray(const OscBundle * const oscBundle, size_t * const oscBundleSize, char * const destination, const size_t destinationSize);
-OscError OscBundleInitialiseFromCharArray(OscBundle * const oscBundle, const char * const source, const size_t numberOfBytes);
-bool OscBundleIsBundleElementAvailable(const OscBundle * const oscBundle);
-OscError OscBundleGetBundleElement(OscBundle * const oscBundle, OscBundleElement * const oscBundleElement);
+class OscBundle {
+public:
+    OscBundle(const OscTimeTag timeTag=oscTimeTagZero);
+    ~OscBundle();   
 
-#endif
+    OscTimeTag OscBundleGetTimeTag();
 
-//------------------------------------------------------------------------------
-// End of file
+    void OscBundleInitialise(const OscTimeTag oscTimeTag);
+    OscError OscBundleAddContents(const char * const oscContents);
+    void OscBundleEmpty();
+    bool OscBundleIsEmpty();
+    size_t OscBundleGetRemainingCapacity();
+    size_t OscBundleGetSize();
+    OscError OscBundleToCharArray(size_t * const oscBundleSize, char * const destination, const size_t destinationSize);
+    OscError OscBundleInitialiseFromCharArray(const char * const source, const size_t numberOfBytes);
+    bool OscBundleIsBundleElementAvailable();
+    OscError OscBundleGetBundleElement(OscBundleElement * const oscBundleElement);
+
+private:
+    char header[sizeof (OSC_BUNDLE_HEADER)]; // must be the first member so that the first byte of structure is equal to '#'.
+    OscTimeTag oscTimeTag;
+    char oscBundleElements[MAX_OSC_BUNDLE_ELEMENTS_SIZE];
+    size_t oscBundleElementsSize;
+    unsigned int oscBundleElementsIndex;
+};
+
+#endif //OSC_BUNDLE_H

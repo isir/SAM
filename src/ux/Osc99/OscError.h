@@ -5,6 +5,10 @@
  * See http://opensoundcontrol.org/spec-1_0
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef OSC_ERROR_H
 #define OSC_ERROR_H
 
@@ -68,6 +72,10 @@ typedef enum {
 
 char * OscErrorGetMessage(const OscError oscError);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 //------------------------------------------------------------------------------
