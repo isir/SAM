@@ -27,7 +27,7 @@ void JFIMU_v4::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qH
 {
     _lawJ.initialQuat(qHi, qT, qA, cnt, init_cnt);
     _lawJ.rotationMatrices(qHa, qHi, qT);
-    _lawJ.updateFrames(theta);
+    _lawJ.updateFramesinEE(theta);
     _lawJ.computeOriginsVectors(l, nbDOF);
 }
 

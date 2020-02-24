@@ -488,17 +488,17 @@ void LawJacobian::updateFramesinEE(double theta[])
         //        z(1, i) = Rframe(2, 0) * x(1, i + 1) + Rframe(2, 1) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
         //        z(2, i) = Rframe(2, 0) * x(2, i + 1) + Rframe(2, 1) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
 
-        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(1, 0) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
-        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(1, 0) * y(1, i + 1) + Rframe(2, 0) * z(1, i + 1);
-        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(1, 0) * y(2, i + 1) + Rframe(2, 0) * z(2, i + 1);
+        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(0, 1) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
+        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(0, 1) * y(1, i + 1) + Rframe(0, 2) * z(1, i + 1);
+        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(0, 1) * y(2, i + 1) + Rframe(0, 2) * z(2, i + 1);
 
-        y(0, i) = Rframe(0, 1) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(2, 1) * z(0, i + 1);
-        y(1, i) = Rframe(0, 1) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(2, 1) * z(1, i + 1);
-        y(2, i) = Rframe(0, 1) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(2, 1) * z(2, i + 1);
+        y(0, i) = Rframe(1, 0) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(1, 2) * z(0, i + 1);
+        y(1, i) = Rframe(1, 0) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(1, 2) * z(1, i + 1);
+        y(2, i) = Rframe(1, 0) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(1, 2) * z(2, i + 1);
 
-        z(0, i) = Rframe(0, 2) * x(0, i + 1) + Rframe(1, 2) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
-        z(1, i) = Rframe(0, 2) * x(1, i + 1) + Rframe(1, 2) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
-        z(2, i) = Rframe(0, 2) * x(2, i + 1) + Rframe(1, 2) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
+        z(0, i) = Rframe(2, 0) * x(0, i + 1) + Rframe(2, 1) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
+        z(1, i) = Rframe(2, 0) * x(1, i + 1) + Rframe(2, 1) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
+        z(2, i) = Rframe(2, 0) * x(2, i + 1) + Rframe(2, 1) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
 
         //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
         //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
