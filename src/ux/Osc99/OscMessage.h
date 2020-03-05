@@ -90,7 +90,6 @@ public:
     OscMessage();
     ~OscMessage();
     void OscMessageGetAddressPattern(char* address);
-    char oscAddressPattern[MAX_OSC_ADDRESS_PATTERN_LENGTH + 1]; // must be first member so that first byte of structure is equal to '/'.  Null terminated.
 
     // Message construction
     OscError OscMessageInitialise(const char * oscAddressPattern);
@@ -143,6 +142,7 @@ public:
     OscError OscMessageGetArgumentAsBool(bool * const boolean);
 
 private:
+    char oscAddressPattern[MAX_OSC_ADDRESS_PATTERN_LENGTH + 1]; // must be first member so that first byte of structure is equal to '/'.  Null terminated.
     char oscTypeTagString[MAX_OSC_TYPE_TAG_STRING_LENGTH + 1]; // includes comma.  Null terminated
     char arguments[MAX_ARGUMENTS_SIZE];
     size_t oscAddressPatternLength; // does not include null characters

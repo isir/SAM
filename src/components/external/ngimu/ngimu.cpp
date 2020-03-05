@@ -3,9 +3,9 @@
 #include <iostream>
 #include <unistd.h>
 
-
 NGIMU::NGIMU(std::string filename, unsigned int baudrate)
     : ThreadedLoop(filename.substr(5), 0.001)
+    , received_error(false)
 {
     _sp.open(filename, baudrate);
     init_imudata();
@@ -23,54 +23,72 @@ NGIMU::~NGIMU()
 void NGIMU::init_imudata()
 {
     //init all data
-    for (int i = 0; i < 3; i++) {
+    imudata_humidity = 0.0;
+    for (int i = 0; i < 2; i++) {
+        imudata_temperature[i] = 0.0;
         imudata_euler[i] = 0.0;
         imudata_quat[i] = 0.0;
         imudata_sensors[i] = 0.0;
+        imudata_batt[i] = 0.0;
     }
-    imudata_quat[3] = 0.0;
-    for (int i = 3; i < 10; i++) {
+    imudata_euler[2] = 0.0;
+    for (int i = 2; i < 4; i++) {
+        imudata_quat[i] = 0.0;
+        imudata_sensors[i] = 0.0;
+        imudata_batt[i] = 0.0;
+    }
+    for (int i = 4; i < 10; i++) {
         imudata_sensors[i] = 0.0;
     }
 
     imudata_euler_available = false;
     imudata_quat_available = false;
     imudata_sensors_available = false;
+    imudata_humidity_available = false;
+    imudata_batt_available = false;
 }
 
 void NGIMU::loop(double, clock::time_point)
 {
-    static OscMessage oscMessage;
-    static OscTimeTag oscTimeTag;
-    static char addressPattern[MAX_OSC_ADDRESS_PATTERN_LENGTH + 1];
+    char addressPattern[MAX_OSC_ADDRESS_PATTERN_LENGTH + 1];
 
     std::vector<std::byte> buf = _sp.read_all();
     if (buf.size() == 0) {
         return;
     }
 
+//    for(unsigned int i=0; i< buf.size(); i++)
+//        std::cout << static_cast<char>(buf[i]);
+//    std::cout << std::endl;
+
     OscError oscError = OscErrorNone;
     for (unsigned int i = 0; i < buf.size(); i++) {
-        oscError = _oscSlipDecoder.OscSlipProcessByte(static_cast<char>(buf[i]), &oscMessage, &oscTimeTag);
-        if (oscError !=OscErrorNone) {
+        oscError = _oscSlipDecoder.OscSlipProcessByte(static_cast<char>(buf[i]), &_oscMessage, &_oscTimeTag);
+        if (oscError != OscErrorNone) {
             debug() << OscErrorGetMessage(oscError);
             return;
-        } else if (static_cast<char>(buf[i]) == static_cast<char>(0xC0) ) {
-            oscMessage.OscMessageGetAddressPattern(addressPattern);
+        } else if (static_cast<char>(buf[i]) == static_cast<char>(0xC0)) {
+            _oscMessage.OscMessageGetAddressPattern(addressPattern);
             if (OscAddressMatch(addressPattern, "/sensors")) {
-                oscError = ProcessSensors(oscMessage);
+                oscError = ProcessSensors(_oscMessage);
             } else if (OscAddressMatch(addressPattern, "/quaternion")) {
-                oscError = ProcessQuaternion(oscMessage);
+                oscError = ProcessQuaternion(_oscMessage);
             } else if (OscAddressMatch(addressPattern, "/euler")) {
-                oscError = ProcessEuler(oscMessage);
+                oscError = ProcessEuler(_oscMessage);
             } else if (OscAddressMatch(addressPattern, "/battery")) {
-                oscError = ProcessBattery(oscMessage);
+                oscError = ProcessBattery(_oscMessage);
             } else if (OscAddressMatch(addressPattern, "/humidity")) {
-                oscError = ProcessHumidity(oscMessage);
+                oscError = ProcessHumidity(_oscMessage);
             } else if (OscAddressMatch(addressPattern, "/temperature")) {
-                oscError = ProcessTemperature(oscMessage);
+                oscError = ProcessTemperature(_oscMessage);
+            } else if (OscAddressMatch(addressPattern, "/serialnumber")) {
+                oscError = ProcessSerialNumber(_oscMessage);
+            } else if (OscAddressMatch(addressPattern, "/error")) {
+                debug() << "NGIMU receive an OSC message with address pattern /error";
+                std::lock_guard scoped_lock(_mutex);
+                received_error = true;
             } else {
-                debug() << "OSC address pattern not recognised: " << addressPattern;
+                debug() << "OSC address pattern not recognised : " << addressPattern;
             }
         }
     }
@@ -124,8 +142,6 @@ bool NGIMU::get_quat(double* q)
     q[3] = imudata_quat[3]; // z element
     imudata_quat_available = false;
 
-    //std::cout << imudata_quat[0] << "\t" << imudata_quat[1] << "\t" << imudata_quat[2] << "\t" << imudata_quat[3] << std::endl;
-
     return result;
 }
 
@@ -168,72 +184,71 @@ bool NGIMU::get_temperature(double* t)
     return result;
 }
 
-
 /**
  * @brief Process "/sensors" message.
  * @return Error code (0 if successful).
  */
-OscError NGIMU::ProcessSensors(OscMessage current_oscMessage) {
-
+OscError NGIMU::ProcessSensors(OscMessage oscMessage)
+{
     std::lock_guard scoped_lock(_mutex);
 
     // Get gyroscope X axis
     OscError oscError;
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[0]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[0]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get gyroscope Y axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[1]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[1]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get gyroscope Z axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[2]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[2]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get accelerometer X axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[3]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[3]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get accelerometer Y axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[4]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[4]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get accelerometer Z axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[5]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[5]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get magnetometer X axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[6]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[6]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get magnetometer Y axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[7]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[7]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get magnetometer Z axis
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[8]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[8]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get barometer
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[9]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_sensors[9]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
@@ -246,39 +261,39 @@ OscError NGIMU::ProcessSensors(OscMessage current_oscMessage) {
  * @brief Process "/quaternion" message.
  * @return Error code (0 if successful).
  */
-OscError NGIMU::ProcessQuaternion(OscMessage current_oscMessage) {
-
+OscError NGIMU::ProcessQuaternion(OscMessage oscMessage)
+{
     std::lock_guard scoped_lock(_mutex);
 
     // Get W element
     OscError oscError;
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[0]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[0]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get X element
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[1]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[1]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get Y element
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[2]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[2]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get Z element
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[3]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_quat[3]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
-    for (int i=0; i<4; i++) {
-        std::cout << imudata_quat[i] << "\t";
-    }
-    std::cout << std::endl;
+//    for (int i=0; i<4; i++) {
+//        std::cout << imudata_quat[i] << "\t";
+//    }
+//    std::cout << std::endl;
 
     imudata_quat_available = true;
     return OscErrorNone;
@@ -288,25 +303,25 @@ OscError NGIMU::ProcessQuaternion(OscMessage current_oscMessage) {
  * @brief Process "/euler" message.
  * @return Error code (0 if successful).
  */
-OscError NGIMU::ProcessEuler(OscMessage current_oscMessage) {
-
+OscError NGIMU::ProcessEuler(OscMessage oscMessage)
+{
     std::lock_guard scoped_lock(_mutex);
 
     // Get roll
     OscError oscError;
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_euler[0]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_euler[0]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get pitch
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_euler[1]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_euler[1]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get yaw
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_euler[2]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_euler[2]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
@@ -315,36 +330,35 @@ OscError NGIMU::ProcessEuler(OscMessage current_oscMessage) {
     return OscErrorNone;
 }
 
-
 /**
  * @brief Process "/battery" message.
  * @return Error code (0 if successful).
  */
-OscError NGIMU::ProcessBattery(OscMessage current_oscMessage) {
-
+OscError NGIMU::ProcessBattery(OscMessage oscMessage)
+{
     std::lock_guard scoped_lock(_mutex);
 
     // Get battery level in %
     OscError oscError;
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[0]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[0]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get time to empty battery in minutes
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[1]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[1]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get battery voltage in V
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[2]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[2]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get battery current in mA
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[3]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_batt[3]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
@@ -359,13 +373,13 @@ OscError NGIMU::ProcessBattery(OscMessage current_oscMessage) {
  * @brief Process "/humidity" message.
  * @return Error code (0 if successful).
  */
-OscError NGIMU::ProcessHumidity(OscMessage current_oscMessage) {
-
+OscError NGIMU::ProcessHumidity(OscMessage oscMessage)
+{
     std::lock_guard scoped_lock(_mutex);
 
     // Get relative humidity in %
     OscError oscError;
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_humidity);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_humidity);
     if (oscError != OscErrorNone) {
         return oscError;
     }
@@ -378,19 +392,19 @@ OscError NGIMU::ProcessHumidity(OscMessage current_oscMessage) {
  * @brief Process "/temperature" message.
  * @return Error code (0 if successful).
  */
-OscError NGIMU::ProcessTemperature(OscMessage current_oscMessage) {
-
+OscError NGIMU::ProcessTemperature(OscMessage oscMessage)
+{
     std::lock_guard scoped_lock(_mutex);
 
     // Get gyroscope/accelerometer temperature in °C
     OscError oscError;
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_temperature[0]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_temperature[0]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
 
     // Get barometer temperature in °C
-    oscError = current_oscMessage.OscMessageGetArgumentAsDouble(&imudata_temperature[1]);
+    oscError = oscMessage.OscMessageGetArgumentAsDouble(&imudata_temperature[1]);
     if (oscError != OscErrorNone) {
         return oscError;
     }
@@ -400,32 +414,71 @@ OscError NGIMU::ProcessTemperature(OscMessage current_oscMessage) {
 }
 
 
+/**
+ * @brief Process "/serialnumber" message.
+ * @return Error code (0 if successful).
+ */
+OscError NGIMU::ProcessSerialNumber(OscMessage oscMessage)
+{
+    std::lock_guard scoped_lock(_mutex);
 
-
-
-
-bool NGIMU::send_command_identify() {
-    OscMessage oscMessage;
     OscError oscError;
-    oscError = oscMessage.OscMessageInitialise("/identify");
+    oscError = oscMessage.OscMessageGetArgumentAsString(_serial_number, sizeof(_serial_number));
     if (oscError != OscErrorNone) {
-        debug() << OscErrorGetMessage(oscError);
-        return false;
+        return oscError;
     }
 
-    OscPacket oscPacket;
-    oscError = oscPacket.OscPacketInitialiseFromContents(&oscMessage);
-    if (oscError != OscErrorNone) {
-        debug() << OscErrorGetMessage(oscError);
-        return false;
-    }
-
-    return send_command(oscPacket);
+    return OscErrorNone;
 }
 
 
-bool NGIMU::send_command(OscPacket oscPacket) {
+//Send an oscMessage without argument
+bool NGIMU::send_command_message(const char* const commandAddress)
+{
+    OscMessage oscMessage;
     OscError oscError;
+
+    oscError = oscMessage.OscMessageInitialise(commandAddress);
+    if (oscError != OscErrorNone) {
+        debug() << OscErrorGetMessage(oscError);
+        return false;
+    }
+    return send_command(&oscMessage);
+}
+
+//Send an oscMessage with a boolean argument
+bool NGIMU::send_command_message(const char* const commandAddress, const bool argument)
+{
+    OscMessage oscMessage;
+    OscError oscError;
+
+    oscError = oscMessage.OscMessageInitialise(commandAddress);
+    if (oscError != OscErrorNone) {
+        debug() << OscErrorGetMessage(oscError);
+        return false;
+    }
+
+    oscError = oscMessage.OscMessageAddBool(argument);
+    if (oscError != OscErrorNone) {
+        debug() << OscErrorGetMessage(oscError);
+        return false;
+    }
+
+    return send_command(&oscMessage);
+}
+
+// Receive an oscContents (oscMessage or oscBundle) and send it via the serial port
+bool NGIMU::send_command(const void* const oscContents)
+{
+    OscPacket oscPacket;
+    OscError oscError;
+
+    oscError = oscPacket.OscPacketInitialiseFromContents(oscContents);
+    if (oscError != OscErrorNone) {
+        debug() << OscErrorGetMessage(oscError);
+        return false;
+    }
+
     char slipPacket[MAX_OSC_PACKET_SIZE];
     size_t slipPacketSize;
     OscSlipDecoder oscSlipDecoder;
@@ -435,8 +488,35 @@ bool NGIMU::send_command(OscPacket oscPacket) {
         return false;
     }
 
-    _sp.write(slipPacket, slipPacketSize);
-    usleep(200 * 1000);
+    unsigned int retries = 10; //Tries 10 times to send the message
+    do {
+        received_error = false;
+        _sp.write(slipPacket, slipPacketSize);
+        usleep(200 * 1000);
+        retries--;
+    } while (received_error == true && (retries > 0));
 
-    return true;
+    received_error = false;
+
+    //success?
+    if (retries != 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool NGIMU::send_command_identify()
+{
+    return send_command_message("/identify");
+}
+
+bool NGIMU::send_command_algorithm_init()
+{
+    return send_command_message("/ahrs/initialise");
+}
+
+bool NGIMU::send_command_serial_number()
+{
+    return send_command_message("/serialnumber");
 }
