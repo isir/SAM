@@ -14,6 +14,31 @@
 //------------------------------------------------------------------------------
 // Functions
 
+
+OscBundle::OscBundle(const OscTimeTag timeTag)
+    : oscTimeTag(timeTag), oscBundleElementsSize(0)
+{
+    header[0] = OSC_BUNDLE_HEADER[0];
+    header[1] = OSC_BUNDLE_HEADER[1];
+    header[2] = OSC_BUNDLE_HEADER[2];
+    header[3] = OSC_BUNDLE_HEADER[3];
+    header[4] = OSC_BUNDLE_HEADER[4];
+    header[5] = OSC_BUNDLE_HEADER[5];
+    header[6] = OSC_BUNDLE_HEADER[6];
+    header[7] = OSC_BUNDLE_HEADER[7];
+}
+
+OscBundle::~OscBundle()
+{
+
+}
+
+OscTimeTag OscBundle::OscBundleGetTimeTag()
+{
+    return oscTimeTag;
+}
+
+
 /**
  * @brief Initialises an OSC bundle with a specified OSC time tag.
  *
@@ -34,17 +59,17 @@
  * @param oscBundle OSC bundle to be initialised.
  * @param oscTimeTag OSC time tag.
  */
-void OscBundleInitialise(OscBundle * const oscBundle, const OscTimeTag oscTimeTag) {
-    oscBundle->header[0] = OSC_BUNDLE_HEADER[0];
-    oscBundle->header[1] = OSC_BUNDLE_HEADER[1];
-    oscBundle->header[2] = OSC_BUNDLE_HEADER[2];
-    oscBundle->header[3] = OSC_BUNDLE_HEADER[3];
-    oscBundle->header[4] = OSC_BUNDLE_HEADER[4];
-    oscBundle->header[5] = OSC_BUNDLE_HEADER[5];
-    oscBundle->header[6] = OSC_BUNDLE_HEADER[6];
-    oscBundle->header[7] = OSC_BUNDLE_HEADER[7];
-    oscBundle->oscTimeTag = oscTimeTag;
-    oscBundle->oscBundleElementsSize = 0;
+void OscBundle::OscBundleInitialise(const OscTimeTag timeTag) {
+    header[0] = OSC_BUNDLE_HEADER[0];
+    header[1] = OSC_BUNDLE_HEADER[1];
+    header[2] = OSC_BUNDLE_HEADER[2];
+    header[3] = OSC_BUNDLE_HEADER[3];
+    header[4] = OSC_BUNDLE_HEADER[4];
+    header[5] = OSC_BUNDLE_HEADER[5];
+    header[6] = OSC_BUNDLE_HEADER[6];
+    header[7] = OSC_BUNDLE_HEADER[7];
+    oscTimeTag = timeTag;
+    oscBundleElementsSize = 0;
 }
 
 /**
@@ -76,31 +101,33 @@ void OscBundleInitialise(OscBundle * const oscBundle, const OscTimeTag oscTimeTa
  * @param oscContents OSC message or OSC bundle to be added to the OSC bundle.
  * @return Error code (0 if successful).
  */
-OscError OscBundleAddContents(OscBundle * const oscBundle, const void * const oscContents) {
-    if ((oscBundle->oscBundleElementsSize + sizeof (OscArgument32)) > MAX_OSC_BUNDLE_ELEMENTS_SIZE) {
+OscError OscBundle::OscBundleAddContents(const char * const oscContents) {
+    if ((oscBundleElementsSize + sizeof (OscArgument32)) > MAX_OSC_BUNDLE_ELEMENTS_SIZE) {
         return OscErrorBundleFull; // error: bundle full
     }
     OscBundleElement oscBundleElement;
-    oscBundleElement.contents = &oscBundle->oscBundleElements[oscBundle->oscBundleElementsSize + sizeof (OscArgument32)];
+    oscBundleElement.contents = &oscBundleElements[oscBundleElementsSize + sizeof (OscArgument32)];
     OscError oscError = OscErrorInvalidContents; // error: invalid or uninitialised OSC contents
     if (OscContentsIsMessage(oscContents) == true) {
         size_t oscBundleElementSize;
-        oscError = OscMessageToCharArray((OscMessage *) oscContents, &oscBundleElementSize, oscBundleElement.contents, OscBundleGetRemainingCapacity(oscBundle));
-        oscBundleElement.size.int32 = (int32_t) oscBundleElementSize;
+        OscMessage* oscMessage = (OscMessage *) oscContents;
+        oscError = oscMessage->OscMessageToCharArray(&oscBundleElementSize, oscBundleElement.contents, this->OscBundleGetRemainingCapacity());
+        oscBundleElement.size.int32 = static_cast<int32_t>(oscBundleElementSize);
     }
     if (OscContentsIsBundle(oscContents) == true) {
         size_t oscBundleElementSize;
-        oscError = OscBundleToCharArray((OscBundle *) oscContents, &oscBundleElementSize, oscBundleElement.contents, OscBundleGetRemainingCapacity(oscBundle));
-        oscBundleElement.size.int32 = (int32_t) oscBundleElementSize;
+        OscBundle* oscBundle = (OscBundle *) oscContents;
+        oscError = oscBundle->OscBundleToCharArray(&oscBundleElementSize, oscBundleElement.contents, this->OscBundleGetRemainingCapacity());
+        oscBundleElement.size.int32 = static_cast<int32_t>(oscBundleElementSize);
     }
     if (oscError != 0) {
         return oscError; // error: ???
     }
-    oscBundle->oscBundleElements[oscBundle->oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte3;
-    oscBundle->oscBundleElements[oscBundle->oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte2;
-    oscBundle->oscBundleElements[oscBundle->oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte1;
-    oscBundle->oscBundleElements[oscBundle->oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte0;
-    oscBundle->oscBundleElementsSize += oscBundleElement.size.int32;
+    oscBundleElements[oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte3;
+    oscBundleElements[oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte2;
+    oscBundleElements[oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte1;
+    oscBundleElements[oscBundleElementsSize++] = oscBundleElement.size.byteStruct.byte0;
+    oscBundleElementsSize += static_cast<unsigned int>(oscBundleElement.size.int32);
     return OscErrorNone;
 }
 
@@ -117,8 +144,8 @@ OscError OscBundleAddContents(OscBundle * const oscBundle, const void * const os
  *
  * @param oscBundle OSC bundle to be emptied.
  */
-void OscBundleEmpty(OscBundle * const oscBundle) {
-    oscBundle->oscBundleElementsSize = 0;
+void OscBundle::OscBundleEmpty() {
+    oscBundleElementsSize = 0;
 }
 
 /**
@@ -137,8 +164,8 @@ void OscBundleEmpty(OscBundle * const oscBundle) {
  * @param oscBundle OSC bundle.
  * @return True if the OSC bundle is empty.
  */
-bool OscBundleIsEmpty(OscBundle * const oscBundle) {
-    return oscBundle->oscBundleElementsSize == 0;
+bool OscBundle::OscBundleIsEmpty() {
+    return oscBundleElementsSize == 0;
 }
 
 /**
@@ -155,9 +182,9 @@ bool OscBundleIsEmpty(OscBundle * const oscBundle) {
  * @param oscBundle OSC bundle.
  * @return Remaining capacity (number of bytes) of an OSC bundle.
  */
-size_t OscBundleGetRemainingCapacity(const OscBundle * const oscBundle) {
-    const size_t remainingCapacity = MAX_OSC_BUNDLE_ELEMENTS_SIZE - oscBundle->oscBundleElementsSize - sizeof (OscArgument32); // account for int32 size required by OSC bundle element
-    if ((int) remainingCapacity < 0) {
+size_t OscBundle::OscBundleGetRemainingCapacity() {
+    const size_t remainingCapacity = MAX_OSC_BUNDLE_ELEMENTS_SIZE - oscBundleElementsSize - sizeof (OscArgument32); // account for int32 size required by OSC bundle element
+    if (static_cast<int>(remainingCapacity) < 0) {
         return 0; // avoid negative result of capacity calculation
     }
     return remainingCapacity;
@@ -179,8 +206,8 @@ size_t OscBundleGetRemainingCapacity(const OscBundle * const oscBundle) {
  * @param oscBundle OSC bundle.
  * @return Size (number of bytes) of the OSC bundle.
  */
-size_t OscBundleGetSize(const OscBundle * const oscBundle) {
-    return sizeof (OSC_BUNDLE_HEADER) + sizeof (OscTimeTag) + oscBundle->oscBundleElementsSize;
+size_t OscBundle::OscBundleGetSize() {
+    return sizeof (OSC_BUNDLE_HEADER) + sizeof (OscTimeTag) + oscBundleElementsSize;
 }
 
 /**
@@ -196,26 +223,26 @@ size_t OscBundleGetSize(const OscBundle * const oscBundle) {
  * @param destinationSize Destination size that cannot exceed.
  * @return Error code (0 if successful).
  */
-OscError OscBundleToCharArray(const OscBundle * const oscBundle, size_t * const oscBundleSize, char * const destination, const size_t destinationSize) {
+OscError OscBundle::OscBundleToCharArray(size_t * const oscBundleSize, char * const destination, const size_t destinationSize) {
     *oscBundleSize = 0; // size will be 0 if function unsuccessful
-    if ((sizeof (OSC_BUNDLE_HEADER) + sizeof (OscTimeTag) + oscBundle->oscBundleElementsSize) > destinationSize) {
+    if ((sizeof (OSC_BUNDLE_HEADER) + sizeof (OscTimeTag) + oscBundleElementsSize) > destinationSize) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
     size_t destinationIndex = 0;
     unsigned int index;
     for (index = 0; index < sizeof (OSC_BUNDLE_HEADER); index++) {
-        destination[destinationIndex++] = oscBundle->header[index];
+        destination[destinationIndex++] = header[index];
     }
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte7;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte6;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte5;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte4;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte3;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte2;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte1;
-    destination[destinationIndex++] = oscBundle->oscTimeTag.byteStruct.byte0;
-    for (index = 0; index < oscBundle->oscBundleElementsSize; index++) {
-        destination[destinationIndex++] = oscBundle->oscBundleElements[index];
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte7;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte6;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte5;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte4;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte3;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte2;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte1;
+    destination[destinationIndex++] = oscTimeTag.byteStruct.byte0;
+    for (index = 0; index < oscBundleElementsSize; index++) {
+        destination[destinationIndex++] = oscBundleElements[index];
     }
     *oscBundleSize = destinationIndex;
     return OscErrorNone;
@@ -233,7 +260,7 @@ OscError OscBundleToCharArray(const OscBundle * const oscBundle, size_t * const 
  * @param numberOfBytes Number of bytes in byte array.
  * @return Error code (0 if successful).
  */
-OscError OscBundleInitialiseFromCharArray(OscBundle * const oscBundle, const char * const source, const size_t numberOfBytes) {
+OscError OscBundle::OscBundleInitialiseFromCharArray(const char * const source, const size_t numberOfBytes) {
     unsigned int sourceIndex = 0;
 
     // Return error if not valid bundle
@@ -251,30 +278,30 @@ OscError OscBundleInitialiseFromCharArray(OscBundle * const oscBundle, const cha
     }
 
     // Header
-    oscBundle->header[0] = source[sourceIndex++];
-    oscBundle->header[1] = source[sourceIndex++];
-    oscBundle->header[2] = source[sourceIndex++];
-    oscBundle->header[3] = source[sourceIndex++];
-    oscBundle->header[4] = source[sourceIndex++];
-    oscBundle->header[5] = source[sourceIndex++];
-    oscBundle->header[6] = source[sourceIndex++];
-    oscBundle->header[7] = source[sourceIndex++];
+    header[0] = source[sourceIndex++];
+    header[1] = source[sourceIndex++];
+    header[2] = source[sourceIndex++];
+    header[3] = source[sourceIndex++];
+    header[4] = source[sourceIndex++];
+    header[5] = source[sourceIndex++];
+    header[6] = source[sourceIndex++];
+    header[7] = source[sourceIndex++];
 
     // OSC time tag
-    oscBundle->oscTimeTag.byteStruct.byte7 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte6 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte5 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte4 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte3 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte2 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte1 = source[sourceIndex++];
-    oscBundle->oscTimeTag.byteStruct.byte0 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte7 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte6 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte5 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte4 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte3 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte2 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte1 = source[sourceIndex++];
+    oscTimeTag.byteStruct.byte0 = source[sourceIndex++];
 
     // Osc bundle elements
-    oscBundle->oscBundleElementsSize = 0;
-    oscBundle->oscBundleElementsIndex = 0;
+    oscBundleElementsSize = 0;
+    oscBundleElementsIndex = 0;
     do {
-        oscBundle->oscBundleElements[oscBundle->oscBundleElementsSize++] = source[sourceIndex++];
+        oscBundleElements[oscBundleElementsSize++] = source[sourceIndex++];
     } while (sourceIndex < numberOfBytes);
 
     return OscErrorNone;
@@ -290,8 +317,8 @@ OscError OscBundleInitialiseFromCharArray(OscBundle * const oscBundle, const cha
  * @param oscBundle OSC bundle.
  * @return True if a bundle element is available.
  */
-bool OscBundleIsBundleElementAvailable(const OscBundle * const oscBundle) {
-    return (oscBundle->oscBundleElementsIndex + sizeof (OscArgument32)) < oscBundle->oscBundleElementsSize;
+bool OscBundle::OscBundleIsBundleElementAvailable() {
+    return (oscBundleElementsIndex + sizeof (OscArgument32)) < oscBundleElementsSize;
 }
 
 /**
@@ -309,27 +336,24 @@ bool OscBundleIsBundleElementAvailable(const OscBundle * const oscBundle) {
  * @param oscBundleElement OSC bundle element.
  * @return Error code (0 if successful).
  */
-OscError OscBundleGetBundleElement(OscBundle * const oscBundle, OscBundleElement * const oscBundleElement) {
-    if ((oscBundle->oscBundleElementsIndex + sizeof (OscArgument32)) >= oscBundle->oscBundleElementsSize) {
+OscError OscBundle::OscBundleGetBundleElement(OscBundleElement * const oscBundleElement) {
+    if ((oscBundleElementsIndex + sizeof (OscArgument32)) >= oscBundleElementsSize) {
         return OscErrorBundleElementNotAvailable; // error: too few bytes to contain bundle element
     }
-    oscBundleElement->size.byteStruct.byte3 = oscBundle->oscBundleElements[oscBundle->oscBundleElementsIndex++];
-    oscBundleElement->size.byteStruct.byte2 = oscBundle->oscBundleElements[oscBundle->oscBundleElementsIndex++];
-    oscBundleElement->size.byteStruct.byte1 = oscBundle->oscBundleElements[oscBundle->oscBundleElementsIndex++];
-    oscBundleElement->size.byteStruct.byte0 = oscBundle->oscBundleElements[oscBundle->oscBundleElementsIndex++];
+    oscBundleElement->size.byteStruct.byte3 = oscBundleElements[oscBundleElementsIndex++];
+    oscBundleElement->size.byteStruct.byte2 = oscBundleElements[oscBundleElementsIndex++];
+    oscBundleElement->size.byteStruct.byte1 = oscBundleElements[oscBundleElementsIndex++];
+    oscBundleElement->size.byteStruct.byte0 = oscBundleElements[oscBundleElementsIndex++];
     if (oscBundleElement->size.int32 < 0) {
         return OscErrorNegativeBundleElementSize; // error: size cannot be negative
     }
     if ((oscBundleElement->size.int32 % 4) != 0) {
         return OscErrorSizeIsNotMultipleOfFour; // error: size not multiple of 4
     }
-    if ((oscBundle->oscBundleElementsIndex + oscBundleElement->size.int32) > oscBundle->oscBundleElementsSize) {
+    if ((oscBundleElementsIndex + static_cast<unsigned int>(oscBundleElement->size.int32)) > oscBundleElementsSize) {
         return OscErrorInvalidElementSize; // error: too few bytes for indicated size
     }
-    oscBundleElement->contents = &oscBundle->oscBundleElements[oscBundle->oscBundleElementsIndex];
-    oscBundle->oscBundleElementsIndex += oscBundleElement->size.int32;
+    oscBundleElement->contents = &oscBundleElements[oscBundleElementsIndex];
+    oscBundleElementsIndex += static_cast<unsigned int>(oscBundleElement->size.int32);
     return OscErrorNone;
 }
-
-//------------------------------------------------------------------------------
-// End of file

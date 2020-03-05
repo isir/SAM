@@ -4,6 +4,7 @@
 #include "components/external/myoband/myoband.h"
 #include "components/external/optitrack/optitrack_listener.h"
 #include "components/external/ximu/ximu.h"
+#include "components/external/ngimu/ngimu.h"
 #include "components/internal/actuators/actuator.h"
 #include "components/internal/actuators/custom_elbow.h"
 #include "components/internal/actuators/elbow_cybathlon.h"
@@ -51,6 +52,7 @@ public:
     std::unique_ptr<XIMU> white_imu;
     std::unique_ptr<XIMU> red_imu;
     std::unique_ptr<XIMU> yellow_imu;
+    std::unique_ptr<NGIMU> ng_imu;
     std::unique_ptr<Adafruit_ADS1115> adc0;
     std::unique_ptr<Adafruit_ADS1115> adc1;
     std::unique_ptr<Adafruit_ADS1115> adc2;

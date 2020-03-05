@@ -19,6 +19,25 @@
 static int TerminateOscString(char * const oscString, size_t * const oscStringSize, const size_t maxOscStringSize);
 
 //------------------------------------------------------------------------------
+OscMessage::OscMessage()
+{
+
+}
+
+OscMessage::~OscMessage()
+{
+
+}
+
+void OscMessage::OscMessageGetAddressPattern(char* address) {
+    for (int i=0; i<=MAX_OSC_ADDRESS_PATTERN_LENGTH; i++)
+    {
+        address[i] = oscAddressPattern[i];
+    }
+}
+
+
+
 // Functions - Message construction
 
 /**
@@ -41,17 +60,17 @@ static int TerminateOscString(char * const oscString, size_t * const oscStringSi
  * @param oscAddressPattern OSC address pattern as null terminated string.
  * @return Error code (0 if successful).
  */
-OscError OscMessageInitialise(OscMessage * const oscMessage, const char * oscAddressPattern) {
-    oscMessage->oscAddressPattern[0] = '\0'; // null terminate string
-    oscMessage->oscTypeTagString[0] = ',';
-    oscMessage->oscTypeTagString[1] = '\0'; // null terminate string
-    oscMessage->oscAddressPatternLength = 0;
-    oscMessage->oscTypeTagStringLength = 1; // includes comma
-    oscMessage->argumentsSize = 0;
-    oscMessage->oscTypeTagStringIndex = 1; // skip comma
-    oscMessage->argumentsIndex = 0;
-    if (*oscAddressPattern != '\0') {
-        return OscMessageSetAddressPattern(oscMessage, oscAddressPattern);
+OscError OscMessage::OscMessageInitialise(const char * addressPattern) {
+    oscAddressPattern[0] = '\0'; // null terminate string
+    oscTypeTagString[0] = ',';
+    oscTypeTagString[1] = '\0'; // null terminate string
+    oscAddressPatternLength = 0;
+    oscTypeTagStringLength = 1; // includes comma
+    argumentsSize = 0;
+    oscTypeTagStringIndex = 1; // skip comma
+    argumentsIndex = 0;
+    if (*addressPattern != '\0') {
+        return OscMessageSetAddressPattern(addressPattern);
     }
     return OscErrorNone;
 }
@@ -73,9 +92,9 @@ OscError OscMessageInitialise(OscMessage * const oscMessage, const char * oscAdd
  * @param oscAddressPattern OSC address pattern as null terminated string.
  * @return Error code (0 if successful).
  */
-OscError OscMessageSetAddressPattern(OscMessage * const oscMessage, const char * oscAddressPattern) {
-    oscMessage->oscAddressPatternLength = 0;
-    return OscMessageAppendAddressPattern(oscMessage, oscAddressPattern);
+OscError OscMessage::OscMessageSetAddressPattern(const char * oscAddressPattern) {
+    oscAddressPatternLength = 0;
+    return OscMessageAppendAddressPattern(oscAddressPattern);
 }
 
 /**
@@ -97,17 +116,17 @@ OscError OscMessageSetAddressPattern(OscMessage * const oscMessage, const char *
  * @param appendedParts OSC pattern parts to be appended.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAppendAddressPattern(OscMessage * const oscMessage, const char * appendedParts) {
+OscError OscMessage::OscMessageAppendAddressPattern(const char * appendedParts) {
     if (*appendedParts != '/') {
         return OscErrorNoSlashAtStartOfMessage; // error: address must start with '/'
     }
     while (*appendedParts != '\0') {
-        if (oscMessage->oscAddressPatternLength >= MAX_OSC_ADDRESS_PATTERN_LENGTH) {
+        if (oscAddressPatternLength >= MAX_OSC_ADDRESS_PATTERN_LENGTH) {
             return OscErrorAddressPatternTooLong; // error: address pattern too long
         }
-        oscMessage->oscAddressPattern[oscMessage->oscAddressPatternLength++] = *appendedParts++;
+        oscAddressPattern[oscAddressPatternLength++] = *appendedParts++;
     }
-    oscMessage->oscAddressPattern[oscMessage->oscAddressPatternLength] = '\0'; // null terminate string
+    oscAddressPattern[oscAddressPatternLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -123,21 +142,21 @@ OscError OscMessageAppendAddressPattern(OscMessage * const oscMessage, const cha
  * @param int32 32-bit integer to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddInt32(OscMessage * const oscMessage, const int32_t int32) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddInt32(const int32_t int32) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagInt32;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagInt32;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     OscArgument32 oscArgument32;
     oscArgument32.int32 = int32;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte0;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte3;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte2;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte1;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -153,21 +172,21 @@ OscError OscMessageAddInt32(OscMessage * const oscMessage, const int32_t int32) 
  * @param float32 32-bit float to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddFloat32(OscMessage * const oscMessage, const float float32) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddFloat32(const float float32) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagFloat32;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagFloat32;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     OscArgument32 oscArgument32;
     oscArgument32.float32 = float32;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte0;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte3;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte2;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte1;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -183,23 +202,23 @@ OscError OscMessageAddFloat32(OscMessage * const oscMessage, const float float32
  * @param string String to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddString(OscMessage * const oscMessage, const char * string) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddString(const char * string) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    size_t argumentsSize = oscMessage->argumentsSize; // local copy in case function returns error
+    size_t size = argumentsSize; // local copy in case function returns error
     while (*string != '\0') {
-        if (argumentsSize >= MAX_ARGUMENTS_SIZE) {
+        if (size >= MAX_ARGUMENTS_SIZE) {
             return OscErrorArgumentsSizeTooLarge; // error: message full
         }
-        oscMessage->arguments[argumentsSize++] = *string++;
+        arguments[size++] = *string++;
     }
-    if (TerminateOscString(oscMessage->arguments, &argumentsSize, MAX_ARGUMENTS_SIZE) != 0) {
+    if (TerminateOscString(arguments, &size, MAX_ARGUMENTS_SIZE) != 0) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->argumentsSize = argumentsSize;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagString;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    argumentsSize = size;
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagString;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -217,33 +236,33 @@ OscError OscMessageAddString(OscMessage * const oscMessage, const char * string)
  * @param numberOfBytes Number of bytes in byte array to be added as argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddBlob(OscMessage * const oscMessage, const char * const source, const size_t numberOfBytes) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddBlob(const char * const source, const size_t numberOfBytes) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument32) + numberOfBytes) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument32) + numberOfBytes) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    size_t argumentsSize = oscMessage->argumentsSize; // local copy in case function returns error
+    size_t size = argumentsSize; // local copy in case function returns error
     OscArgument32 blobSize;
-    blobSize.int32 = (int32_t) numberOfBytes;
-    oscMessage->arguments[argumentsSize++] = blobSize.byteStruct.byte3;
-    oscMessage->arguments[argumentsSize++] = blobSize.byteStruct.byte2;
-    oscMessage->arguments[argumentsSize++] = blobSize.byteStruct.byte1;
-    oscMessage->arguments[argumentsSize++] = blobSize.byteStruct.byte0;
+    blobSize.int32 = static_cast<int32_t>(numberOfBytes);
+    arguments[size++] = blobSize.byteStruct.byte3;
+    arguments[size++] = blobSize.byteStruct.byte2;
+    arguments[size++] = blobSize.byteStruct.byte1;
+    arguments[size++] = blobSize.byteStruct.byte0;
     unsigned int sourceIndex;
     for (sourceIndex = 0; sourceIndex < numberOfBytes; sourceIndex++) {
-        oscMessage->arguments[argumentsSize++] = source[sourceIndex];
+        arguments[size++] = source[sourceIndex];
     }
-    while ((argumentsSize % 4) != 0) {
-        if (argumentsSize >= MAX_ARGUMENTS_SIZE) {
+    while ((size % 4) != 0) {
+        if (size >= MAX_ARGUMENTS_SIZE) {
             return OscErrorArgumentsSizeTooLarge; // error: message full
         }
-        oscMessage->arguments[argumentsSize++] = 0;
+        arguments[size++] = 0;
     }
-    oscMessage->argumentsSize = argumentsSize;
-    oscMessage->oscTypeTagString[(oscMessage->oscTypeTagStringLength)++] = OscTypeTagBlob;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    argumentsSize = size;
+    oscTypeTagString[(oscTypeTagStringLength)++] = OscTypeTagBlob;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -259,25 +278,25 @@ OscError OscMessageAddBlob(OscMessage * const oscMessage, const char * const sou
  * @param int64 64-bit integer to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddInt64(OscMessage * const oscMessage, const uint64_t int64) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddInt64(const uint64_t int64) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument64)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument64)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagInt64;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagInt64;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     OscArgument64 oscArgument64;
     oscArgument64.int64 = int64;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte7;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte6;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte5;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte4;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte0;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte7;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte6;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte5;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte4;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte3;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte2;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte1;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -293,23 +312,23 @@ OscError OscMessageAddInt64(OscMessage * const oscMessage, const uint64_t int64)
  * @param oscTimeTag OSC time tag to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddTimeTag(OscMessage * const oscMessage, const OscTimeTag oscTimeTag) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddTimeTag(const OscTimeTag oscTimeTag) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscTimeTag)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscTimeTag)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[(oscMessage->oscTypeTagStringLength)++] = OscTypeTagTimeTag;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte7;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte6;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte5;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte4;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscTimeTag.byteStruct.byte0;
+    oscTypeTagString[(oscTypeTagStringLength)++] = OscTypeTagTimeTag;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte7;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte6;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte5;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte4;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte3;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte2;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte1;
+    arguments[argumentsSize++] = oscTimeTag.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -325,25 +344,25 @@ OscError OscMessageAddTimeTag(OscMessage * const oscMessage, const OscTimeTag os
  * @param double64 64-bit double to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddDouble(OscMessage * const oscMessage, const Double64 double64) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddDouble(const Double64 double64) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument64)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument64)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagDouble;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagDouble;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     OscArgument64 oscArgument64;
     oscArgument64.double64 = double64;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte7;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte6;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte5;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte4;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument64.byteStruct.byte0;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte7;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte6;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte5;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte4;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte3;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte2;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte1;
+    arguments[argumentsSize++] = oscArgument64.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -359,13 +378,13 @@ OscError OscMessageAddDouble(OscMessage * const oscMessage, const Double64 doubl
  * @param string String to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddAlternateString(OscMessage * const oscMessage, const char * string) {
-    const OscError oscError = OscMessageAddString(oscMessage, string);
+OscError OscMessage::OscMessageAddAlternateString(const char * string) {
+    const OscError oscError = OscMessageAddString(string);
     if (oscError != OscErrorNone) {
         return oscError;
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength - 1] = OscTypeTagAlternateString;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength - 1] = OscTypeTagAlternateString;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -381,19 +400,19 @@ OscError OscMessageAddAlternateString(OscMessage * const oscMessage, const char 
  * @param asciiChar Character to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddCharacter(OscMessage * const oscMessage, const char asciiChar) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddCharacter(const char asciiChar) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagCharacter;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
-    oscMessage->arguments[oscMessage->argumentsSize++] = 0;
-    oscMessage->arguments[oscMessage->argumentsSize++] = 0;
-    oscMessage->arguments[oscMessage->argumentsSize++] = 0;
-    oscMessage->arguments[oscMessage->argumentsSize++] = asciiChar;
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagCharacter;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
+    arguments[argumentsSize++] = 0;
+    arguments[argumentsSize++] = 0;
+    arguments[argumentsSize++] = 0;
+    arguments[argumentsSize++] = asciiChar;
     return OscErrorNone;
 }
 
@@ -411,21 +430,21 @@ OscError OscMessageAddCharacter(OscMessage * const oscMessage, const char asciiC
  * message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddRgbaColour(OscMessage * const oscMessage, const RgbaColour rgbaColour) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddRgbaColour(const RgbaColour rgbaColour) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagRgbaColour;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagRgbaColour;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     OscArgument32 oscArgument32;
     oscArgument32.rgbaColour = rgbaColour;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte0;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte3;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte2;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte1;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -443,21 +462,21 @@ OscError OscMessageAddRgbaColour(OscMessage * const oscMessage, const RgbaColour
  * message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddMidiMessage(OscMessage * const oscMessage, const MidiMessage midiMessage) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddMidiMessage(const MidiMessage midiMessage) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    if ((oscMessage->argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
+    if ((argumentsSize + sizeof (OscArgument32)) > MAX_ARGUMENTS_SIZE) {
         return OscErrorArgumentsSizeTooLarge; // error: message full
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagMidiMessage;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagMidiMessage;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     OscArgument32 oscArgument32;
     oscArgument32.midiMessage = midiMessage;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte3;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte2;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte1;
-    oscMessage->arguments[oscMessage->argumentsSize++] = oscArgument32.byteStruct.byte0;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte3;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte2;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte1;
+    arguments[argumentsSize++] = oscArgument32.byteStruct.byte0;
     return OscErrorNone;
 }
 
@@ -473,12 +492,12 @@ OscError OscMessageAddMidiMessage(OscMessage * const oscMessage, const MidiMessa
  * @param boolean Boolean to be added as argument to the OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddBool(OscMessage * const oscMessage, const bool boolean) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddBool(const bool boolean) {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = boolean ? OscTypeTagTrue : OscTypeTagFalse;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = boolean ? OscTypeTagTrue : OscTypeTagFalse;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -493,12 +512,12 @@ OscError OscMessageAddBool(OscMessage * const oscMessage, const bool boolean) {
  * @param oscMessage OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddNil(OscMessage * const oscMessage) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddNil() {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagNil;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagNil;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -513,12 +532,12 @@ OscError OscMessageAddNil(OscMessage * const oscMessage) {
  * @param oscMessage OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddInfinitum(OscMessage * const oscMessage) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddInfinitum() {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagInfinitum;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagInfinitum;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -533,12 +552,12 @@ OscError OscMessageAddInfinitum(OscMessage * const oscMessage) {
  * @param oscMessage OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddBeginArray(OscMessage * const oscMessage) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddBeginArray() {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagBeginArray;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagBeginArray;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -553,12 +572,12 @@ OscError OscMessageAddBeginArray(OscMessage * const oscMessage) {
  * @param oscMessage OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageAddEndArray(OscMessage * const oscMessage) {
-    if (oscMessage->oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
+OscError OscMessage::OscMessageAddEndArray() {
+    if (oscTypeTagStringLength > MAX_NUMBER_OF_ARGUMENTS) {
         return OscErrorTooManyArguments; // error: too many arguments
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength++] = OscTypeTagEndArray;
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength++] = OscTypeTagEndArray;
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
     return OscErrorNone;
 }
 
@@ -578,17 +597,17 @@ OscError OscMessageAddEndArray(OscMessage * const oscMessage) {
  * @param oscMessage OSC message.
  * @return Size (number of bytes) of the OSC bundle.
  */
-size_t OscMessageGetSize(const OscMessage * const oscMessage) {
+size_t OscMessage::OscMessageGetSize() {
     size_t messageSize = 0;
-    messageSize += oscMessage->oscAddressPatternLength + 1; // include null character
+    messageSize += oscAddressPatternLength + 1; // include null character
     if ((messageSize % 4) != 0) {
         messageSize += 4 - messageSize % 4; // increase to multiple of 4
     }
-    messageSize += oscMessage->oscTypeTagStringLength + 1; // include null character
+    messageSize += oscTypeTagStringLength + 1; // include null character
     if ((messageSize % 4) != 0) {
         messageSize += 4 - messageSize % 4; // increase to multiple of 4
     }
-    messageSize += oscMessage->argumentsSize;
+    messageSize += argumentsSize;
     return messageSize;
 }
 
@@ -605,45 +624,45 @@ size_t OscMessageGetSize(const OscMessage * const oscMessage) {
  * @param destinationSize Destination size that cannot exceed.
  * @return Error code (0 if successful).
  */
-OscError OscMessageToCharArray(const OscMessage * const oscMessage, size_t * const oscMessageSize, char * const destination, const size_t destinationSize) {
+OscError OscMessage::OscMessageToCharArray(size_t * const oscMessageSize, char * const destination, const size_t destinationSize) {
     *oscMessageSize = 0; // size will be 0 if function unsuccessful
     size_t destinationIndex = 0;
     unsigned int index;
 
     // Address pattern
-    if (oscMessage->oscAddressPatternLength == 0) {
+    if (oscAddressPatternLength == 0) {
         return OscErrorUndefinedAddressPattern; // error: address pattern not set
     }
-    if (oscMessage->oscAddressPattern[0] != '/') {
+    if (oscAddressPattern[0] != '/') {
         return OscErrorNoSlashAtStartOfMessage; // error: address pattern does not start with '/'
     }
-    if (oscMessage->oscAddressPatternLength > destinationSize) {
+    if (oscAddressPatternLength > destinationSize) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
-    for (index = 0; index < oscMessage->oscAddressPatternLength; index++) {
-        destination[destinationIndex++] = oscMessage->oscAddressPattern[index];
+    for (index = 0; index < oscAddressPatternLength; index++) {
+        destination[destinationIndex++] = oscAddressPattern[index];
     }
     if (TerminateOscString(destination, &destinationIndex, destinationSize) != 0) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
 
     // Type tag string
-    if ((destinationIndex + oscMessage->oscTypeTagStringLength) > destinationSize) {
+    if ((destinationIndex + oscTypeTagStringLength) > destinationSize) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
-    for (index = 0; index < oscMessage->oscTypeTagStringLength; index++) {
-        destination[destinationIndex++] = oscMessage->oscTypeTagString[index];
+    for (index = 0; index < oscTypeTagStringLength; index++) {
+        destination[destinationIndex++] = oscTypeTagString[index];
     }
     if (TerminateOscString(destination, &destinationIndex, destinationSize) != 0) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
 
     // Arguments
-    if ((destinationIndex + oscMessage->argumentsSize) > destinationSize) {
+    if ((destinationIndex + argumentsSize) > destinationSize) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
-    for (index = 0; index < oscMessage->argumentsSize; index++) {
-        destination[destinationIndex++] = oscMessage->arguments[index];
+    for (index = 0; index < argumentsSize; index++) {
+        destination[destinationIndex++] = arguments[index];
     }
 
     *oscMessageSize = destinationIndex;
@@ -687,8 +706,8 @@ static int TerminateOscString(char * const oscString, size_t * const oscStringSi
  * @param numberOfBytes Number of bytes within the byte array.
  * @return Error code (0 if successful).
  */
-OscError OscMessageInitialiseFromCharArray(OscMessage * const oscMessage, const char * const source, const size_t numberOfBytes) {
-    OscMessageInitialise(oscMessage, "");
+OscError OscMessage::OscMessageInitialiseFromCharArray(const char * const source, const size_t numberOfBytes) {
+    OscMessageInitialise("");
 
     // Return error if not valid OSC message
     if ((numberOfBytes % 4) != 0) {
@@ -707,15 +726,15 @@ OscError OscMessageInitialiseFromCharArray(OscMessage * const oscMessage, const 
     // OSC address pattern
     unsigned int sourceIndex = 0;
     while (source[sourceIndex] != '\0') {
-        oscMessage->oscAddressPattern[oscMessage->oscAddressPatternLength] = source[sourceIndex];
-        if (++oscMessage->oscAddressPatternLength > MAX_OSC_ADDRESS_PATTERN_LENGTH) {
+        oscAddressPattern[oscAddressPatternLength] = source[sourceIndex];
+        if (++oscAddressPatternLength > MAX_OSC_ADDRESS_PATTERN_LENGTH) {
             return OscErrorAddressPatternTooLong; // error: OSC address pattern too long
         }
         if (++sourceIndex >= numberOfBytes) {
             return OscErrorSourceEndsBeforeEndOfAddressPattern; // error: unexpected end of source
         }
     }
-    oscMessage->oscAddressPattern[oscMessage->oscAddressPatternLength] = '\0'; // null terminate string
+    oscAddressPattern[oscAddressPatternLength] = '\0'; // null terminate string
 
     // Advance index to OSC type tag string
     while (source[sourceIndex - 1] != ',') { // skip index past comma
@@ -726,15 +745,15 @@ OscError OscMessageInitialiseFromCharArray(OscMessage * const oscMessage, const 
 
     // OSC type tag string
     while (source[sourceIndex] != '\0') {
-        oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = source[sourceIndex];
-        if (++oscMessage->oscTypeTagStringLength > MAX_OSC_TYPE_TAG_STRING_LENGTH) {
+        oscTypeTagString[oscTypeTagStringLength] = source[sourceIndex];
+        if (++oscTypeTagStringLength > MAX_OSC_TYPE_TAG_STRING_LENGTH) {
             return OscErrorTypeTagStringToLong; // error: type tag string too long
         }
         if (++sourceIndex >= numberOfBytes) {
             return OscErrorSourceEndsBeforeEndOfTypeTagString; // error: unexpected end of source
         }
     }
-    oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringLength] = '\0'; // null terminate string
+    oscTypeTagString[oscTypeTagStringLength] = '\0'; // null terminate string
 
     // Advance index to arguments
     do {
@@ -745,7 +764,7 @@ OscError OscMessageInitialiseFromCharArray(OscMessage * const oscMessage, const 
 
     // Arguments
     while (sourceIndex < numberOfBytes) {
-        oscMessage->arguments[oscMessage->argumentsSize++] = source[sourceIndex++];
+        arguments[argumentsSize++] = source[sourceIndex++];
     }
 
     return OscErrorNone;
@@ -765,8 +784,8 @@ OscError OscMessageInitialiseFromCharArray(OscMessage * const oscMessage, const 
  * @param oscMessage OSC message.
  * @return True if an argument is available.
  */
-bool OscMessageIsArgumentAvailable(OscMessage * const oscMessage) {
-    return oscMessage->oscTypeTagStringIndex <= oscMessage->oscTypeTagStringLength - 1;
+bool OscMessage::OscMessageIsArgumentAvailable() {
+    return oscTypeTagStringIndex <= oscTypeTagStringLength - 1;
 }
 
 /**
@@ -784,11 +803,11 @@ bool OscMessageIsArgumentAvailable(OscMessage * const oscMessage) {
  * @param oscMessage OSC message.
  * @return Next type tag in type tag string.
  */
-OscTypeTag OscMessageGetArgumentType(OscMessage * const oscMessage) {
-    if (oscMessage->oscTypeTagStringIndex > oscMessage->oscTypeTagStringLength) {
-        return '\0'; // error: end of type tag string
+OscTypeTag OscMessage::OscMessageGetArgumentType() {
+    if (oscTypeTagStringIndex > oscTypeTagStringLength) {
+        return (OscTypeTag) '\0'; // error: end of type tag string
     }
-    return (OscTypeTag) oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex];
+    return (OscTypeTag) oscTypeTagString[oscTypeTagStringIndex];
 }
 
 /**
@@ -810,11 +829,11 @@ OscTypeTag OscMessageGetArgumentType(OscMessage * const oscMessage) {
  * @param oscMessage OSC message.
  * @return Error code (0 if successful).
  */
-OscError OscMessageSkipArgument(OscMessage * const oscMessage) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageSkipArgument() {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    oscMessage->oscTypeTagStringIndex++;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -848,23 +867,23 @@ OscError OscMessageSkipArgument(OscMessage * const oscMessage) {
  * @param int32 32-bit integer argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetInt32(OscMessage * const oscMessage, int32_t * const int32) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetInt32(int32_t * const int32) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagInt32) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagInt32) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument32)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     OscArgument32 oscArgument32;
-    oscArgument32.byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
+    oscArgument32.byteStruct.byte3 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte2 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte1 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte0 = arguments[argumentsIndex++];
     *int32 = oscArgument32.int32;
-    oscMessage->oscTypeTagStringIndex++;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -898,23 +917,23 @@ OscError OscMessageGetInt32(OscMessage * const oscMessage, int32_t * const int32
  * @param float32 32-bit float argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetFloat32(OscMessage * const oscMessage, float * const float32) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetFloat32(float * const float32) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagFloat32) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagFloat32) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument32)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     OscArgument32 oscArgument32;
-    oscArgument32.byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
+    oscArgument32.byteStruct.byte3 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte2 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte1 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte0 = arguments[argumentsIndex++];
     *float32 = oscArgument32.float32;
-    oscMessage->oscTypeTagStringIndex++;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -949,35 +968,35 @@ OscError OscMessageGetFloat32(OscMessage * const oscMessage, float * const float
  * @param destinationSize Size of the destination that cannot be exceeded.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetString(OscMessage * const oscMessage, char * const destination, const size_t destinationSize) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetString(char * const destination, const size_t destinationSize) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if ((oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagString)
-            && (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagAlternateString)) {
+    if ((oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagString)
+            && (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagAlternateString)) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof ("\0\0\0")) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof ("\0\0\0")) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     if (sizeof ("\0\0\0") > destinationSize) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
-    unsigned int argumentsIndex = oscMessage->argumentsIndex; // local copy in case function returns error
+    unsigned int index = argumentsIndex; // local copy in case function returns error
     unsigned int destinationIndex = 0;
     do {
-        destination[destinationIndex] = oscMessage->arguments[argumentsIndex];
+        destination[destinationIndex] = arguments[index];
         if (++destinationIndex > destinationSize) {
             return OscErrorDestinationTooSmall; // error: destination too small
         }
-    } while (oscMessage->arguments[argumentsIndex++] != '\0');
-    while ((argumentsIndex % 4) != 0) {
-        if (++argumentsIndex > oscMessage->argumentsSize) {
+    } while (arguments[index++] != '\0');
+    while ((index % 4) != 0) {
+        if (++index > argumentsSize) {
             return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
         }
     }
-    oscMessage->argumentsIndex = argumentsIndex;
-    oscMessage->oscTypeTagStringIndex++;
+    argumentsIndex = index;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1017,40 +1036,40 @@ OscError OscMessageGetString(OscMessage * const oscMessage, char * const destina
  * @param destinationSize Size of the destination that cannot be exceeded.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetBlob(OscMessage * const oscMessage, size_t * const blobSize, char * const destination, const size_t destinationSize) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetBlob(size_t * const blobSize, char * const destination, const size_t destinationSize) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagBlob) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagBlob) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument32)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
-    unsigned int argumentsIndex = oscMessage->argumentsIndex; // local copy in case function returns error
+    unsigned int index = argumentsIndex; // local copy in case function returns error
     OscArgument32 blobSizeArgument;
-    blobSizeArgument.byteStruct.byte3 = oscMessage->arguments[argumentsIndex++];
-    blobSizeArgument.byteStruct.byte2 = oscMessage->arguments[argumentsIndex++];
-    blobSizeArgument.byteStruct.byte1 = oscMessage->arguments[argumentsIndex++];
-    blobSizeArgument.byteStruct.byte0 = oscMessage->arguments[argumentsIndex++];
-    if ((argumentsIndex + blobSizeArgument.int32) > oscMessage->argumentsSize) {
+    blobSizeArgument.byteStruct.byte3 = arguments[index++];
+    blobSizeArgument.byteStruct.byte2 = arguments[index++];
+    blobSizeArgument.byteStruct.byte1 = arguments[index++];
+    blobSizeArgument.byteStruct.byte0 = arguments[index++];
+    if ((index + static_cast<unsigned int>(blobSizeArgument.int32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
-    if (blobSizeArgument.int32 > destinationSize) {
+    if (static_cast<unsigned int>(blobSizeArgument.int32) > destinationSize) {
         return OscErrorDestinationTooSmall; // error: destination too small
     }
     unsigned int destinationIndex;
-    for (destinationIndex = 0; destinationIndex < blobSizeArgument.int32; destinationIndex++) {
-        destination[destinationIndex] = oscMessage->arguments[argumentsIndex++];
+    for (destinationIndex = 0; destinationIndex < static_cast<unsigned int>(blobSizeArgument.int32); destinationIndex++) {
+        destination[destinationIndex] = arguments[index++];
     }
-    while ((argumentsIndex % 4) != 0) {
-        if (++argumentsIndex > oscMessage->argumentsSize) {
+    while ((index % 4) != 0) {
+        if (++index > argumentsSize) {
             return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
         }
     }
-    oscMessage->argumentsIndex = argumentsIndex;
-    *blobSize = blobSizeArgument.int32;
-    oscMessage->oscTypeTagStringIndex++;
+    argumentsIndex = index;
+    *blobSize = static_cast<unsigned int>(blobSizeArgument.int32);
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1084,27 +1103,27 @@ OscError OscMessageGetBlob(OscMessage * const oscMessage, size_t * const blobSiz
  * @param int64 64-bit integer argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetInt64(OscMessage * const oscMessage, int64_t * const int64) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetInt64(int64_t * const int64) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagInt64) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagInt64) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument64)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument64)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     OscArgument64 oscArgument64;
-    oscArgument64.byteStruct.byte7 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte6 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte5 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte4 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    *int64 = oscArgument64.int64;
-    oscMessage->oscTypeTagStringIndex++;
+    oscArgument64.byteStruct.byte7 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte6 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte5 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte4 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte3 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte2 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte1 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte0 = arguments[argumentsIndex++];
+    *int64 = static_cast<int64_t>(oscArgument64.int64);
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1138,25 +1157,25 @@ OscError OscMessageGetInt64(OscMessage * const oscMessage, int64_t * const int64
  * @param oscTimeTag OSC time tag argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetTimeTag(OscMessage * const oscMessage, OscTimeTag * const oscTimeTag) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetTimeTag(OscTimeTag * const oscTimeTag) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagTimeTag) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagTimeTag) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscTimeTag)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscTimeTag)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
-    oscTimeTag->byteStruct.byte7 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte6 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte5 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte4 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscTimeTag->byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscMessage->oscTypeTagStringIndex++;
+    oscTimeTag->byteStruct.byte7 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte6 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte5 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte4 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte3 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte2 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte1 = arguments[argumentsIndex++];
+    oscTimeTag->byteStruct.byte0 = arguments[argumentsIndex++];
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1190,27 +1209,27 @@ OscError OscMessageGetTimeTag(OscMessage * const oscMessage, OscTimeTag * const 
  * @param double64 64-bit double argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetDouble(OscMessage * const oscMessage, Double64 * const double64) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetDouble(Double64 * const double64) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagDouble) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagDouble) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument64)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument64)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     OscArgument64 oscArgument64;
-    oscArgument64.byteStruct.byte7 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte6 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte5 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte4 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument64.byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
+    oscArgument64.byteStruct.byte7 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte6 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte5 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte4 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte3 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte2 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte1 = arguments[argumentsIndex++];
+    oscArgument64.byteStruct.byte0 = arguments[argumentsIndex++];
     *double64 = oscArgument64.double64;
-    oscMessage->oscTypeTagStringIndex++;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1244,19 +1263,19 @@ OscError OscMessageGetDouble(OscMessage * const oscMessage, Double64 * const dou
  * @param character Character argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetCharacter(OscMessage * const oscMessage, char * const character) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetCharacter(char * const character) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagCharacter) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagCharacter) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument32)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
-    oscMessage->argumentsIndex += 3;
-    *character = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscMessage->oscTypeTagStringIndex++;
+    argumentsIndex += 3;
+    *character = arguments[argumentsIndex++];
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1290,23 +1309,23 @@ OscError OscMessageGetCharacter(OscMessage * const oscMessage, char * const char
  * @param rgbaColour 32-bit RGBA colour argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetRgbaColour(OscMessage * const oscMessage, RgbaColour * const rgbaColour) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetRgbaColour(RgbaColour * const rgbaColour) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagRgbaColour) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagRgbaColour) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument32)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     OscArgument32 oscArgument32;
-    oscArgument32.byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
+    oscArgument32.byteStruct.byte3 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte2 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte1 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte0 = arguments[argumentsIndex++];
     *rgbaColour = oscArgument32.rgbaColour;
-    oscMessage->oscTypeTagStringIndex++;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1340,23 +1359,23 @@ OscError OscMessageGetRgbaColour(OscMessage * const oscMessage, RgbaColour * con
  * @param midiMessage 4 byte MIDI message argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetMidiMessage(OscMessage * const oscMessage, MidiMessage * const midiMessage) {
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] == '\0') {
+OscError OscMessage::OscMessageGetMidiMessage(MidiMessage * const midiMessage) {
+    if (oscTypeTagString[oscTypeTagStringIndex] == '\0') {
         return OscErrorNoArgumentsAvailable; // error: end of type tag string
     }
-    if (oscMessage->oscTypeTagString[oscMessage->oscTypeTagStringIndex] != OscTypeTagMidiMessage) {
+    if (oscTypeTagString[oscTypeTagStringIndex] != OscTypeTagMidiMessage) {
         return OscErrorUnexpectedArgumentType; // error: unexpected argument type
     }
-    if ((oscMessage->argumentsIndex + sizeof (OscArgument32)) > oscMessage->argumentsSize) {
+    if ((argumentsIndex + sizeof (OscArgument32)) > argumentsSize) {
         return OscErrorMessageTooShortForArgumentType; // error: message too short to contain argument
     }
     OscArgument32 oscArgument32;
-    oscArgument32.byteStruct.byte3 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte2 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte1 = oscMessage->arguments[oscMessage->argumentsIndex++];
-    oscArgument32.byteStruct.byte0 = oscMessage->arguments[oscMessage->argumentsIndex++];
+    oscArgument32.byteStruct.byte3 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte2 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte1 = arguments[argumentsIndex++];
+    oscArgument32.byteStruct.byte0 = arguments[argumentsIndex++];
     *midiMessage = oscArgument32.midiMessage;
-    oscMessage->oscTypeTagStringIndex++;
+    oscTypeTagStringIndex++;
     return OscErrorNone;
 }
 
@@ -1380,58 +1399,58 @@ OscError OscMessageGetMidiMessage(OscMessage * const oscMessage, MidiMessage * c
  * @param int32 32-bit integer argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsInt32(OscMessage * const oscMessage, int32_t * const int32) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsInt32(int32_t * const int32) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
-            return OscMessageGetInt32(oscMessage, int32);
+            return OscMessageGetInt32(int32);
         }
         case OscTypeTagFloat32:
         {
             float float32;
-            const OscError oscError = OscMessageGetFloat32(oscMessage, &float32);
-            *int32 = (int32_t) float32;
+            const OscError oscError = OscMessageGetFloat32(&float32);
+            *int32 = static_cast<int32_t>(float32);
             return oscError;
         }
         case OscTypeTagInt64:
         {
             int64_t int64;
-            const OscError oscError = OscMessageGetInt64(oscMessage, &int64);
-            *int32 = (int32_t) int64;
+            const OscError oscError = OscMessageGetInt64(&int64);
+            *int32 = static_cast<int32_t>(int64);
             return oscError;
         }
         case OscTypeTagTimeTag:
         {
             OscTimeTag oscTimeTag;
-            const OscError oscError = OscMessageGetTimeTag(oscMessage, &oscTimeTag);
-            *int32 = (int32_t) oscTimeTag.value;
+            const OscError oscError = OscMessageGetTimeTag(&oscTimeTag);
+            *int32 = static_cast<int32_t>(oscTimeTag.value);
             return oscError;
         }
         case OscTypeTagDouble:
         {
             Double64 double64;
-            const OscError oscError = OscMessageGetDouble(oscMessage, &double64);
-            *int32 = (int32_t) double64;
+            const OscError oscError = OscMessageGetDouble(&double64);
+            *int32 = static_cast<int32_t>(double64);
             return oscError;
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
-            *int32 = (int32_t) character;
+            const OscError oscError = OscMessageGetCharacter(&character);
+            *int32 = static_cast<int32_t>(character);
             return oscError;
         }
         case OscTypeTagTrue:
         {
-            *int32 = (int32_t) true;
+            *int32 = static_cast<int32_t>(true);
             return OscErrorNone;
         }
         case OscTypeTagFalse:
         {
-            *int32 = (int32_t) false;
+            *int32 = static_cast<int32_t>(false);
             return OscErrorNone;
         }
         case OscTypeTagNil:
@@ -1470,58 +1489,58 @@ OscError OscMessageGetArgumentAsInt32(OscMessage * const oscMessage, int32_t * c
  * @param float32 32-bit float argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsFloat32(OscMessage * const oscMessage, float * const float32) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsFloat32(float * const float32) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
             int32_t int32;
-            const OscError oscError = OscMessageGetInt32(oscMessage, &int32);
-            *float32 = (float) int32;
+            const OscError oscError = OscMessageGetInt32(&int32);
+            *float32 = static_cast<float>(int32);
             return oscError;
         }
         case OscTypeTagFloat32:
         {
-            return OscMessageGetFloat32(oscMessage, float32);
+            return OscMessageGetFloat32(float32);
         }
         case OscTypeTagInt64:
         {
             int64_t int64;
-            const OscError oscError = OscMessageGetInt64(oscMessage, &int64);
-            *float32 = (float) int64;
+            const OscError oscError = OscMessageGetInt64(&int64);
+            *float32 = static_cast<float>(int64);
             return oscError;
         }
         case OscTypeTagTimeTag:
         {
             OscTimeTag oscTimeTag;
-            const OscError oscError = OscMessageGetTimeTag(oscMessage, &oscTimeTag);
-            *float32 = (float) oscTimeTag.value;
+            const OscError oscError = OscMessageGetTimeTag(&oscTimeTag);
+            *float32 = static_cast<float>(oscTimeTag.value);
             return oscError;
         }
         case OscTypeTagDouble:
         {
             Double64 double64;
-            const OscError oscError = OscMessageGetDouble(oscMessage, &double64);
-            *float32 = (float) double64;
+            const OscError oscError = OscMessageGetDouble(&double64);
+            *float32 = static_cast<float>(double64);
             return oscError;
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
-            *float32 = (float) character;
+            const OscError oscError = OscMessageGetCharacter(&character);
+            *float32 = static_cast<float>(character);
             return oscError;
         }
         case OscTypeTagTrue:
         {
-            *float32 = (float) true;
+            *float32 = static_cast<float>(true);
             return OscErrorNone;
         }
         case OscTypeTagFalse:
         {
-            *float32 = (float) false;
+            *float32 = static_cast<float>(false);
             return OscErrorNone;
         }
         case OscTypeTagNil:
@@ -1560,19 +1579,19 @@ OscError OscMessageGetArgumentAsFloat32(OscMessage * const oscMessage, float * c
  * @param destinationSize Size of the destination that cannot be exceeded.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsString(OscMessage * const oscMessage, char * const destination, const size_t destinationSize) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsString(char * const destination, const size_t destinationSize) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagString:
         {
-            return OscMessageGetString(oscMessage, destination, destinationSize);
+            return OscMessageGetString(destination, destinationSize);
         }
         case OscTypeTagBlob:
         {
             size_t blobSize;
-            const OscError oscError = OscMessageGetBlob(oscMessage, &blobSize, destination, destinationSize);
+            const OscError oscError = OscMessageGetBlob(&blobSize, destination, destinationSize);
             if (oscError != 0) {
                 return oscError;
             }
@@ -1586,12 +1605,12 @@ OscError OscMessageGetArgumentAsString(OscMessage * const oscMessage, char * con
         }
         case OscTypeTagAlternateString:
         {
-            return OscMessageGetString(oscMessage, destination, destinationSize);
+            return OscMessageGetString(destination, destinationSize);
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
+            const OscError oscError = OscMessageGetCharacter(&character);
             if (oscError != 0) {
                 return oscError;
             }
@@ -1633,15 +1652,15 @@ OscError OscMessageGetArgumentAsString(OscMessage * const oscMessage, char * con
  * @param destinationSize Size of the destination that cannot be exceeded.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsBlob(OscMessage * const oscMessage, size_t * const blobSize, char * const destination, const size_t destinationSize) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsBlob(size_t * const blobSize, char * const destination, const size_t destinationSize) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagString:
         case OscTypeTagAlternateString:
         {
-            const OscError oscError = OscMessageGetString(oscMessage, destination, destinationSize);
+            const OscError oscError = OscMessageGetString(destination, destinationSize);
             if (oscError != 0) {
                 return oscError;
             }
@@ -1650,12 +1669,12 @@ OscError OscMessageGetArgumentAsBlob(OscMessage * const oscMessage, size_t * con
         }
         case OscTypeTagBlob:
         {
-            return OscMessageGetBlob(oscMessage, blobSize, destination, destinationSize);
+            return OscMessageGetBlob(blobSize, destination, destinationSize);
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
+            const OscError oscError = OscMessageGetCharacter(&character);
             if (oscError != 0) {
                 return oscError;
             }
@@ -1692,63 +1711,63 @@ OscError OscMessageGetArgumentAsBlob(OscMessage * const oscMessage, size_t * con
  * @param int64 64-bit integer argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsInt64(OscMessage * const oscMessage, int64_t * const int64) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsInt64(int64_t * const int64) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
             int32_t int32;
-            const OscError oscError = OscMessageGetInt32(oscMessage, &int32);
-            *int64 = (int64_t) int32;
+            const OscError oscError = OscMessageGetInt32(&int32);
+            *int64 = static_cast<int64_t>(int32);
             return oscError;
         }
         case OscTypeTagFloat32:
         {
             float float32;
-            const OscError oscError = OscMessageGetFloat32(oscMessage, &float32);
-            *int64 = (int64_t) float32;
+            const OscError oscError = OscMessageGetFloat32(&float32);
+            *int64 = static_cast<int64_t>(float32);
             return oscError;
         }
         case OscTypeTagInt64:
         {
-            return OscMessageGetInt64(oscMessage, int64);
+            return OscMessageGetInt64(int64);
         }
         case OscTypeTagTimeTag:
         {
             OscTimeTag oscTimeTag;
-            const OscError oscError = OscMessageGetTimeTag(oscMessage, &oscTimeTag);
-            *int64 = (int64_t) oscTimeTag.value;
+            const OscError oscError = OscMessageGetTimeTag(&oscTimeTag);
+            *int64 = static_cast<int64_t>(oscTimeTag.value);
             return oscError;
         }
         case OscTypeTagDouble:
         {
             Double64 double64;
-            const OscError oscError = OscMessageGetDouble(oscMessage, &double64);
-            *int64 = (int64_t) double64;
+            const OscError oscError = OscMessageGetDouble(&double64);
+            *int64 = static_cast<int64_t>(double64);
             return oscError;
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
-            *int64 = (int64_t) character;
+            const OscError oscError = OscMessageGetCharacter(&character);
+            *int64 = static_cast<int64_t>(character);
             return oscError;
         }
         case OscTypeTagTrue:
         {
-            *int64 = (int64_t) true;
+            *int64 = static_cast<int64_t>(true);
             return OscErrorNone;
         }
         case OscTypeTagFalse:
         {
-            *int64 = (int64_t) false;
+            *int64 = static_cast<int64_t>(false);
             return OscErrorNone;
         }
         case OscTypeTagNil:
         {
-            *int64 = (int64_t) 0;
+            *int64 = static_cast<int64_t>(0);
             return OscErrorNone;
         }
         case OscTypeTagInfinitum:
@@ -1782,63 +1801,63 @@ OscError OscMessageGetArgumentAsInt64(OscMessage * const oscMessage, int64_t * c
  * @param oscTimeTag OSC time tag argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsTimeTag(OscMessage * const oscMessage, OscTimeTag * const oscTimeTag) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsTimeTag(OscTimeTag * const oscTimeTag) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
             int32_t int32;
-            const OscError oscError = OscMessageGetInt32(oscMessage, &int32);
-            oscTimeTag->value = (uint64_t) int32;
+            const OscError oscError = OscMessageGetInt32(&int32);
+            oscTimeTag->value = static_cast<uint64_t>(int32);
             return oscError;
         }
         case OscTypeTagFloat32:
         {
             float float32;
-            const OscError oscError = OscMessageGetFloat32(oscMessage, &float32);
-            oscTimeTag->value = (uint64_t) float32;
+            const OscError oscError = OscMessageGetFloat32(&float32);
+            oscTimeTag->value = static_cast<uint64_t>(float32);
             return oscError;
         }
         case OscTypeTagInt64:
         {
             int64_t int64;
-            const OscError oscError = OscMessageGetInt64(oscMessage, &int64);
-            oscTimeTag->value = (uint64_t) int64;
+            const OscError oscError = OscMessageGetInt64(&int64);
+            oscTimeTag->value = static_cast<uint64_t>(int64);
             return oscError;
         }
         case OscTypeTagTimeTag:
         {
-            return OscMessageGetTimeTag(oscMessage, oscTimeTag);
+            return OscMessageGetTimeTag(oscTimeTag);
         }
         case OscTypeTagDouble:
         {
             Double64 double64;
-            const OscError oscError = OscMessageGetDouble(oscMessage, &double64);
-            oscTimeTag->value = (uint64_t) double64;
+            const OscError oscError = OscMessageGetDouble(&double64);
+            oscTimeTag->value = static_cast<uint64_t>(double64);
             return oscError;
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
-            oscTimeTag->value = (uint64_t) character;
+            const OscError oscError = OscMessageGetCharacter(&character);
+            oscTimeTag->value = static_cast<uint64_t>(character);
             return oscError;
         }
         case OscTypeTagTrue:
         {
-            oscTimeTag->value = (uint64_t) true;
+            oscTimeTag->value = static_cast<uint64_t>(true);
             return OscErrorNone;
         }
         case OscTypeTagFalse:
         {
-            oscTimeTag->value = (uint64_t) false;
+            oscTimeTag->value = static_cast<uint64_t>(false);
             return OscErrorNone;
         }
         case OscTypeTagNil:
         {
-            oscTimeTag->value = (uint64_t) 0;
+            oscTimeTag->value = static_cast<uint64_t>(0);
             return OscErrorNone;
         }
         case OscTypeTagInfinitum:
@@ -1872,63 +1891,63 @@ OscError OscMessageGetArgumentAsTimeTag(OscMessage * const oscMessage, OscTimeTa
  * @param double64 64-bit double argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsDouble(OscMessage * const oscMessage, Double64 * const double64) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsDouble(Double64 * const double64) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
             int32_t int32;
-            const OscError oscError = OscMessageGetInt32(oscMessage, &int32);
-            *double64 = (Double64) int32;
+            const OscError oscError = OscMessageGetInt32(&int32);
+            *double64 = static_cast<Double64>(int32);
             return oscError;
         }
         case OscTypeTagFloat32:
         {
             float float32;
-            const OscError oscError = OscMessageGetFloat32(oscMessage, &float32);
-            *double64 = (Double64) float32;
+            const OscError oscError = OscMessageGetFloat32(&float32);
+            *double64 = static_cast<Double64>(float32);
             return oscError;
         }
         case OscTypeTagInt64:
         {
             int64_t int64;
-            const OscError oscError = OscMessageGetInt64(oscMessage, &int64);
-            *double64 = (Double64) int64;
+            const OscError oscError = OscMessageGetInt64(&int64);
+            *double64 = static_cast<Double64>(int64);
             return oscError;
         }
         case OscTypeTagTimeTag:
         {
             OscTimeTag oscTimeTag;
-            const OscError oscError = OscMessageGetTimeTag(oscMessage, &oscTimeTag);
-            *double64 = (Double64) oscTimeTag.value;
+            const OscError oscError = OscMessageGetTimeTag(&oscTimeTag);
+            *double64 = static_cast<Double64>(oscTimeTag.value);
             return oscError;
         }
         case OscTypeTagDouble:
         {
-            return OscMessageGetDouble(oscMessage, double64);
+            return OscMessageGetDouble(double64);
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
-            *double64 = (Double64) character;
+            const OscError oscError = OscMessageGetCharacter(&character);
+            *double64 = static_cast<Double64>(character);
             return oscError;
         }
         case OscTypeTagTrue:
         {
-            *double64 = (Double64) true;
+            *double64 = static_cast<Double64>(true);
             return OscErrorNone;
         }
         case OscTypeTagFalse:
         {
-            *double64 = (Double64) false;
+            *double64 = static_cast<Double64>(false);
             return OscErrorNone;
         }
         case OscTypeTagNil:
         {
-            *double64 = (Double64) 0;
+            *double64 = static_cast<Double64>(0);
             return OscErrorNone;
         }
         case OscTypeTagInfinitum:
@@ -1962,49 +1981,49 @@ OscError OscMessageGetArgumentAsDouble(OscMessage * const oscMessage, Double64 *
  * @param character Character argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsCharacter(OscMessage * const oscMessage, char * const character) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsCharacter(char * const character) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
             int32_t int32;
-            const OscError oscError = OscMessageGetInt32(oscMessage, &int32);
+            const OscError oscError = OscMessageGetInt32(&int32);
             *character = (char) int32;
             return oscError;
         }
         case OscTypeTagFloat32:
         {
             float float32;
-            const OscError oscError = OscMessageGetFloat32(oscMessage, &float32);
+            const OscError oscError = OscMessageGetFloat32(&float32);
             *character = (char) float32;
             return oscError;
         }
         case OscTypeTagInt64:
         {
             int64_t int64;
-            const OscError oscError = OscMessageGetInt64(oscMessage, &int64);
+            const OscError oscError = OscMessageGetInt64(&int64);
             *character = (char) int64;
             return oscError;
         }
         case OscTypeTagTimeTag:
         {
             OscTimeTag oscTimeTag;
-            const OscError oscError = OscMessageGetTimeTag(oscMessage, &oscTimeTag);
+            const OscError oscError = OscMessageGetTimeTag(&oscTimeTag);
             *character = (char) oscTimeTag.value;
             return oscError;
         }
         case OscTypeTagDouble:
         {
             Double64 double64;
-            const OscError oscError = OscMessageGetDouble(oscMessage, &double64);
+            const OscError oscError = OscMessageGetDouble(&double64);
             *character = (char) double64;
             return oscError;
         }
         case OscTypeTagCharacter:
         {
-            return OscMessageGetCharacter(oscMessage, character);
+            return OscMessageGetCharacter(character);
         }
         case OscTypeTagTrue:
         {
@@ -2051,15 +2070,15 @@ OscError OscMessageGetArgumentAsCharacter(OscMessage * const oscMessage, char * 
  * @param rgbaColour 32-bit RGBA colour argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsRgbaColour(OscMessage * const oscMessage, RgbaColour * const rgbaColour) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsRgbaColour(RgbaColour * const rgbaColour) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagBlob:
         {
             size_t blobSize;
-            const OscError oscError = OscMessageGetBlob(oscMessage, &blobSize, (char *) &rgbaColour, sizeof (RgbaColour));
+            const OscError oscError = OscMessageGetBlob(&blobSize, (char *) &rgbaColour, sizeof (RgbaColour));
             if (oscError != 0) {
                 return oscError;
             }
@@ -2070,7 +2089,7 @@ OscError OscMessageGetArgumentAsRgbaColour(OscMessage * const oscMessage, RgbaCo
         }
         case OscTypeTagRgbaColour:
         {
-            return OscMessageGetRgbaColour(oscMessage, rgbaColour);
+            return OscMessageGetRgbaColour(rgbaColour);
         }
         default:
             return OscErrorUnexpectedArgumentType; // error: unexpected argument type
@@ -2097,15 +2116,15 @@ OscError OscMessageGetArgumentAsRgbaColour(OscMessage * const oscMessage, RgbaCo
  * @param midiMessage 4 byte MIDI message argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsMidiMessage(OscMessage * const oscMessage, MidiMessage * const midiMessage) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsMidiMessage(MidiMessage * const midiMessage) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagBlob:
         {
             size_t blobSize;
-            const OscError oscError = OscMessageGetBlob(oscMessage, &blobSize, (char *) &midiMessage, sizeof (MidiMessage));
+            const OscError oscError = OscMessageGetBlob(&blobSize, (char *) &midiMessage, sizeof (MidiMessage));
             if (oscError != 0) {
                 return oscError;
             }
@@ -2116,7 +2135,7 @@ OscError OscMessageGetArgumentAsMidiMessage(OscMessage * const oscMessage, MidiM
         }
         case OscTypeTagMidiMessage:
         {
-            return OscMessageGetMidiMessage(oscMessage, midiMessage);
+            return OscMessageGetMidiMessage(midiMessage);
         }
         default:
             return OscErrorUnexpectedArgumentType; // error: unexpected argument type
@@ -2144,50 +2163,50 @@ OscError OscMessageGetArgumentAsMidiMessage(OscMessage * const oscMessage, MidiM
  * @param boolean Boolean argument.
  * @return Error code (0 if successful).
  */
-OscError OscMessageGetArgumentAsBool(OscMessage * const oscMessage, bool * const boolean) {
-    if (OscMessageIsArgumentAvailable(oscMessage) == false) {
+OscError OscMessage::OscMessageGetArgumentAsBool(bool * const boolean) {
+    if (OscMessageIsArgumentAvailable() == false) {
         return OscErrorNoArgumentsAvailable;
     }
-    switch (OscMessageGetArgumentType(oscMessage)) {
+    switch (OscMessageGetArgumentType()) {
         case OscTypeTagInt32:
         {
             int32_t int32;
-            const OscError oscError = OscMessageGetInt32(oscMessage, &int32);
+            const OscError oscError = OscMessageGetInt32(&int32);
             *boolean = (bool) int32;
             return oscError;
         }
         case OscTypeTagFloat32:
         {
             float float32;
-            const OscError oscError = OscMessageGetFloat32(oscMessage, &float32);
+            const OscError oscError = OscMessageGetFloat32(&float32);
             *boolean = (bool) float32;
             return oscError;
         }
         case OscTypeTagInt64:
         {
             int64_t int64;
-            const OscError oscError = OscMessageGetInt64(oscMessage, &int64);
+            const OscError oscError = OscMessageGetInt64(&int64);
             *boolean = (bool) int64;
             return oscError;
         }
         case OscTypeTagTimeTag:
         {
             OscTimeTag oscTimeTag;
-            const OscError oscError = OscMessageGetTimeTag(oscMessage, &oscTimeTag);
+            const OscError oscError = OscMessageGetTimeTag(&oscTimeTag);
             *boolean = (bool) oscTimeTag.value;
             return oscError;
         }
         case OscTypeTagDouble:
         {
             Double64 double64;
-            const OscError oscError = OscMessageGetDouble(oscMessage, &double64);
+            const OscError oscError = OscMessageGetDouble(&double64);
             *boolean = (bool) double64;
             return oscError;
         }
         case OscTypeTagCharacter:
         {
             char character;
-            const OscError oscError = OscMessageGetCharacter(oscMessage, &character);
+            const OscError oscError = OscMessageGetCharacter(&character);
             *boolean = (bool) character;
             return oscError;
         }
@@ -2216,6 +2235,3 @@ OscError OscMessageGetArgumentAsBool(OscMessage * const oscMessage, bool * const
     }
     return OscErrorNone;
 }
-
-//------------------------------------------------------------------------------
-// End of file

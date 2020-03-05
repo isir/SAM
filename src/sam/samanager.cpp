@@ -56,6 +56,10 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
+    std::shared_ptr<MenuBackend> ngimu_submenu = std::make_shared<MenuBackend>("ngimu", "NGIMU submenu");
+    ngimu_submenu->add_item("id", "Identify", [this](std::string) { _robot->sensors.ng_imu->send_command_identify(); });
+    _main_menu->add_item(ngimu_submenu);
+
     _main_menu->add_submenu_from_user(_adc);
     _main_menu->add_submenu_from_user(_cyb);
 

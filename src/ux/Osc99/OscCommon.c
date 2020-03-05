@@ -26,7 +26,7 @@ const OscTimeTag oscTimeTagZero = {
  * @return True if the OSC contents is an OSC message.
  */
 bool OscContentsIsMessage(const void * const oscContents) {
-    return (*(char *) (oscContents) == '/');
+    return (*(char*) oscContents == '/');
 }
 
 /**
@@ -35,7 +35,7 @@ bool OscContentsIsMessage(const void * const oscContents) {
  * @return True if the OSC contents is an OSC bundle.
  */
 bool OscContentsIsBundle(const void * const oscContents) {
-    return (*(char *) (oscContents) == '#');
+    return (*(char*) oscContents == '#');
 }
 
 //------------------------------------------------------------------------------
