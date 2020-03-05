@@ -7,7 +7,7 @@
 #include "algo/myocontrol.h"
 
 Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Cybathlon", 0.01)
+    : ThreadedLoop("Cybathlon", 0.025)
     , _robot(robot)
     , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 2)
     , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
@@ -145,9 +145,9 @@ void Cybathlon::loop(double dt, clock::time_point time)
     static const unsigned int counts_after_mode_change = 15;
     static const unsigned int counts_btn = 2;
     static const unsigned int counts_before_bubble = 2;
-    static const unsigned int counts_after_bubble = 2;
+    static const unsigned int counts_after_bubble = 10;
 
-    static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
+    static const MyoControl::EMGThresholds thresholds(5000, 2200, 0, 5000, 2200, 0);
 
     auto robot = _robot;
     MyoControl::Action co_contraction("Co contraction",
