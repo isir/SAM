@@ -22,22 +22,31 @@ public:
     bool get_humidity(double h);
     bool get_temperature(double* t);
 
-    bool send_command();
+    bool send_command_message(const char* const commandAddress);
+    bool send_command_message(const char* const commandAddress, const bool argument);
+    bool send_command(const void* const oscContents);
     bool send_command_identify();
+    bool send_command_algorithm_init();
+    bool send_command_serial_number();
 
 private:
     void loop(double dt, clock::time_point time) override;
     void init_imudata();
 
-    OscError ProcessSensors(OscMessage current_oscMessage);
-    OscError ProcessQuaternion(OscMessage current_oscMessage);
-    OscError ProcessEuler(OscMessage current_oscMessage);
-    OscError ProcessBattery(OscMessage current_oscMessage);
-    OscError ProcessHumidity(OscMessage current_oscMessage);
-    OscError ProcessTemperature(OscMessage current_oscMessage);
+    OscError ProcessSensors(OscMessage oscMessage);
+    OscError ProcessQuaternion(OscMessage oscMessage);
+    OscError ProcessEuler(OscMessage oscMessage);
+    OscError ProcessBattery(OscMessage oscMessage);
+    OscError ProcessHumidity(OscMessage oscMessage);
+    OscError ProcessTemperature(OscMessage oscMessage);
+    OscError ProcessSerialNumber (OscMessage oscMessage);
 
     SerialPort _sp;
     OscSlipDecoder _oscSlipDecoder;
+    OscMessage _oscMessage;
+    OscTimeTag _oscTimeTag;
+
+    char _serial_number[8];
 
     //sensors data
     double imudata_sensors[10];
@@ -57,6 +66,8 @@ private:
     // temperature data
     double imudata_temperature[2];
     bool imudata_temperature_available;
+
+    bool received_error;
 
     //interprocess_semaphore  data_access_mutex;
     std::mutex _mutex;
