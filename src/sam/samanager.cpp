@@ -58,6 +58,8 @@ void SAManager::fill_menus()
 
     std::shared_ptr<MenuBackend> ngimu_submenu = std::make_shared<MenuBackend>("ngimu", "NGIMU submenu");
     ngimu_submenu->add_item("id", "Identify", [this](std::string) { _robot->sensors.ng_imu->send_command_identify(); });
+    ngimu_submenu->add_item("init", "Initialise", [this](std::string) { _robot->sensors.ng_imu->send_command_algorithm_init(); });
+    ngimu_submenu->add_item("serial", "Get serial number", [this](std::string) { _robot->sensors.ng_imu->send_command_serial_number(); });
     _main_menu->add_item(ngimu_submenu);
 
     _main_menu->add_submenu_from_user(_adc);
