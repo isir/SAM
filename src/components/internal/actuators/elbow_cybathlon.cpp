@@ -12,15 +12,15 @@ ElbowCybathlon::ElbowCybathlon()
 
     set_params_limits(0, 100.);
     set_params_technical(4065, 100);
-    set_params_velocity(0.10774f, 0.00718f, 0, 424875);
-    set_params_position(16.67f, 0., 0., 0., 0., -180., 180.);
+    set_params_velocity(0.18608f, 0.01232f, 0, 353250);
+    set_params_position(26.86342f, 0., 0., 0., 0., -180., 180.);
     //set_params_velocity(0.04060f, 0.00325f, 0, 897000);
     //set_params_position(11.90776f, 0., 0., 0., 0., -180., 180.);
 }
 
 void ElbowCybathlon::calibrate()
 {
-    Actuator::calibrate(-10, -15, 0.5, false);
+    Actuator::calibrate(-15, -15, 0.5, false);
     move_to(0, 15, true);
 }
 
