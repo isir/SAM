@@ -13,7 +13,12 @@ Sensors::Sensors()
     red_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, B115200);
     yellow_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, B115200);
 
-    ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu0", B115200);
+    int cnt = 0;
+    do {
+        ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu"+std::to_string(cnt), B115200);
+        ++cnt;
+    } while (!ng_imu);
+
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
     adc1 = Components::make_component<Adafruit_ADS1115>("adc1", "/dev/i2c-1", 0x49);
