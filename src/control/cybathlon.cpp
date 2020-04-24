@@ -125,12 +125,30 @@ bool Cybathlon::setup()
     _robot->user_feedback.leds->set(LedStrip::white, 11);
 
     _cnt = 0.;
+
+    // Record myo data in txt file
+    std::string filename("myo_cybathlon");
+    std::string suffix;
+    int cnt = 0;
+    std::string extension(".txt");
+    do {
+        ++cnt;
+        suffix = "_" + std::to_string(cnt);
+    } while (std::filesystem::exists(filename + suffix + extension));
+    _file = std::ofstream(filename + suffix + extension);
+    if (!_file.good()) {
+        critical() << "Failed to open" << (filename + suffix + extension);
+        return false;
+    }
+
     _start_time = clock::now();
     return true;
 }
 
 void Cybathlon::loop(double dt, clock::time_point time)
 {
+    double timeWithDelta = std::chrono::duration_cast<std::chrono::microseconds>(time - _start_time).count();
+
     static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
     static const unsigned int counts_after_mode_change = 15;
@@ -212,8 +230,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
         } else {
             _robot->joints.elbow_flexion->set_velocity_safe(0);
         }
+        elbow_available = 1;
     } else {
         _robot->joints.elbow_flexion->set_velocity_safe(0);
+        elbow_available = 0;
     }
 
     static int previous_value_wrist = 1;
@@ -275,6 +295,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
         colors[i] = LedStrip::white;
     }
 
+    _file << timeWithDelta << "\t" << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[2] << "\t" << _electrodes[3] << "\t" << _electrodes[4] << "\t" << _electrodes[5];
+    _file << "\t" << btn << "\t" << previous_value_wrist << "\t" << elbow_available;
+    _file << std::endl;
+
 }
 
 
@@ -284,4 +308,5 @@ void Cybathlon::cleanup()
     _robot->joints.wrist_pronation->set_velocity_safe(0);
     _robot->joints.elbow_flexion->set_velocity_safe(0);
     _robot->user_feedback.leds->set(LedStrip::white, 11);
+    _file.close();
 }
