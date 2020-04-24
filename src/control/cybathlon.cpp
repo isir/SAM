@@ -15,7 +15,6 @@ Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     _menu->set_description("Cybathlon");
     _menu->set_code("cyb");
     _menu->add_item("Tare IMUs", "tare", [this](std::string) { this->tare_IMU(); });
-    _menu->add_item("Display Pin data", "pin", [this](std::string) { this->displayPin(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
@@ -61,14 +60,6 @@ void Cybathlon::tare_IMU()
 
     std::this_thread::sleep_for(std::chrono::seconds(6));
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
-}
-
-void Cybathlon::displayPin()
-{
-    int pin_down_value = _robot->btn2;
-    int pin_up_value = _robot->btn1;
-    debug() << "PinUp: " << pin_up_value;
-    debug() << "PinDown: " << pin_down_value;
 }
 
 void Cybathlon::readAllADC() //Optimized function to read all 6 electrodes

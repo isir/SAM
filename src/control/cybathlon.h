@@ -17,7 +17,6 @@ public:
     void cleanup() override;
 
     void tare_IMU();
-    void displayPin();
 
 private:
     void readAllADC();
