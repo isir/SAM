@@ -13,7 +13,7 @@ Sensors::Sensors()
     red_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, B115200);
     yellow_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, B115200);
 
-    ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu0", B115200);
+    ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu1", B115200);
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
     adc1 = Components::make_component<Adafruit_ADS1115>("adc1", "/dev/i2c-1", 0x49);
@@ -61,7 +61,7 @@ Joints::Joints()
 }
 
 Components::Components()
-    : mosfet_gpio(4,GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
+    : mosfet_gpio(4, GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
     , demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , adc_gpio(27, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
