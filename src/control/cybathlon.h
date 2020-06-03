@@ -17,6 +17,7 @@ public:
     void cleanup() override;
 
     void tare_IMU();
+    void init_IMU();
     void displayPin();
 
 private:
@@ -37,6 +38,8 @@ private:
     int _th_low[_n_electrodes];
     int _th_high[_n_electrodes];
     uint16_t _electrodes[_n_electrodes];
+
+    std::ofstream _file;
 };
 
 #endif // CYBATHLON_H

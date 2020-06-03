@@ -9,13 +9,14 @@
 Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Cybathlon", 0.025)
     , _robot(robot)
-    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 7)
+    , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 10)
     , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
 {
     _menu->set_description("Cybathlon");
     _menu->set_code("cyb");
-    _menu->add_item("Tare IMUs", "tare", [this](std::string) { this->tare_IMU(); });
-    _menu->add_item("Display Pin data", "pin", [this](std::string) { this->displayPin(); });
+    _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
+    _menu->add_item("init", "Initialize NG IMUs", [this](std::string) { this->init_IMU(); });
+    _menu->add_item("pin", "Display Pin data", [this](std::string) { this->displayPin(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
@@ -55,6 +56,17 @@ void Cybathlon::tare_IMU()
         _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
     if (_robot->sensors.yellow_imu)
         _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+}
+
+void Cybathlon::init_IMU()
+{
+    if (_robot->sensors.ng_imu)
+        _robot->sensors.ng_imu->send_command_algorithm_init();
 
     debug("Wait ...");
 
@@ -131,12 +143,30 @@ bool Cybathlon::setup()
     _robot->user_feedback.leds->set(LedStrip::white, 11);
 
     _cnt = 0.;
+
+    // Record myo data int xt file
+    std::string filename("myo_cybathlon");
+    std::string suffix;
+    int cnt = 0;
+    std::string extension(".txt");
+    do {
+        ++cnt;
+        suffix = "_" + std::to_string(cnt);
+    } while (std::filesystem::exists(filename + suffix + extension));
+    _file = std::ofstream(filename + suffix + extension);
+    if (!_file.good()) {
+        critical() << "Failed to open " << (filename + suffix + extension);
+        return false;
+    }
+
     _start_time = clock::now();
     return true;
 }
 
 void Cybathlon::loop(double dt, clock::time_point time)
 {
+    double timeWithDelta = std::chrono::duration_cast<std::chrono::microseconds>(time - _start_time).count();
+
     static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
     static const unsigned int counts_after_mode_change = 15;
@@ -218,8 +248,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
         } else {
             _robot->joints.elbow_flexion->set_velocity_safe(0);
         }
+        elbow_available = 1;
     } else {
         _robot->joints.elbow_flexion->set_velocity_safe(0);
+        elbow_available = 0;
     }
 
     static int previous_value_wrist = 1;
@@ -227,10 +259,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
     if (!_robot->btn3) {
         //EMG4 and EMG6 = wrist rotator
         if (_electrodes[3] > _th_high[3] && _electrodes[5] < (_electrodes[3] - 500) && _electrodes[4] < (_electrodes[3] - 500) && _electrodes[2] < _electrodes[3]) { //EMG4 activation
-            _robot->joints.wrist_pronation->set_velocity_safe(-40);
+            _robot->joints.wrist_pronation->set_velocity_safe(-80);
             colors[3] = LedStrip::red_bright;
         } else if (_electrodes[5] > _th_high[5] && _electrodes[3] < _th_high[5] && _electrodes[4] < _th_high[5]) { //EMG6 activation
-            _robot->joints.wrist_pronation->set_velocity_safe(40);
+            _robot->joints.wrist_pronation->set_velocity_safe(80);
             colors[5] = LedStrip::red_bright;
         } else {
             _robot->joints.wrist_pronation->set_velocity_safe(0);
@@ -250,6 +282,8 @@ void Cybathlon::loop(double dt, clock::time_point time)
             _robot->sensors.red_imu->get_quat(qTronc);
         if (_robot->sensors.yellow_imu)
             _robot->sensors.yellow_imu->get_quat(qFA);
+        else if (_robot->sensors.ng_imu)
+            _robot->sensors.ng_imu->get_quat(qFA);
 
         Eigen::Quaterniond qFA_record;
         qFA_record.w() = qFA[0];
@@ -280,6 +314,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         colors[i] = LedStrip::white;
     }
+
+    _file << timeWithDelta << "\t" << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[2] << "\t" << _electrodes[3] << "\t" << _electrodes[4] << "\t" << _electrodes[5];
+    _file << "\t" << btn << "\t" << previous_value_wrist << "\t" << elbow_available;
+    _file << std::endl;
 }
 
 void Cybathlon::cleanup()
@@ -288,4 +326,5 @@ void Cybathlon::cleanup()
     _robot->joints.wrist_pronation->set_velocity_safe(0);
     _robot->joints.elbow_flexion->set_velocity_safe(0);
     _robot->user_feedback.leds->set(LedStrip::white, 11);
+    _file.close();
 }
