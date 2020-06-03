@@ -69,7 +69,7 @@ private:
 
     // boolean to indicate which prototype and whether we save data
     bool protoCyb = true;
-    bool saveData = true;
+    bool saveData = false;
 };
 
 #endif // JACOBIAN_FORMULATION_IMU_SK_H

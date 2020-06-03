@@ -7,22 +7,22 @@
 #include <iostream>
 
 // indicate if optitrack is on
-#define OPTITRACK 1
+#define OPTITRACK 0
 
 JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop(name, 0.0167)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
-    , _lt("lt(cm)", BaseParam::ReadWrite, this, 40)
+    , _lt("lt(cm)", BaseParam::ReadWrite, this, 30)
     , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 20)
     , _pin_up(24)
     , _pin_down(22)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 28)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
-    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
-    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 2)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -122,6 +122,11 @@ void JacobianFormulationIMU_sk::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
+    if (protoCyb) {
+        _robot->joints.wrist_pronation->set_encoder_position(0);
+        debug() << "Wrist pronation encoder set to 0 \n";
+    }
+
     //    if (protoCyb)
     //        _robot->joints.elbow_flexion->move_to(90, 20);
     //    else
@@ -209,8 +214,8 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
         // generate random number for buzzer
         boolBuzz = rand() % 2;
         printf("boolBuzz: %d\n", boolBuzz);
-        if (boolBuzz == 1)
-            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+        //        if (boolBuzz == 1)
+        //            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
     }
 
 #if OPTITRACK
@@ -430,8 +435,8 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
                 _robot->joints.wrist_pronation->set_velocity_safe(-_thetaDot_toSend[0]);
                 _robot->joints.elbow_flexion->set_velocity_safe(-_thetaDot_toSend[1]);
                 if (_cnt % 50 == 0) {
-                    debug() << "pronosup vel :" << -_thetaDot_toSend[0] << "\n";
-                    debug() << "elbow flex vel :" << -_thetaDot_toSend[1] << "\n";
+                    //                    debug() << "pronosup vel :" << -_thetaDot_toSend[0] << "\n";
+                    //                    debug() << "elbow flex vel :" << -_thetaDot_toSend[1] << "\n";
                 }
             } else {
                 _robot->joints.wrist_pronation->set_velocity_safe(-_thetaDot_toSend[0]);
