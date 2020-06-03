@@ -41,7 +41,7 @@ void SAManager::run()
 
     instantiate_controllers();
     fill_menus();
-    //autostart_demo();
+    autostart_demo();
     //    autostart_adc();
 
     std::unique_lock lock(_cv_mutex);
@@ -76,7 +76,8 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_imu);
     _main_menu->add_submenu_from_user(_opti);
-    //    _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_submenu_from_user(_pb);
     //    _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_jfOpti);
     _main_menu->add_submenu_from_user(_jfIMU1);
@@ -91,6 +92,10 @@ void SAManager::instantiate_controllers()
 {
     try {
         _vc = std::make_unique<VoluntaryControl>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _pb = std::make_unique<pushButtons>(_robot);
     } catch (std::exception&) {
     }
     try {
@@ -170,15 +175,15 @@ void SAManager::instantiate_controllers()
 
 void SAManager::autostart_demo()
 {
-    //    if (_demo) {
-    if (_robot->demo_gpio) {
-        _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
-    } /*else {
+    if (_demo) {
+        if (_robot->demo_gpio) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+        } else {
             _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
             _main_menu->activate_item("demo");
             _demo->start();
-        }*/
-    //}
+        }
+    }
 }
 
 void SAManager::autostart_adc()

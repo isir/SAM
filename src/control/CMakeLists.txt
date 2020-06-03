@@ -21,7 +21,8 @@ set(SOURCES
     read_adc.cpp
     remote_computer_control.cpp
     recorddata.cpp
-    voluntary_control.cpp)
+    voluntary_control.cpp
+    pushbuttons.cpp)
 
 add_library(control ${SOURCES})
 
