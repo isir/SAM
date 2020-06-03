@@ -36,6 +36,11 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     qHip_filt.y() = 0.;
     qHip_filt.z() = 0.;
 
+    Y0.w() = 0.0;
+    Y0.x() = 0.0;
+    Y0.y() = 1.0;
+    Y0.z() = 0.0;
+
     /// FRAMES
     for (int i = 0; i < nbFrames; i++) {
         x(0, i) = 1.;
@@ -76,13 +81,13 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     // Rotation matrix from IMU or hand rigid body frame to theoretical arm
     if (nbLinks == 2) {
         // if IMU on hand
-        //        R0 << 0., 1., 0.,
-        //            0., 0., 1.,
-        //            1., 0., 0.;
-        // if IMU on upper arm
         R0 << 0., 1., 0.,
-            -1., 0., 0.,
-            0., 0., 1.;
+            0., 0., 1.,
+            1., 0., 0.;
+        // if IMU on upper arm
+        //        R0 << 0., 1., 0.,
+        //            -1., 0., 0.,
+        //            0., 0., 1.;
     } else if (nbLinks == 3) {
         R0 << 1., 0., 0.,
             0., 0., -1.,
@@ -200,6 +205,10 @@ void LawJacobian::initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk
         qArm0.y() = qArm0.y() / initCounts;
         qArm0.z() = qArm0.z() / initCounts;
         qArm0 = qArm0.normalized();
+
+        Yinit = qTrunk0.inverse() * Y0 * qTrunk0;
+        Ytrunk0 = Yinit.vec();
+        Ytrunk0 = Ytrunk0.normalized();
     }
 }
 
@@ -364,6 +373,18 @@ void LawJacobian::computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond 
 void LawJacobian::bufferingOldValues()
 {
     qHip_filt_old = qHip_filt;
+}
+
+/**
+ * @brief LawJacobian::updateTrunkFrame compute the current orientation of the trunk IMU frame
+ * @param qTrunk quaternion of the trunk IMU
+ */
+void LawJacobian::updateTrunkFrame(Eigen::Quaterniond qTrunk)
+{
+    Yinit = qTrunk.inverse() * Y0 * qTrunk;
+    Ytrunk = Yinit.vec();
+    Ytrunk = Ytrunk.normalized();
+    //    debug() << "Ytrunk: " << Ytrunk(0) << " ; " << Ytrunk(1) << " ; " << Ytrunk(2);
 }
 
 /**
@@ -704,7 +725,7 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double 
 }
 
 /**
- * @brief LawJacobian::controlLaw_v4 elbow + wrist pronation solved with 2DOF model with delta = ang. velocity of the trunk expressed at acromion;
+ * @brief LawJacobian::controlLaw_v4 elbow + wrist pronation solved with 2DOF model
  * wrist flexion = angle around hand z0-axis due to shoulder rotation w/r to the trunk
  * @param lt
  * @param lsh
@@ -723,8 +744,13 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double 
         dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
     }
 
-    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
-    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref)); // + lsh * xref));
+    // delta = displacement of the sternum
+    delta = R0 * Rhand * lt * (Ytrunk0 - Ytrunk);
+
+    // delta = ang. velocity of the trunk expressed at acromion;
+    //    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
+    //    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref)); // + lsh * xref));
+
     if (nbLinks == 2) { // no wrist flexion
         thetaNew = dlsJ * delta;
     } else if (nbLinks == 3) { // wrist flexion -> from shoulder rotation
@@ -733,7 +759,7 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double 
     }
 
     // wrist pronosup control with forearm rotation
-    thetaNew(0) = -atan(Rhand_rel(0, 2) / sqrt(1 - Rhand_rel(0, 2) * Rhand_rel(0, 2))); //rotation around Y-axis
+    //thetaNew(0) = -atan(Rhand_rel(0, 2) / sqrt(1 - Rhand_rel(0, 2) * Rhand_rel(0, 2))); //rotation around Y-axis
 
     // deadzone
     for (int i = 0; i < nbLinks; i++) {
@@ -746,7 +772,7 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double 
     }
 
     if (_cnt % 50 == 0) {
-        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
         debug() << "thetaNew(after threshold, deg): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;

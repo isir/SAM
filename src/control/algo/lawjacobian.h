@@ -30,6 +30,7 @@ public:
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
     void bufferingOldValues();
+    void updateTrunkFrame(Eigen::Quaterniond qTrunk);
     void updateFrames(double theta[]);
     void updateFramesinEE(double theta[]);
     void computeOriginsVectors(int l[], int nbDOF);
@@ -59,7 +60,7 @@ private:
 #endif
     //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
-    Eigen::Vector3d xref, yref, zref;
+    Eigen::Vector3d xref, yref, zref, Ytrunk0, Ytrunk;
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
     Eigen::Vector3d posAinHip, posAinHand, IO; // position of the acromion and the elbow in hip frame
@@ -75,7 +76,7 @@ private:
 
     double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
-    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative; // quaternions for hip, arm and trunk frames
+    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative, Yinit, Y0; // quaternions for hip, arm and trunk frames
 };
 
 #endif // LAWJACOBIAN_H
