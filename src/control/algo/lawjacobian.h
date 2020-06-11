@@ -40,6 +40,7 @@ public:
     void controlLaw_v2(int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
+    void scaleDisplacement(int lt, int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
@@ -60,11 +61,11 @@ private:
 #endif
     //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
-    Eigen::Vector3d xref, yref, zref, Ytrunk0, Ytrunk;
+    Eigen::Vector3d xref, yref, zref, Ytrunk0, Ytrunk, Xtrunk, Ztrunk;
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
     Eigen::Vector3d posAinHip, posAinHand, IO; // position of the acromion and the elbow in hip frame
-    Eigen::Vector3d delta; // displacement between acromion initial (=reference) position and current position
+    Eigen::Vector3d delta, disp; // displacement between acromion initial (=reference) position and current position
     Eigen::Vector3d posHip0; // initial position of hip
     double samplePeriod;
     double coeff; // coefficient for low-pass filtering
@@ -76,7 +77,9 @@ private:
 
     double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
-    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative, Yinit, Y0; // quaternions for hip, arm and trunk frames
+    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative; // quaternions for hip, arm and trunk frames
+    Eigen::Quaternion<double, Eigen::DontAlign> Yinit, Y0, Xinit, X0, Zinit, Z0; // quaternions to compute initial and current trunk frame
+    int scale;
 };
 
 #endif // LAWJACOBIAN_H

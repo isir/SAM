@@ -41,6 +41,16 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     Y0.y() = 1.0;
     Y0.z() = 0.0;
 
+    X0.w() = 0.0;
+    X0.x() = 1.0;
+    X0.y() = 0.0;
+    X0.z() = 0.0;
+
+    Z0.w() = 0.0;
+    Z0.x() = 0.0;
+    Z0.y() = 0.0;
+    Z0.z() = 1.0;
+
     /// FRAMES
     for (int i = 0; i < nbFrames; i++) {
         x(0, i) = 1.;
@@ -77,6 +87,7 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     dlsJo = Eigen::MatrixXd::Zero(nbLinks - 1, 3);
     OO = Eigen::MatrixXd::Zero(3, nbLinks);
     IO = Eigen::Vector3d::Zero();
+    disp = Eigen::Vector3d::Zero();
 
     // Rotation matrix from IMU or hand rigid body frame to theoretical arm
     if (nbLinks == 2) {
@@ -384,7 +395,16 @@ void LawJacobian::updateTrunkFrame(Eigen::Quaterniond qTrunk)
     Yinit = qTrunk.inverse() * Y0 * qTrunk;
     Ytrunk = Yinit.vec();
     Ytrunk = Ytrunk.normalized();
+
+    Xinit = qTrunk.inverse() * X0 * qTrunk;
+    Xtrunk = Xinit.vec();
+    Xtrunk = Xtrunk.normalized();
+
+    Zinit = qTrunk.inverse() * Z0 * qTrunk;
+    Ztrunk = Zinit.vec();
+    Ztrunk = Ztrunk.normalized();
     //    debug() << "Ytrunk: " << Ytrunk(0) << " ; " << Ytrunk(1) << " ; " << Ytrunk(2);
+    //    debug() << "Xtrunk: " << Xtrunk(0) << " ; " << Xtrunk(1) << " ; " << Xtrunk(2);
 }
 
 /**
@@ -725,6 +745,25 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double 
 }
 
 /**
+ * @brief LawJacobian::scaleDisplacement multiply trunk extension to avoid too many harmful compensations
+ * @param lt
+ */
+void LawJacobian::scaleDisplacement(int lt, int _cnt)
+{
+    if ((Ytrunk0 - Ytrunk).dot(Ztrunk) > 0)
+        scale = 2;
+    else if ((Ytrunk0 - Ytrunk).dot(Ztrunk) <= 0)
+        scale = 1;
+
+    disp = lt * ((Ytrunk0 - Ytrunk).dot(Xtrunk) * Xtrunk + (Ytrunk0 - Ytrunk).dot(Ytrunk) * Ytrunk + scale * (Ytrunk0 - Ytrunk).dot(Ztrunk) * Ztrunk);
+
+    if (_cnt % 50 == 0) {
+        debug() << "original disp: " << lt * (Ytrunk0 - Ytrunk)(0) << "; " << lt * (Ytrunk0(1) - Ytrunk(1)) << "; " << lt * (Ytrunk0(2) - Ytrunk(2));
+        debug() << "scaled disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    }
+}
+
+/**
  * @brief LawJacobian::controlLaw_v4 elbow + wrist pronation solved with 2DOF model
  * wrist flexion = angle around hand z0-axis due to shoulder rotation w/r to the trunk
  * @param lt
@@ -745,7 +784,8 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double 
     }
 
     // delta = displacement of the sternum
-    delta = R0 * Rhand * lt * (Ytrunk0 - Ytrunk);
+    //    delta = R0 * Rhand * lt * (Ytrunk0 - Ytrunk);
+    delta = R0 * Rhand * disp; // backward displacements of the trunk are penalized
 
     // delta = ang. velocity of the trunk expressed at acromion;
     //    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
