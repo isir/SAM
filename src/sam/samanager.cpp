@@ -78,10 +78,9 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_pb);
+    _main_menu->add_submenu_from_user(_myo2);
     //    _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_jfOpti);
-    _main_menu->add_submenu_from_user(_jfIMU1);
-    _main_menu->add_submenu_from_user(_jfIMU3);
     _main_menu->add_submenu_from_user(_jfIMU4);
     _main_menu->add_submenu_from_user(_recordData);
 
@@ -96,6 +95,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _pb = std::make_unique<pushButtons>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _myo2 = std::make_unique<myo_2electrodes>(_robot);
     } catch (std::exception&) {
     }
     try {
@@ -128,14 +131,6 @@ void SAManager::instantiate_controllers()
     }
     try {
         _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
-    } catch (std::exception&) {
-    }
-    try {
-        _jfIMU1 = std::make_unique<JFIMU_v1>(_robot);
-    } catch (std::exception&) {
-    }
-    try {
-        _jfIMU3 = std::make_unique<JFIMU_v3>(_robot);
     } catch (std::exception&) {
     }
     try {

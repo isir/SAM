@@ -22,7 +22,8 @@ set(SOURCES
     remote_computer_control.cpp
     recorddata.cpp
     voluntary_control.cpp
-    pushbuttons.cpp)
+    pushbuttons.cpp
+    myo_2electrodes.cpp)
 
 add_library(control ${SOURCES})
 

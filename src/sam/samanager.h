@@ -11,6 +11,7 @@
 #include "control/jfimu_v3.h"
 #include "control/jfimu_v4.h"
 #include "control/matlab_receiver.h"
+#include "control/myo_2electrodes.h"
 #include "control/pushbuttons.h"
 #include "control/read_adc.h"
 #include "control/recorddata.h"
@@ -42,6 +43,7 @@ private:
 
     std::unique_ptr<VoluntaryControl> _vc;
     std::unique_ptr<pushButtons> _pb;
+    std::unique_ptr<myo_2electrodes> _myo2;
     std::unique_ptr<JacobianFormulationOpti> _jfOpti;
     std::unique_ptr<JFIMU_v1> _jfIMU1;
     std::unique_ptr<JFIMU_v3> _jfIMU3;
