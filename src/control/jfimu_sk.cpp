@@ -20,9 +20,9 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 28)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
-    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
-    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 2)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -122,11 +122,6 @@ void JacobianFormulationIMU_sk::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    if (protoCyb) {
-        _robot->joints.wrist_pronation->set_encoder_position(0);
-        debug() << "Wrist pronation encoder set to 0 \n";
-    }
-
     //    if (protoCyb)
     //        _robot->joints.elbow_flexion->move_to(90, 20);
     //    else
@@ -198,6 +193,8 @@ bool JacobianFormulationIMU_sk::setup()
     for (int i = 0; i < nbLinks; i++) {
         _theta[i] = 0.;
     }
+
+    _robot->joints.wrist_pronation->set_encoder_position(0);
     return true;
 }
 
@@ -213,7 +210,7 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
     if (_cnt % 100 == 0) {
         // generate random number for buzzer
         boolBuzz = rand() % 2;
-        printf("boolBuzz: %d\n", boolBuzz);
+        // printf("boolBuzz: %d\n", boolBuzz);
         //        if (boolBuzz == 1)
         //            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
     }
@@ -227,7 +224,7 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
 
     double timeWithDelta = (time - _start_time).count();
 
-    double debugData[40];
+    double debugData[31];
 
     if (saveData) {
         /// WRITE FILE HEADERS
@@ -468,7 +465,8 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
         _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
         _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
-        for (int i = 0; i < 40; i++) {
+        int len = sizeof(debugData) / sizeof(debugData[0]);
+        for (int i = 0; i < len; i++) {
             _file << ' ' << debugData[i];
         }
         _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder << ' ' << _emg[0] << ' ' << _emg[1];

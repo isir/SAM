@@ -68,8 +68,8 @@ private:
     Eigen::Quaterniond _qHip, _qTrunk, _qHand, _qArm;
 
     // boolean to indicate which prototype and whether we save data
-    bool protoCyb = true;
-    bool saveData = false;
+    bool protoCyb = false;
+    bool saveData = true;
 };
 
 #endif // JACOBIAN_FORMULATION_IMU_SK_H
