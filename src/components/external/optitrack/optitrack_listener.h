@@ -114,6 +114,7 @@ typedef struct {
 class OptiListener {
 public:
     OptiListener();
+    ~OptiListener();
     void begin(int port = 1511);
 
     void update();

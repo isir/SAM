@@ -3,6 +3,7 @@
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
+#include <unistd.h>
 
 Socket::Socket()
     : _sock_fd(socket(AF_INET, SOCK_DGRAM, 0))
@@ -35,4 +36,10 @@ std::vector<std::byte> Socket::receive()
     } else {
         return std::vector<std::byte>();
     }
+}
+
+bool Socket::close()
+{
+    ::shutdown(_sock_fd, 0);
+    return ::close(_sock_fd)==0;
 }

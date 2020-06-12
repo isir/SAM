@@ -7,7 +7,14 @@
 #include <unistd.h>
 
 OptiListener::OptiListener()
+{   
+}
+
+OptiListener::~OptiListener()
 {
+    if(!_socket.close()) {
+        critical() << "OptiListener: Failed to close socket";
+    }
 }
 
 void OptiListener::begin(int port)
