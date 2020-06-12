@@ -103,6 +103,7 @@ bool myo_2electrodes::setup()
 
         _need_to_write_header = true;
     }
+    _cnt = 0;
     _start_time = clock::now();
     return true;
 }
@@ -121,8 +122,10 @@ void myo_2electrodes::loop(double, clock::time_point time)
 #if OPTITRACK
         _robot->sensors.optitrack->update();
         optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
-        if (_cnt == 0)
+        if (_cnt == 0) {
             debug() << "Rigid Bodies: " << data.nRigidBodies;
+            _cnt = 1;
+        }
 #endif
 
         double timeWithDelta = (time - _start_time).count();
@@ -135,7 +138,7 @@ void myo_2electrodes::loop(double, clock::time_point time)
         static const unsigned int counts_before_bubble = 2;
         static const unsigned int counts_after_bubble = 10;
 
-        static const MyoControl::EMGThresholds thresholds(5000, 2200, 0, 5000, 2200, 0);
+        static const MyoControl::EMGThresholds thresholds(5000, 2200, 5000, 5000, 2200, 5000);
 
         auto robot = _robot;
         MyoControl::Action elbow(

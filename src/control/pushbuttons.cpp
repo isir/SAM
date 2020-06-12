@@ -8,7 +8,7 @@
 #include "wiringPi.h"
 
 // indicate if optitrack is on
-#define OPTITRACK 0
+#define OPTITRACK 1
 
 pushButtons::pushButtons(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("PushButtons", .01)
@@ -49,8 +49,8 @@ void pushButtons::tare_IMU()
 
 bool pushButtons::setup()
 {
-    _robot->joints.hand->take_ownership();
-    _robot->joints.hand->init_sequence();
+    //_robot->joints.hand->take_ownership();
+    //_robot->joints.hand->init_sequence();
     _robot->joints.elbow_flexion->calibrate();
     _robot->joints.wrist_pronation->calibrate();
 
@@ -72,6 +72,8 @@ bool pushButtons::setup()
 
         _need_to_write_header = true;
     }
+
+    _cnt = 0;
     _start_time = clock::now();
     return true;
 }
@@ -82,8 +84,10 @@ void pushButtons::loop(double, clock::time_point time)
 #if OPTITRACK
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
-    if (_cnt == 0)
+    if (_cnt == 0) {
         debug() << "Rigid Bodies: " << data.nRigidBodies;
+        _cnt = 1;
+    }
 #endif
 
     double timeWithDelta = (time - _start_time).count();
@@ -111,7 +115,7 @@ void pushButtons::loop(double, clock::time_point time)
     MyoControl::Action hand(
         "Hand", [robot]() { robot->joints.hand->move(TouchBionicsHand::HAND_OPENING_ALL); }, [robot]() { robot->joints.hand->move(TouchBionicsHand::HAND_CLOSING_ALL); }, [robot]() { robot->joints.hand->move(TouchBionicsHand::STOP); });
 
-    std::vector<MyoControl::Action> s1{ hand, wrist_pronosup, elbow };
+    std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
 
     std::vector<MyoControl::Action> s2{ hand, wrist_pronosup };
 

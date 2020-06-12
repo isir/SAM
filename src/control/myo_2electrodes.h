@@ -1,7 +1,6 @@
 #ifndef MYO_2ELECTRODES_H
 #define MYO_2ELECTRODES_H
 
-
 #include "sam/sam.h"
 #include "utils/threaded_loop.h"
 
@@ -34,6 +33,7 @@ private:
     bool _need_to_write_header;
     std::string _filename;
     clock::time_point _start_time;
+    int _cnt;
 };
 
 #endif // MYO_2ELECTRODES_H

@@ -26,6 +26,7 @@ private:
     bool _need_to_write_header;
     std::string _filename;
     clock::time_point _start_time;
+    int _cnt;
 };
 
 #endif // PUSHBUTTONS_H
