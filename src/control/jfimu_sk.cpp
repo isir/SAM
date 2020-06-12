@@ -181,7 +181,7 @@ bool JacobianFormulationIMU_sk::setup()
 
         _file = std::ofstream(_filename + suffix + extension);
         if (!_file.good()) {
-            critical() << "Failed to open" << (_filename + suffix + extension);
+            critical() << "Failed to open " << (_filename + suffix + extension);
             return false;
         }
         _need_to_write_header = true;
@@ -239,56 +239,56 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
     }
 
     /// HAND
-    if (protoCyb) {
-        _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
-        _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
-        static std::unique_ptr<MyoControl::Classifier> handcontrol;
+    //    if (protoCyb) {
+    //        _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
+    //        _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+    //        static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
-        static const unsigned int counts_after_mode_change = 15;
-        static const unsigned int counts_btn = 2;
-        static const unsigned int counts_before_bubble = 2;
-        static const unsigned int counts_after_bubble = 2;
+    //        static const unsigned int counts_after_mode_change = 15;
+    //        static const unsigned int counts_btn = 2;
+    //        static const unsigned int counts_before_bubble = 2;
+    //        static const unsigned int counts_after_bubble = 2;
 
-        static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
+    //        static const MyoControl::EMGThresholds thresholds(5000, 1500, 0, 5000, 1500, 0);
 
-        auto robot = _robot;
+    //        auto robot = _robot;
 
-        MyoControl::Action co_contraction("Co contraction",
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
-        MyoControl::Action double_contraction("Double contraction",
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
-        MyoControl::Action triple_contraction("Triple contraction",
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
-            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
+    //        MyoControl::Action co_contraction("Co contraction",
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
+    //        MyoControl::Action double_contraction("Double contraction",
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
+    //        MyoControl::Action triple_contraction("Triple contraction",
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 4); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 4); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2); },
+    //            [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
 
-        std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
+    //        std::vector<MyoControl::Action> s1{ co_contraction, double_contraction, triple_contraction };
 
-        static bool first = true;
-        if (first) {
-            handcontrol = std::make_unique<MyoControl::QuantumClassifier>(s1, thresholds, counts_after_mode_change, counts_btn, counts_before_bubble, counts_after_bubble);
-            first = false;
-        }
+    //        static bool first = true;
+    //        if (first) {
+    //            handcontrol = std::make_unique<MyoControl::QuantumClassifier>(s1, thresholds, counts_after_mode_change, counts_btn, counts_before_bubble, counts_after_bubble);
+    //            first = false;
+    //        }
 
-        //EMG1 and EMG2 = hand
-        static bool btn = 0;
-        if (!_robot->btn1) {
-            btn = 1;
-        } else {
-            btn = 0;
-        }
-        handcontrol->process(_emg[0], _emg[1], btn);
-    }
+    //    //EMG1 and EMG2 = hand
+    //    static bool btn = 0;
+    //    if (!_robot->btn1) {
+    //        btn = 1;
+    //    } else {
+    //        btn = 0;
+    //    }
+    //    handcontrol->process(_emg[0], _emg[1], btn);
+    //}
 
     /// ELBOW
     double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
