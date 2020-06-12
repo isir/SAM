@@ -13,6 +13,8 @@ public:
     bool available();
     std::vector<std::byte> receive();
 
+    bool close();
+
 private:
     int _sock_fd;
 
