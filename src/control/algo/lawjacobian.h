@@ -36,7 +36,7 @@ public:
     void computeOriginsVectors(int l[], int nbDOF);
     void computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qHip);
     void computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm);
-    void controlLaw_v1(int k, double lambda[], double threshold[], int _cnt);
+    void controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v2(int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);

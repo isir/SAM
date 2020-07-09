@@ -596,17 +596,22 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v1(int k, double lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
+    for (int i = 0; i < 2; i++) {
+        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
+    }
+
     /// COMPUTE delta, position error of acromion
     /// for optitrack quaternion for hand frame, no projection in hip
     //    delta = R0 * Rhand * (posA0 - posA);
     /// for IMU quaternion
     delta = R0 * Rhand * Rhip.transpose() * (posA0inHip - posAinHip);
+
     /// for optitrack quaternions
     //    delta = R0 * Rhand.transpose() * Rhip * (posA0 - posA);
     //    delta = Rhip * Rhand.transpose() * (posA0inHip - posAinHip);
@@ -615,7 +620,7 @@ void LawJacobian::controlLaw_v1(int k, double lambda[], double threshold[], int 
     //    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
 
     /// DAMPED LEAST SQUARE SOLUTION
-    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
+    //    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
 
     /// COMPUTE ANG. VELOCITIES
     thetaNew = dlsJ * delta;
