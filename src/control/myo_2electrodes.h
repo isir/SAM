@@ -6,13 +6,14 @@
 
 #include <fstream>
 
-class myo_2electrodes : public ThreadedLoop {
+class myo_2electrodes : public ThreadedLoop, public MqttUser {
 public:
     myo_2electrodes(std::shared_ptr<SAM::Components> robot);
     ~myo_2electrodes() override;
 
     void tare_IMU();
     void calibrations();
+    void readAllADC();
 
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
@@ -21,13 +22,15 @@ public:
 private:
     std::shared_ptr<SAM::Components> _robot;
 
-    uint16_t _emg[2];
+    uint16_t _electrodes[6];
     static const uint16_t _n_electrodes = 6;
     int _th_low[_n_electrodes];
     int _th_high[_n_electrodes];
     std::ifstream _param_file;
 
-    bool saveData = false;
+    int _pin1, _pin2;
+
+    bool saveData = true;
 
     std::ofstream _file;
     bool _need_to_write_header;
