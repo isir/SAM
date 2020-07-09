@@ -20,9 +20,9 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 28)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
-    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
-    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 2)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -34,6 +34,8 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
     _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
     _menu->add_item("analog", "Show IMU Analog data", [this](std::string) { this->analog_IMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
+
+    _menu->add_item("ardui", "Arduino", [this](std::string) { this->listenArduino(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
@@ -61,6 +63,12 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
 
     _th_high[0] = 3000;
     _th_high[1] = 3000;
+
+    _infoSent = 0;
+
+    if (!_receiverArduino.bind("0.0.0.0", 45455)) {
+        critical() << "JFIMU: Failed to bind arduino receiver";
+    }
 }
 
 JacobianFormulationIMU_sk::~JacobianFormulationIMU_sk()
@@ -458,6 +466,8 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
         //        }
     }
 
+    // listenArduino();
+
     if (saveData) {
         _lawJ.writeDebugData(debugData, _theta);
         /// WRITE DATA
@@ -510,4 +520,19 @@ void JacobianFormulationIMU_sk::initialPositionsLaw(Eigen::Quaterniond qHa, Eige
 
 void JacobianFormulationIMU_sk::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
+}
+
+void JacobianFormulationIMU_sk::listenArduino()
+{
+    while (_receiverArduino.available()) {
+        if (_infoSent == 0) {
+            debug("Listening Arduino");
+            _infoSent = 1;
+        }
+        auto data = _receiverArduino.receive();
+        std::string buf;
+        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
+        _pinArduino = std::stoi(buf);
+        debug() << "Pin Arduino: " << _pinArduino;
+    }
 }

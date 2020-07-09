@@ -25,6 +25,7 @@ public:
     void analog_IMU();
     void displayPin();
     void calibrations();
+    void listenArduino();
 
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
@@ -58,6 +59,10 @@ private:
     double _theta[nbLinks];
     double _threshold[nbLinks];
     int _l[nbLinks];
+
+    Socket _receiverArduino;
+    int _pinArduino;
+    unsigned int _infoSent;
 
     uint16_t _emg[2];
     static const uint16_t _n_electrodes = 6;
