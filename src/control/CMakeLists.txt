@@ -14,7 +14,6 @@ set(SOURCES
     demo_imu.cpp
     jf_opti.cpp
     jfimu_sk.cpp
-    jfimu_v1.cpp
     jfimu_v3.cpp
     jfimu_v4.cpp
     matlab_receiver.cpp
