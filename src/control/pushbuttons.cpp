@@ -56,7 +56,7 @@ bool pushButtons::setup()
 
     if (saveData) {
         // OPEN AND NAME DATA FILE
-        std::string filename("pushButtons");
+        std::string filename("/opt/pushButtons");
         std::string suffix;
         int cnt = 0;
         std::string extension(".txt");

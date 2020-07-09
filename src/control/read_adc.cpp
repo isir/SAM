@@ -182,9 +182,9 @@ void ReadADC::loop(double, clock::time_point time)
     if (_cnt % 100 == 0) {
         // generate random number for buzzer
         boolBuzz = rand() % 2;
-        printf("boolBuzz: %d\n", boolBuzz);
-        if (boolBuzz == 1)
-            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
+        //        printf("boolBuzz: %d\n", boolBuzz);
+        //        if (boolBuzz == 1)
+        //            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
     }
 
     double timeWithDelta = (time - _start_time).count();
