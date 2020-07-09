@@ -8,7 +8,7 @@
 #include "wiringPi.h"
 
 // indicate if optitrack is on
-#define OPTITRACK 0
+#define OPTITRACK 1
 
 myo_2electrodes::myo_2electrodes(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("myo_2electrodes", .01)
@@ -87,7 +87,7 @@ bool myo_2electrodes::setup()
 
     if (saveData) {
         // OPEN AND NAME DATA FILE
-        std::string filename("myo2");
+        std::string filename("/opt/myo2");
         std::string suffix;
         int cnt = 0;
         std::string extension(".txt");
@@ -104,8 +104,63 @@ bool myo_2electrodes::setup()
         _need_to_write_header = true;
     }
     _cnt = 0;
+
+    _pin1 = 10;
+    _pin2 = 10;
     _start_time = clock::now();
     return true;
+}
+
+void myo_2electrodes::readAllADC() //Optimized function to read all 6 electrodes
+{
+    // Set configuration bits
+    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
+        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
+        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
+        ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
+        ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
+        ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
+        _robot->sensors.adc0->getGain() | //Set PGA/voltage range
+        ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
+
+    uint16_t config_c0 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_0; //for channel 0
+    uint16_t config_c1 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_1; //for channel 1
+    uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
+    uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
+
+    //Write config register to the ADC
+    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+
+    // Wait for the conversion to complete
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+        ;
+
+    // Read the conversion results
+    _electrodes[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
+
+    //Write config register to the ADC
+    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
+    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
+    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
+
+    // Wait for the conversion to complete
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+        ;
+
+    // Read the conversion results
+    _electrodes[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[3] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[5] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
+
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        if (_electrodes[i] > 65500) {
+            _electrodes[i] = 0;
+        }
+    }
 }
 
 void myo_2electrodes::loop(double, clock::time_point time)
@@ -128,9 +183,17 @@ void myo_2electrodes::loop(double, clock::time_point time)
         }
 #endif
 
+        // button "mode compensation" of cybathlon to indicate beginning of motion
+        int btnStart;
+        if (!_robot->btn3)
+            btnStart = 0;
+        else
+            btnStart = 1;
+
         double timeWithDelta = (time - _start_time).count();
 
         static std::unique_ptr<MyoControl::Classifier> myocontrol;
+        static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
         static const unsigned int counts_after_mode_change = 15;
         static const unsigned int counts_btn = 2;
@@ -138,7 +201,7 @@ void myo_2electrodes::loop(double, clock::time_point time)
         static const unsigned int counts_before_bubble = 2;
         static const unsigned int counts_after_bubble = 10;
 
-        static const MyoControl::EMGThresholds thresholds(5000, 2200, 5000, 5000, 2200, 5000);
+        static const MyoControl::EMGThresholds thresholds(3500, 2200, 2200, 3500, 2200, 2200);
 
         auto robot = _robot;
         MyoControl::Action elbow(
@@ -157,10 +220,21 @@ void myo_2electrodes::loop(double, clock::time_point time)
             first = false;
         }
 
-        _emg[0] = _robot->sensors.adc0->readADC_SingleEnded(2);
-        _emg[1] = _robot->sensors.adc0->readADC_SingleEnded(3);
+        readAllADC();
+        myocontrol->process(_electrodes[0], _electrodes[1]);
+        //        debug() << "electrodes 4 et 5: " << _electrodes[4] << " " << _electrodes[5];
+        if (_cnt % 50 == 0)
+            debug() << "electrodes 0 et 1: " << _electrodes[0] << " " << _electrodes[1];
 
-        myocontrol->process(_emg[0], _emg[1]);
+        if (_electrodes[4] == 0 && _electrodes[5] != 0) {
+            // Open quantum hand
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+        } else if (_electrodes[5] == 0 && _electrodes[4] != 0) {
+            // Close quantum hand
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+        } else {
+            // rien
+        }
 
         /// ELBOW
         double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
@@ -206,10 +280,10 @@ void myo_2electrodes::loop(double, clock::time_point time)
 
         if (saveData) {
             /// WRITE DATA
-            _file << timeWithDelta;
+            _file << timeWithDelta << ' ' << btnStart;
             _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
             _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
-            _file << ' ' << pronoSupEncoder << ' ' << elbowEncoder << ' ' << _emg[0] << ' ' << _emg[1];
+            _file << ' ' << pronoSupEncoder << ' ' << elbowEncoder << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
 
 #if OPTITRACK
             _file << ' ' << data.nRigidBodies;
@@ -223,6 +297,12 @@ void myo_2electrodes::loop(double, clock::time_point time)
             _file << std::endl;
         }
     }
+    //Publish EMG values with MQTT
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(_electrodes[i]));
+    }
+
+    _cnt++;
 }
 
 void myo_2electrodes::cleanup()
