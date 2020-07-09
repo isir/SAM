@@ -16,6 +16,7 @@ private:
     void tare_IMU();
     void receiveData();
     void displayPin();
+    void displayRBnb();
     void calibrations();
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
@@ -38,6 +39,7 @@ private:
     double _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
+    int _electrodes[2];
     double theta[nbLinks];
     double _threshold[nbLinks];
     int l[nbLinks];
@@ -53,6 +55,10 @@ private:
     Param<double> _thresholdE;
     Param<double> _thresholdWF;
     Param<double> _thresholdWPS;
+
+    // boolean to indicate which prototype and whether we save data
+    bool protoCyb = true;
+    bool saveData = false;
 };
 
 #endif // GENERAL_FORMULATION_H
