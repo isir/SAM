@@ -23,7 +23,9 @@ myo_2electrodes::myo_2electrodes(std::shared_ptr<SAM::Components> robot)
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
-    _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
+    _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
+    _menu->add_item("tareWhite", "Tare white IMUs", [this](std::string) { this->tare_whiteIMU(); });
+    _menu->add_item("tareYellow", "Tare yellow IMUs", [this](std::string) { this->tare_yellowIMU(); });
     _menu->add_item("calib", "Calibrations", [this](std::string) { this->calibrations(); });
 }
 
@@ -32,7 +34,7 @@ myo_2electrodes::~myo_2electrodes()
     stop_and_join();
 }
 
-void myo_2electrodes::tare_IMU()
+void myo_2electrodes::tare_allIMU()
 {
     if (_robot->sensors.white_imu)
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
@@ -47,6 +49,27 @@ void myo_2electrodes::tare_IMU()
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 }
 
+void myo_2electrodes::tare_whiteIMU()
+{
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+}
+
+void myo_2electrodes::tare_yellowIMU()
+{
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+}
 void myo_2electrodes::calibrations()
 {
     // ELBOW

@@ -13,7 +13,10 @@ public:
     ~JacobianFormulationOpti() override;
 
 private:
-    void tare_IMU();
+    void tare_allIMU();
+    void tare_whiteIMU();
+    void tare_yellowIMU();
+    void elbowTo90();
     void receiveData();
     void displayPin();
     void displayRBnb();
@@ -57,7 +60,7 @@ private:
     Param<double> _thresholdWPS;
 
     // boolean to indicate which prototype and whether we save data
-    bool protoCyb = true;
+    bool protoCyb = false;
     bool saveData = false;
 };
 

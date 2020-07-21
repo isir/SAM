@@ -11,7 +11,9 @@ public:
     myo_2electrodes(std::shared_ptr<SAM::Components> robot);
     ~myo_2electrodes() override;
 
-    void tare_IMU();
+    void tare_allIMU();
+    void tare_whiteIMU();
+    void tare_yellowIMU();
     void calibrations();
     void readAllADC();
 

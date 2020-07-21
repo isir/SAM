@@ -29,8 +29,11 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
 
     _menu->set_description("Jacobian Formulation Opti");
     _menu->set_code("jfo");
-    _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
+    _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
+    _menu->add_item("tareWhite", "Tare white IMU", [this](std::string) { this->tare_whiteIMU(); });
+    _menu->add_item("tareYellow", "Tare yellow IMU", [this](std::string) { this->tare_yellowIMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
+    _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
     _menu->add_item("opti", "Check OptiTrack", [this](std::string) { this->displayRBnb(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
@@ -60,7 +63,7 @@ JacobianFormulationOpti::~JacobianFormulationOpti()
     stop_and_join();
 }
 
-void JacobianFormulationOpti::tare_IMU()
+void JacobianFormulationOpti::tare_allIMU()
 {
     if (_robot->sensors.white_imu)
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
@@ -73,6 +76,66 @@ void JacobianFormulationOpti::tare_IMU()
 
     usleep(6 * 1000000);
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qWhite[4], qYellow[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+    }
+    if (_robot->sensors.yellow_imu) {
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+}
+
+void JacobianFormulationOpti::tare_whiteIMU()
+{
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qWhite[4], qYellow[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+    }
+    if (_robot->sensors.yellow_imu) {
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+}
+
+void JacobianFormulationOpti::tare_yellowIMU()
+{
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qWhite[4], qYellow[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+    }
+    if (_robot->sensors.yellow_imu) {
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+}
+
+void JacobianFormulationOpti::elbowTo90()
+{
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(90, 10);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 10);
 }
 
 void JacobianFormulationOpti::calibrations()
@@ -107,7 +170,7 @@ void JacobianFormulationOpti::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(-60, 20);
+    _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void JacobianFormulationOpti::receiveData()
@@ -287,7 +350,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
             index_acromion = i;
-        } else if (data.rigidBodies[i].ID == 1) {
+        } else if (data.rigidBodies[i].ID == 7) {
             posHip[0] = data.rigidBodies[i].x * 100;
             posHip[1] = data.rigidBodies[i].y * 100;
             posHip[2] = data.rigidBodies[i].z * 100;
@@ -466,9 +529,9 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             }
         } else {
             if (protoCyb) {
-                if ((_robot->joints.wrist_pronation->pos() > 90) && (-thetaDot_toSend[0] > 0))
+                if ((_robot->joints.wrist_pronation->pos() > 100) && (-thetaDot_toSend[0] > 0))
                     _robot->joints.wrist_pronation->set_velocity_safe(0);
-                else if ((_robot->joints.wrist_pronation->pos() < -90) && (-thetaDot_toSend[0] < 0))
+                else if ((_robot->joints.wrist_pronation->pos() < -100) && (-thetaDot_toSend[0] < 0))
                     _robot->joints.wrist_pronation->set_velocity_safe(0);
                 else
                     _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
@@ -479,7 +542,13 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
                     debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
                 }
             } else {
-                _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
+                if ((_robot->joints.wrist_pronation->pos() > 100) && (-thetaDot_toSend[0] > 0))
+                    _robot->joints.wrist_pronation->set_velocity_safe(0);
+                else if ((_robot->joints.wrist_pronation->pos() < -100) && (-thetaDot_toSend[0] < 0))
+                    _robot->joints.wrist_pronation->set_velocity_safe(0);
+                else
+                    _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
+
                 _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[1]);
                 if (_cnt % 50 == 0) {
                     debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
