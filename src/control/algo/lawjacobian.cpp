@@ -91,9 +91,13 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
 
     // Rotation matrix from IMU or hand rigid body frame to theoretical arm
     if (nbLinks == 2) {
-        // if IMU on hand
-        R0 << 0., 1., 0.,
-            0., 0., 1.,
+        // if IMU on hand when cable towards bottom
+        //        R0 << 0., 1., 0.,
+        //            0., 0., 1.,
+        //            1., 0., 0.;
+        // if IMU on hand when cable towards bottom
+        R0 << 0., -1., 0.,
+            0., 0., -1.,
             1., 0., 0.;
         // if IMU on upper arm
         //        R0 << 0., 1., 0.,
