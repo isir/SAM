@@ -491,7 +491,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
             _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
         } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-            // do nothing
+            _robot->joints.hand->move(TouchBionicsHand::STOP);
         }
 
         prev_pin_down_value = pin_down_value;
