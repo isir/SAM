@@ -25,10 +25,10 @@ SAManager::~SAManager()
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 11);
     _robot->mosfet_gpio = false;
-//    if (_robot->joints.elbow_flexion) {
-//        _robot->joints.elbow_flexion->move_to(0, 20);
-//        usleep(4 * 1000000);
-//    }
+    //    if (_robot->joints.elbow_flexion) {
+    //        _robot->joints.elbow_flexion->move_to(0, 20);
+    //        usleep(4 * 1000000);
+    //    }
 }
 
 void SAManager::run()
@@ -78,13 +78,14 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_imu);
     _main_menu->add_submenu_from_user(_opti);
-    _main_menu->add_submenu_from_user(_demo); /*
+    _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_testimu);
+//    _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_jfOpti);
-    _main_menu->add_submenu_from_user(_jfIMU1);
-    _main_menu->add_submenu_from_user(_jfIMU3);
-    _main_menu->add_submenu_from_user(_jfIMU4);
-    _main_menu->add_submenu_from_user(_recordData);*/
+//    _main_menu->add_submenu_from_user(_jfIMU1);
+//    _main_menu->add_submenu_from_user(_jfIMU3);
+//    _main_menu->add_submenu_from_user(_jfIMU4);
+//    _main_menu->add_submenu_from_user(_recordData);
 
     _main_menu->activate();
 }
@@ -111,32 +112,31 @@ void SAManager::instantiate_controllers()
         _imu = std::make_unique<CompensationIMU>(_robot);
     } catch (std::exception&) {
     }
-        try {
-            _demo = std::make_unique<Demo>(_robot);
-        } catch (std::exception&) {
-        }
-//        try {
-//            _demoimu = std::make_unique<DemoIMU>(_robot);
-//        } catch (std::exception&) {
-//        }
+    try {
+        _demo = std::make_unique<Demo>(_robot);
+    } catch (std::exception&) {
+    }
+    //        try {
+    //            _demoimu = std::make_unique<DemoIMU>(_robot);
+    //        } catch (std::exception&) {
+    //        }
     try {
         _adc = std::make_unique<ReadADC>(_robot);
     } catch (std::exception&) {
     }
     try {
         _cyb = std::make_unique<Cybathlon>(_robot);
-    } catch (std::exception& e) {
-        critical() << "Couldn't create cybathlon menu : " << e.what() << ")";
+    } catch (std::exception&) {
+    }
     try {
         _testimu = std::make_unique<TestIMU>(_robot);
     } catch (std::exception&) {
     }
 
+    try {
+        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
+    } catch (std::exception&) {
     }
-    //    try {
-    //        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
-    //    } catch (std::exception&) {
-    //    }
     //    try {
     //        _jfIMU1 = std::make_unique<JacobianFormulationIMU>(_robot);
     //    } catch (std::exception&) {
