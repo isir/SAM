@@ -9,8 +9,8 @@ TestIMU::TestIMU(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Test IMU", 0.05)
     , _robot(robot)
 {
-    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.optitrack)) {
-        throw std::runtime_error("Jacobian Formulation Control is missing components");
+    if (!check_ptr(_robot->sensors.white_imu, _robot->sensors.ng_imu)) {
+        throw std::runtime_error("TestIMU is missing components");
     }
     _menu->set_description("Test IMU");
     _menu->set_code("testimu");
@@ -78,10 +78,10 @@ void TestIMU::loop(double dt, clock::time_point time)
 
     //Publish IMU values with MQTT
     for (uint16_t i = 0; i < 3; i++) {
-        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(quatx[i]));
+        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(gyrox[i]));
     }
     for (uint16_t i = 0; i < 3; i++) {
-        _mqtt.publish("sam/emg/time/" + std::to_string(i+3), std::to_string(quatng[i]));
+        _mqtt.publish("sam/emg/time/" + std::to_string(i+3), std::to_string(sensorsng[i+3]));
     }
 
     _file << quatx[0] << "\t" << quatx[1] << "\t" << quatx[2] << "\t" << quatx[3] << "\t" << gyrox[0] << "\t" << gyrox[1] << "\t" << gyrox[2] << "\t" << accx[0] << "\t" << accx[1] << "\t" << accx[2] << "\t";
