@@ -12,6 +12,10 @@ Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     , _lambdaW("lambda wrist", BaseParam::ReadWrite, this, 2)
     , _thresholdW("threshold wrist", BaseParam::ReadWrite, this, 5.)
 {
+    if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand_quantum)) {
+        throw std::runtime_error("Demo is missing components");
+    }
+
     _menu->set_description("Cybathlon");
     _menu->set_code("cyb");
     _menu->add_item("Tare IMUs", "tare", [this](std::string) { this->tare_IMU(); });

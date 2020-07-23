@@ -48,7 +48,9 @@ Joints::Joints()
     wrist_pronation = Components::make_component<WristRotator>("wrist_pronation_v2");
     wrist_flexion = Components::make_component<WristFlexor>("wrist_flexor");
     hand = Components::make_component<TouchBionicsHand>("touchbionics_hand");
-    hand_quantum = Components::make_component<QuantumHand>("quantum_hand");
+    if (!hand) {
+        hand_quantum = Components::make_component<QuantumHand>("quantum_hand");
+    }
 
     if (!wrist_pronation) {
         wrist_pronation = Components::make_component<PronoSupination>("wrist_pronation_v1");
