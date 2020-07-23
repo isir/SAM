@@ -20,7 +20,8 @@ set(SOURCES
     read_adc.cpp
     remote_computer_control.cpp
     recorddata.cpp
-    voluntary_control.cpp)
+    voluntary_control.cpp
+    test_imu.cpp)
 
 add_library(control ${SOURCES})
 

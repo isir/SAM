@@ -77,7 +77,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_imu);
     _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo); /*
-    _main_menu->add_submenu_from_user(_demoimu);
+    _main_menu->add_submenu_from_user(_testimu);
     _main_menu->add_submenu_from_user(_jfOpti);
     _main_menu->add_submenu_from_user(_jfIMU1);
     _main_menu->add_submenu_from_user(_jfIMU3);
@@ -125,6 +125,11 @@ void SAManager::instantiate_controllers()
         _cyb = std::make_unique<Cybathlon>(_robot);
     } catch (std::exception& e) {
         critical() << "Couldn't create cybathlon menu : " << e.what() << ")";
+    try {
+        _testimu = std::make_unique<TestIMU>(_robot);
+    } catch (std::exception&) {
+    }
+
     }
     //    try {
     //        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
