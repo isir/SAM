@@ -17,7 +17,7 @@ Sensors::Sensors()
     do {
         ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu"+std::to_string(cnt), B115200);
         ++cnt;
-    } while (!ng_imu);
+    } while (!ng_imu && cnt<10);
 
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
