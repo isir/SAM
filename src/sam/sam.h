@@ -37,6 +37,7 @@ std::unique_ptr<U> make_generic(std::string type, std::string name, Ts... args)
     try {
         p = std::make_unique<U>(args...);
         mqtt.publish(NamedObject::base_name + "/" + type + "/" + name, std::string("1"), Mosquittopp::Client::QoS1, true);
+        info() << "Created this component: " << name;
     } catch (std::exception& e) {
         critical() << "Couldn't create this component: " << name << " (" << e.what() << ")";
         mqtt.publish(NamedObject::base_name + "/" + type + "/" + name, std::string("0"), Mosquittopp::Client::QoS1, true);
