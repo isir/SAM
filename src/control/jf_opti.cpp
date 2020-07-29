@@ -141,12 +141,12 @@ void JacobianFormulationOpti::elbowTo90()
 void JacobianFormulationOpti::calibrations()
 {
     // HAND
-    //    if (_robot->joints.hand) {
-    //        _robot->joints.hand->take_ownership();
-    //        //        _robot->joints.hand->init_sequence();
-    //        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
-    //        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
-    //    }
+    if (_robot->joints.hand) {
+        _robot->joints.hand->take_ownership();
+        //        //        _robot->joints.hand->init_sequence();
+        //        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
+        //        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+    }
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
         _robot->joints.elbow_flexion->calibrate();
@@ -486,12 +486,28 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         pin_down_value = _robot->btn2;
         pin_up_value = _robot->btn1;
         static int prev_pin_up_value = 1, prev_pin_down_value = 1;
-        if (pin_down_value == 0 && prev_pin_down_value == 1) {
-            _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
-        } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-            _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
-        } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-            _robot->joints.hand->move(TouchBionicsHand::STOP);
+        if (!_robot->joints.hand) {
+            printf("Quantum hand \n");
+            //            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+            //                // close hand
+            //                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            //            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+            //                //open hand
+            //                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            //            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+            //                // do nothing
+            //            }
+        }
+
+        else {
+            printf("TB hand\n");
+            //            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+            //                _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
+            //            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+            //                _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+            //            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+            //                _robot->joints.hand->move(TouchBionicsHand::STOP);
+            //            }
         }
 
         prev_pin_down_value = pin_down_value;
@@ -514,6 +530,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
+        _lawJ.scaleDisplacementHip(_cnt);
         _lawJ.controlLaw_v1(posA, _k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
