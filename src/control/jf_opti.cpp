@@ -488,26 +488,26 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         static int prev_pin_up_value = 1, prev_pin_down_value = 1;
         if (!_robot->joints.hand) {
             printf("Quantum hand \n");
-            //            if (pin_down_value == 0 && prev_pin_down_value == 1) {
-            //                // close hand
-            //                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
-            //            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-            //                //open hand
-            //                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-            //            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-            //                // do nothing
-            //            }
+            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+                // close hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+                //open hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+                // do nothing
+            }
         }
 
         else {
             printf("TB hand\n");
-            //            if (pin_down_value == 0 && prev_pin_down_value == 1) {
-            //                _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
-            //            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-            //                _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
-            //            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-            //                _robot->joints.hand->move(TouchBionicsHand::STOP);
-            //            }
+            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+                _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
+            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+                _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+                _robot->joints.hand->move(TouchBionicsHand::STOP);
+            }
         }
 
         prev_pin_down_value = pin_down_value;
