@@ -40,6 +40,6 @@ void JFIMU_v4::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen:
     _lawJ.computeOriginsVectors(l, nbDOF);
     _lawJ.computeTrunkAngles(qHa, qT, qHi);
     _lawJ.computeArmAngles(qHa, qT, qA);
-    _lawJ.scaleDisplacement(lt, cnt);
+    _lawJ.scaleDisplacementIMU(lt, cnt);
     _lawJ.controlLaw_v4(lt, lsh, k, lambda, threshold, cnt);
 }

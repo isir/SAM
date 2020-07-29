@@ -594,6 +594,24 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
 }
 
 /**
+ * @brief LawJacobian::scaleDisplacementHip multiply trunk extension to avoid too many harmful compensations
+ */
+void LawJacobian::scaleDisplacementHip(int _cnt)
+{
+
+    disp = (posA0inHip - posAinHip); //  displacement of the acromion in the hip frame, from current to initial position
+    if (_cnt % 50 == 0) {
+        debug() << "original disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    }
+    if (disp(2) < 0) // backward motion (trunk extension)
+        disp(2) = 2 * disp(2);
+
+    if (_cnt % 50 == 0) {
+        debug() << "scaled disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    }
+}
+
+/**
  * @brief LawJacobian::controlLaw_v1 delta = acromion displacement in hip frame
  * @param k damping parameters
  * @param lambda gain
@@ -606,15 +624,18 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], do
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
-    for (int i = 0; i < 2; i++) {
-        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
-    }
+
+    //    for (int i = 0; i < 2; i++) {
+    //        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
+    //    }
+
+    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
 
     /// COMPUTE delta, position error of acromion
     /// for optitrack quaternion for hand frame, no projection in hip
     //    delta = R0 * Rhand * (posA0 - posA);
     /// for IMU quaternion
-    delta = R0 * Rhand * Rhip.transpose() * (posA0inHip - posAinHip);
+    delta = R0 * Rhand * Rhip.transpose() * disp;
 
     /// for optitrack quaternions
     //    delta = R0 * Rhand.transpose() * Rhip * (posA0 - posA);
@@ -754,10 +775,10 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double 
 }
 
 /**
- * @brief LawJacobian::scaleDisplacement multiply trunk extension to avoid too many harmful compensations
+ * @brief LawJacobian::scaleDisplacementIMU multiply trunk extension to avoid too many harmful compensations
  * @param lt
  */
-void LawJacobian::scaleDisplacement(int lt, int _cnt)
+void LawJacobian::scaleDisplacementIMU(int lt, int _cnt)
 {
     if ((Ytrunk0 - Ytrunk).dot(Ztrunk) > 0)
         scale = 2;

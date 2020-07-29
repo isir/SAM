@@ -40,7 +40,8 @@ public:
     void controlLaw_v2(int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
     void controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
-    void scaleDisplacement(int lt, int _cnt);
+    void scaleDisplacementIMU(int lt, int _cnt);
+    void scaleDisplacementHip(int _cnt);
     void writeDebugData(double debug[], double theta[]);
     void displayData(Eigen::Vector3d posEE, double beta);
     /// RETURN DATA
