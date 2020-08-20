@@ -13,9 +13,13 @@ public:
     ~JacobianFormulationOpti() override;
 
 private:
-    void tare_IMU();
+    void tare_allIMU();
+    void tare_whiteIMU();
+    void tare_yellowIMU();
+    void elbowTo90();
     void receiveData();
     void displayPin();
+    void displayRBnb();
     void calibrations();
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
@@ -35,9 +39,10 @@ private:
     //    int _Lfa;
     //    int _lhand;
     //    int _lwrist;
-    int _lambda[nbLinks];
+    double _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
+    int _electrodes[2];
     double theta[nbLinks];
     double _threshold[nbLinks];
     int l[nbLinks];
@@ -47,12 +52,16 @@ private:
     Param<double> _lua;
     Param<double> _lfa;
     Param<double> _lwrist;
-    Param<int> _lambdaE;
-    Param<int> _lambdaWF;
-    Param<int> _lambdaWPS;
+    Param<double> _lambdaE;
+    Param<double> _lambdaWF;
+    Param<double> _lambdaWPS;
     Param<double> _thresholdE;
     Param<double> _thresholdWF;
     Param<double> _thresholdWPS;
+
+    // boolean to indicate which prototype and whether we save data
+    bool protoCyb = false;
+    bool saveData = false;
 };
 
 #endif // GENERAL_FORMULATION_H

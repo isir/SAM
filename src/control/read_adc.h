@@ -24,6 +24,9 @@ private:
     uint16_t _electrodes[_n_electrodes];
     std::ofstream _file;
 
+    int _cnt;
+    // indicate whether to save data
+    bool saveData = true;
 };
 
 #endif // READADC_H

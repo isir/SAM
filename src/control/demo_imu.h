@@ -1,7 +1,7 @@
 #ifndef DEMOIMU_H
 #define DEMOIMU_H
 
-#include "control/algo/lawimu.h"
+#include "control/algo/lawimu_wrist.h"
 #include "sam/sam.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
@@ -26,9 +26,9 @@ private:
 
     clock::time_point _start_time;
 
-    LawIMU _lawimu;
+    LawIMU_wrist _lawimu;
     int _cnt;
-    int _lambdaW;
+    double _lambdaW;
     double _thresholdW;
     int _pin_up; // pin buttons for open-loop
     int _pin_down; // pin buttons for open-loop

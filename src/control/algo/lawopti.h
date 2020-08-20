@@ -16,8 +16,8 @@ public:
     void projectionInHip(Eigen::Vector3f posA, Eigen::Vector3f posElbow, Eigen::Vector3f posHip, int initCounter, int initCounts);
     void filter_optitrackData(Eigen::Vector3f posA, Eigen::Vector3f posEE);
     void bufferingOldValues();
-    void controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold);
-    void controlLawWrist(int lambdaW, double thresholdW);
+    void controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double Lfa, double l, double lambda, double threshold);
+    void controlLawWrist(double lambdaW, double thresholdW);
     void writeDebugData(double d[], Eigen::Vector3f posEE, double beta);
     void displayData(Eigen::Vector3f posEE, double beta);
     double returnBetaDot_deg() { return betaDot * 180. / M_PI; }

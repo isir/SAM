@@ -68,7 +68,7 @@ Joints::Joints()
 }
 
 Components::Components()
-    : mosfet_gpio(4,GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
+    : mosfet_gpio(4, GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
     , demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , adc_gpio(27, GPIO::DIR_INPUT, GPIO::PULL_UP)
     , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)

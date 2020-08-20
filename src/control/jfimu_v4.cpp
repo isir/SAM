@@ -6,7 +6,7 @@
 #include <iostream>
 
 JFIMU_v4::JFIMU_v4(std::shared_ptr<SAM::Components> robot)
-    : ControlIMU("Jacobian Formulation IMU 4", "JFIMU4", robot)
+    : JacobianFormulationIMU_sk("Jacobian Formulation IMU 4", "/opt/JFIMU4", robot)
 {
     _menu->set_description("Jacobian Formulation IMU v4");
     _menu->set_code("jfi4");
@@ -28,15 +28,18 @@ void JFIMU_v4::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qH
     _lawJ.initialQuat(qHi, qT, qA, cnt, init_cnt);
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.updateFrames(theta);
+    _lawJ.updateTrunkFrame(qT);
     _lawJ.computeOriginsVectors(l, nbDOF);
 }
 
-void JFIMU_v4::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
+void JFIMU_v4::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.updateFrames(theta);
+    _lawJ.updateTrunkFrame(qT);
     _lawJ.computeOriginsVectors(l, nbDOF);
     _lawJ.computeTrunkAngles(qHa, qT, qHi);
     _lawJ.computeArmAngles(qHa, qT, qA);
+    _lawJ.scaleDisplacementIMU(lt, cnt);
     _lawJ.controlLaw_v4(lt, lsh, k, lambda, threshold, cnt);
 }

@@ -1,5 +1,5 @@
-#ifndef CONTROLIMU_H
-#define CONTROLIMU_H
+#ifndef JACOBIAN_FORMULATION_IMU_SK_H
+#define JACOBIAN_FORMULATION_IMU_SK_H
 
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
@@ -8,10 +8,10 @@
 #include "utils/threaded_loop.h"
 #include <fstream>
 
-class ControlIMU : public ThreadedLoop {
+class JacobianFormulationIMU_sk : public ThreadedLoop {
 public:
-    explicit ControlIMU(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot);
-    ~ControlIMU() override;
+    explicit JacobianFormulationIMU_sk(std::string name, std::string filename, std::shared_ptr<SAM::Components> robot);
+    ~JacobianFormulationIMU_sk() override;
 
     std::shared_ptr<SAM::Components> _robot;
     std::ofstream _file;
@@ -25,6 +25,7 @@ public:
     void analog_IMU();
     void displayPin();
     void calibrations();
+    void listenArduino();
 
     bool setup() override;
     void loop(double dt, clock::time_point time) override;
@@ -33,7 +34,7 @@ public:
 protected:
     virtual void initializationLaw(Eigen::Quaterniond qHi, double p);
     virtual void initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int cnt, int init_cnt);
-    virtual void controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt);
+    virtual void controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt);
 
 private:
     Param<int> _k; // damping parameter for inverse kinematics
@@ -42,9 +43,9 @@ private:
     Param<int> _lua; // upper-arm length
     Param<int> _lfa; // forearm length
     Param<int> _lwrist; // length between flexion and pronosupination joints
-    Param<int> _lambdaE; // gain for elbow flexion
-    Param<int> _lambdaWF; // gain for wrist flexion
-    Param<int> _lambdaWPS; // gain for wrist pronosupination
+    Param<double> _lambdaE; // gain for elbow flexion
+    Param<double> _lambdaWF; // gain for wrist flexion
+    Param<double> _lambdaWPS; // gain for wrist pronosupination
     Param<double> _thresholdE; // threshold for elbow flexion
     Param<double> _thresholdWF; // threshold for wrist flexion
     Param<double> _thresholdWPS; // thresold for wrist pronosupination
@@ -52,14 +53,28 @@ private:
     int _nbDOF;
     int _init_cnt = 10;
     int _cnt;
-    int _lambda[nbLinks];
+    double _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
     double _theta[nbLinks];
     double _threshold[nbLinks];
     int _l[nbLinks];
 
+    Socket _receiverArduino;
+    int _pinArduino;
+    unsigned int _infoSent;
+
+    uint16_t _emg[2];
+    static const uint16_t _n_electrodes = 6;
+    int _th_low[_n_electrodes];
+    int _th_high[_n_electrodes];
+    std::ifstream _param_file;
+
     Eigen::Quaterniond _qHip, _qTrunk, _qHand, _qArm;
+
+    // boolean to indicate which prototype and whether we save data
+    bool protoCyb = false;
+    bool saveData = true;
 };
 
-#endif // CONTROL_IMU_H
+#endif // JACOBIAN_FORMULATION_IMU_SK_H

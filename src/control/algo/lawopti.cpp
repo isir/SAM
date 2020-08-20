@@ -192,7 +192,7 @@ void LawOpti::bufferingOldValues()
  * @param lambda gain
  * @param threshold activation threshold
  */
-void LawOpti::controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double Lfa, double l, int lambda, double threshold)
+void LawOpti::controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double Lfa, double l, double lambda, double threshold)
 {
 
     //    debug() << "threshold (rad): " << threshold;
@@ -225,7 +225,7 @@ void LawOpti::controlLaw(Eigen::Vector3f posEE, double beta, double Lua, double 
  * @param lambdaW gain of the integrator for wrist
  * @param thresholdW threshold of activation in rad
  */
-void LawOpti::controlLawWrist(int lambdaW, double thresholdW)
+void LawOpti::controlLawWrist(double lambdaW, double thresholdW)
 {
     phi = atan2(R_FA(1, 2), R_FA(2, 2)); //rotation around X-axis
     theta = -atan(R_FA(0, 2) / sqrt(1 - R_FA(0, 2) * R_FA(0, 2))); //rotation around Y-axis

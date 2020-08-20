@@ -1,18 +1,18 @@
-#include "lawimu.h"
+#include "lawimu_wrist.h"
 #include "utils/log/log.h"
 #include <eigen3/Eigen/Geometry>
 #include <iostream>
 #include <math.h>
 
-LawIMU::LawIMU()
+LawIMU_wrist::LawIMU_wrist()
 {
 }
 
-LawIMU::~LawIMU()
+LawIMU_wrist::~LawIMU_wrist()
 {
 }
 
-void LawIMU::initialization()
+void LawIMU_wrist::initialization()
 {
     qFA0.w() = 0.;
     qFA0.x() = 0.;
@@ -31,17 +31,18 @@ void LawIMU::initialization()
     z0[0] = 0.;
     z0[1] = 0.;
     z0[2] = 1.;
+
     wristAngle_new = 0.;
     wristVel = 0.;
     R = Eigen::Matrix3d::Zero();
 }
 /**
- * @brief LawIMU::initialPositions stores the initial orientation of forearm IMU
+ * @brief LawIMU_wrist::initialPositions stores the initial orientation of forearm IMU
  * @param qFA_record quaternion of forearm IMU
  * @param initCounter counter of time steps
  * @param initCounts number of time step to take into account to compute the initial position
  */
-void LawIMU::initialPositions(Eigen::Quaterniond qFA_record, int initCounter, int initCounts)
+void LawIMU_wrist::initialPositions(Eigen::Quaterniond qFA_record, int initCounter, int initCounts)
 {
     if (initCounter < initCounts) {
         qFA0.w() += qFA_record.w();
@@ -62,24 +63,24 @@ void LawIMU::initialPositions(Eigen::Quaterniond qFA_record, int initCounter, in
     }
 }
 /**
- * @brief LawIMU::rotationMatrices compute the rotation matrices of the forearm frames with respect to the global frame
+ * @brief LawIMU_wrist::rotationMatrices compute the rotation matrices of the forearm frames with respect to the global frame
  * @param qFA_record quaternions of the forearm cluster
  */
-void LawIMU::rotationMatrices(Eigen::Quaterniond qFA_record)
+void LawIMU_wrist::rotationMatrices(Eigen::Quaterniond qFA_record)
 {
     qFA = qFA_record;
-    debug() << "qFA: " << qFA.w() << "; " << qFA.x() << "; " << qFA.y();
+    //    debug() << "qFA: " << qFA.w() << "; " << qFA.x() << "; " << qFA.y();
     qFA_relative = qFA.normalized() * qFA0.conjugate();
     /// For optitrack quaternion definition
     R_FA = qFA_relative.toRotationMatrix();
     //    ///  From quaternions to orientation
 }
 /**
- * @brief LawIMU::controlLawWrist control law for prono-supination
+ * @brief LawIMU_wrist::controlLawWrist control law for prono-supination
  * @param lambdaW gain of the integrator for wrist
  * @param thresholdW threshold of activation in rad
  */
-void LawIMU::controlLawWrist(int lambdaW, double thresholdW)
+void LawIMU_wrist::controlLawWrist(int lambdaW, double thresholdW)
 {
     wristAngle_new = atan2(R_FA(1, 2), R_FA(2, 2)); //rotation around X-axis
     //    debug() << "wrist angle: " << wristAngle_new * M_PI / 180 << "\n";
@@ -95,7 +96,7 @@ void LawIMU::controlLawWrist(int lambdaW, double thresholdW)
     //    debug() << "wrist vel: " << wristVel << "\n";
 }
 
-void LawIMU::writeDebugData(double d[])
+void LawIMU_wrist::writeDebugData(double d[])
 {
     d[0] = wristAngle_new;
     d[1] = theta;
@@ -103,7 +104,7 @@ void LawIMU::writeDebugData(double d[])
     d[3] = wristVel;
 }
 
-void LawIMU::displayData()
+void LawIMU_wrist::displayData()
 {
     debug() << "wristAngle (deg): " << (wristAngle_new * 180 / M_PI) << " -- theta: " << (theta * 180 / M_PI) << " -- psi: " << (psi * 180 / M_PI) << "\r\n";
     //    printf("wristAngle (deg): %lf  -- theta: %lf  -- psi: %lf\n", wristAngle_new * 180 / M_PI, theta * 180 / M_PI, psi * 180 / M_PI);

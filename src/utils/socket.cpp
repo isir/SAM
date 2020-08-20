@@ -1,5 +1,6 @@
 #include "socket.h"
 #include <arpa/inet.h>
+#include <iostream>
 #include <netinet/in.h>
 #include <stdexcept>
 #include <sys/socket.h>
@@ -19,8 +20,10 @@ bool Socket::bind(std::string address, int port)
     s.sin_addr.s_addr = htonl(inet_addr(address.c_str()));
     s.sin_family = AF_INET;
     s.sin_port = htons(static_cast<in_port_t>(port));
-
-    return ::bind(_sock_fd, reinterpret_cast<struct sockaddr*>(&s), sizeof(s)) == 0;
+    errno = 0;
+    int r = ::bind(_sock_fd, reinterpret_cast<struct sockaddr*>(&s), sizeof(s));
+    std::cout << "bind=" << errno << std::endl;
+    return r == 0;
 }
 
 bool Socket::available()

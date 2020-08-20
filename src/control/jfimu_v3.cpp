@@ -6,7 +6,7 @@
 #include <iostream>
 
 JFIMU_v3::JFIMU_v3(std::shared_ptr<SAM::Components> robot)
-    : ControlIMU("Jacobian Formulation IMU 3", "JFIMU3", robot)
+    : JacobianFormulationIMU_sk("Jacobian Formulation IMU 3", "JFIMU3", robot)
 {
     _menu->set_description("Jacobian Formulation IMU v3");
     _menu->set_code("jfi3");
@@ -31,7 +31,7 @@ void JFIMU_v3::initialPositionsLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qH
     _lawJ.computeOriginsVectors(l, nbDOF);
 }
 
-void JFIMU_v3::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, int lambda[], double threshold[], int cnt, int init_cnt)
+void JFIMU_v3::controlLaw(Eigen::Quaterniond qHa, Eigen::Quaterniond qHi, Eigen::Quaterniond qT, Eigen::Quaterniond qA, double theta[], int lt, int lsh, int l[], int nbDOF, int k, double lambda[], double threshold[], int cnt, int init_cnt)
 {
     _lawJ.rotationMatrices(qHa, qHi, qT);
     _lawJ.updateFrames(theta);

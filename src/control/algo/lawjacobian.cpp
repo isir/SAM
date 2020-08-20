@@ -36,6 +36,21 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     qHip_filt.y() = 0.;
     qHip_filt.z() = 0.;
 
+    Y0.w() = 0.0;
+    Y0.x() = 0.0;
+    Y0.y() = 1.0;
+    Y0.z() = 0.0;
+
+    X0.w() = 0.0;
+    X0.x() = 1.0;
+    X0.y() = 0.0;
+    X0.z() = 0.0;
+
+    Z0.w() = 0.0;
+    Z0.x() = 0.0;
+    Z0.y() = 0.0;
+    Z0.z() = 1.0;
+
     /// FRAMES
     for (int i = 0; i < nbFrames; i++) {
         x(0, i) = 1.;
@@ -72,12 +87,22 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     dlsJo = Eigen::MatrixXd::Zero(nbLinks - 1, 3);
     OO = Eigen::MatrixXd::Zero(3, nbLinks);
     IO = Eigen::Vector3d::Zero();
+    disp = Eigen::Vector3d::Zero();
 
     // Rotation matrix from IMU or hand rigid body frame to theoretical arm
     if (nbLinks == 2) {
-        R0 << 0., 1., 0.,
-            0., 0., 1.,
+        // if IMU on hand when cable towards bottom
+        //        R0 << 0., 1., 0.,
+        //            0., 0., 1.,
+        //            1., 0., 0.;
+        // if IMU on hand when cable towards bottom
+        R0 << 0., -1., 0.,
+            0., 0., -1.,
             1., 0., 0.;
+        // if IMU on upper arm
+        //        R0 << 0., 1., 0.,
+        //            -1., 0., 0.,
+        //            0., 0., 1.;
     } else if (nbLinks == 3) {
         R0 << 1., 0., 0.,
             0., 0., -1.,
@@ -195,6 +220,10 @@ void LawJacobian::initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk
         qArm0.y() = qArm0.y() / initCounts;
         qArm0.z() = qArm0.z() / initCounts;
         qArm0 = qArm0.normalized();
+
+        Yinit = qTrunk0.inverse() * Y0 * qTrunk0;
+        Ytrunk0 = Yinit.vec();
+        Ytrunk0 = Ytrunk0.normalized();
     }
 }
 
@@ -271,6 +300,9 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
     Rhip = qHip.toRotationMatrix();
     Rtrunk = qTrunk.toRotationMatrix();
     Rhand = qHand.toRotationMatrix();
+    qHand_relative = qHand.normalized() * qArm0.conjugate();
+    /// For optitrack quaternion definition
+    Rhand_rel = qHand_relative.toRotationMatrix();
 }
 
 /**
@@ -356,6 +388,27 @@ void LawJacobian::computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond 
 void LawJacobian::bufferingOldValues()
 {
     qHip_filt_old = qHip_filt;
+}
+
+/**
+ * @brief LawJacobian::updateTrunkFrame compute the current orientation of the trunk IMU frame
+ * @param qTrunk quaternion of the trunk IMU
+ */
+void LawJacobian::updateTrunkFrame(Eigen::Quaterniond qTrunk)
+{
+    Yinit = qTrunk.inverse() * Y0 * qTrunk;
+    Ytrunk = Yinit.vec();
+    Ytrunk = Ytrunk.normalized();
+
+    Xinit = qTrunk.inverse() * X0 * qTrunk;
+    Xtrunk = Xinit.vec();
+    Xtrunk = Xtrunk.normalized();
+
+    Zinit = qTrunk.inverse() * Z0 * qTrunk;
+    Ztrunk = Zinit.vec();
+    Ztrunk = Ztrunk.normalized();
+    //    debug() << "Ytrunk: " << Ytrunk(0) << " ; " << Ytrunk(1) << " ; " << Ytrunk(2);
+    //    debug() << "Xtrunk: " << Xtrunk(0) << " ; " << Xtrunk(1) << " ; " << Xtrunk(2);
 }
 
 /**
@@ -468,6 +521,18 @@ void LawJacobian::updateFramesinEE(double theta[])
         }
 
         /// UPDATE FRAMES
+        //        x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(0, 1) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
+        //        x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(0, 1) * y(1, i + 1) + Rframe(0, 2) * z(1, i + 1);
+        //        x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(0, 1) * y(2, i + 1) + Rframe(0, 2) * z(2, i + 1);
+
+        //        y(0, i) = Rframe(1, 0) * x(0, i + 1) + Rframe(1, 1) * y(0, i + 1) + Rframe(1, 2) * z(0, i + 1);
+        //        y(1, i) = Rframe(1, 0) * x(1, i + 1) + Rframe(1, 1) * y(1, i + 1) + Rframe(1, 2) * z(1, i + 1);
+        //        y(2, i) = Rframe(1, 0) * x(2, i + 1) + Rframe(1, 1) * y(2, i + 1) + Rframe(1, 2) * z(2, i + 1);
+
+        //        z(0, i) = Rframe(2, 0) * x(0, i + 1) + Rframe(2, 1) * y(0, i + 1) + Rframe(2, 2) * z(0, i + 1);
+        //        z(1, i) = Rframe(2, 0) * x(1, i + 1) + Rframe(2, 1) * y(1, i + 1) + Rframe(2, 2) * z(1, i + 1);
+        //        z(2, i) = Rframe(2, 0) * x(2, i + 1) + Rframe(2, 1) * y(2, i + 1) + Rframe(2, 2) * z(2, i + 1);
+
         x(0, i) = Rframe(0, 0) * x(0, i + 1) + Rframe(0, 1) * y(0, i + 1) + Rframe(0, 2) * z(0, i + 1);
         x(1, i) = Rframe(0, 0) * x(1, i + 1) + Rframe(0, 1) * y(1, i + 1) + Rframe(0, 2) * z(1, i + 1);
         x(2, i) = Rframe(0, 0) * x(2, i + 1) + Rframe(0, 1) * y(2, i + 1) + Rframe(0, 2) * z(2, i + 1);
@@ -529,23 +594,49 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
 }
 
 /**
+ * @brief LawJacobian::scaleDisplacementHip multiply trunk extension to avoid too many harmful compensations
+ */
+void LawJacobian::scaleDisplacementHip(int _cnt)
+{
+
+    disp = (posA0inHip - posAinHip); //  displacement of the acromion in the hip frame, from current to initial position
+    if (_cnt % 50 == 0) {
+        debug() << "original disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    }
+    if (disp(2) < 0) // backward motion (trunk extension)
+        disp(2) = 2 * disp(2);
+
+    if (_cnt % 50 == 0) {
+        debug() << "scaled disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    }
+}
+
+/**
  * @brief LawJacobian::controlLaw_v1 delta = acromion displacement in hip frame
  * @param k damping parameters
  * @param lambda gain
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v1(int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
     }
+
+    //    for (int i = 0; i < 2; i++) {
+    //        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
+    //    }
+
+    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
+
     /// COMPUTE delta, position error of acromion
     /// for optitrack quaternion for hand frame, no projection in hip
     //    delta = R0 * Rhand * (posA0 - posA);
     /// for IMU quaternion
-    delta = R0 * Rhand * Rhip.transpose() * (posA0inHip - posAinHip);
+    delta = R0 * Rhand * Rhip.transpose() * disp;
+
     /// for optitrack quaternions
     //    delta = R0 * Rhand.transpose() * Rhip * (posA0 - posA);
     //    delta = Rhip * Rhand.transpose() * (posA0inHip - posAinHip);
@@ -554,7 +645,7 @@ void LawJacobian::controlLaw_v1(int k, int lambda[], double threshold[], int _cn
     //    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
 
     /// DAMPED LEAST SQUARE SOLUTION
-    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
+    //    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
 
     /// COMPUTE ANG. VELOCITIES
     thetaNew = dlsJ * delta;
@@ -593,7 +684,7 @@ void LawJacobian::controlLaw_v1(int k, int lambda[], double threshold[], int _cn
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v2(int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v2(int k, double lambda[], double threshold[], int _cnt)
 {
     // Jacobian matrix for position control, taking only elbow into account
     Jp.block<3, 1>(0, 1) = z.block<3, 1>(0, nbLinks).cross(OO.block<3, 1>(0, nbLinks));
@@ -642,7 +733,7 @@ void LawJacobian::controlLaw_v2(int k, int lambda[], double threshold[], int _cn
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v3(int lt, int lsh, int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt)
 {
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
@@ -684,7 +775,26 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, int lambda[], double thr
 }
 
 /**
- * @brief LawJacobian::controlLaw_v4 elbow + wrist pronation solved with 2DOF model with delta = ang. velocity of the trunk expressed at acromion;
+ * @brief LawJacobian::scaleDisplacementIMU multiply trunk extension to avoid too many harmful compensations
+ * @param lt
+ */
+void LawJacobian::scaleDisplacementIMU(int lt, int _cnt)
+{
+    if ((Ytrunk0 - Ytrunk).dot(Ztrunk) > 0)
+        scale = 2;
+    else if ((Ytrunk0 - Ytrunk).dot(Ztrunk) <= 0)
+        scale = 1;
+
+    disp = lt * ((Ytrunk0 - Ytrunk).dot(Xtrunk) * Xtrunk + (Ytrunk0 - Ytrunk).dot(Ytrunk) * Ytrunk + scale * (Ytrunk0 - Ytrunk).dot(Ztrunk) * Ztrunk);
+
+    if (_cnt % 50 == 0) {
+        debug() << "original disp: " << lt * (Ytrunk0 - Ytrunk)(0) << "; " << lt * (Ytrunk0(1) - Ytrunk(1)) << "; " << lt * (Ytrunk0(2) - Ytrunk(2));
+        debug() << "scaled disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    }
+}
+
+/**
+ * @brief LawJacobian::controlLaw_v4 elbow + wrist pronation solved with 2DOF model
  * wrist flexion = angle around hand z0-axis due to shoulder rotation w/r to the trunk
  * @param lt
  * @param lsh
@@ -693,7 +803,7 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, int lambda[], double thr
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v4(int lt, int lsh, int k, int lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt)
 {
     // jacobian only for 2DOF
     for (int i = 0; i < 2; i++) {
@@ -703,14 +813,23 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, int lambda[], double thr
         dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
     }
 
-    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
-    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref)); // + lsh * xref));
+    // delta = displacement of the sternum
+    //    delta = R0 * Rhand * lt * (Ytrunk0 - Ytrunk);
+    delta = R0 * Rhand * disp; // backward displacements of the trunk are penalized
+
+    // delta = ang. velocity of the trunk expressed at acromion;
+    //    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
+    //    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref)); // + lsh * xref));
+
     if (nbLinks == 2) { // no wrist flexion
         thetaNew = dlsJ * delta;
     } else if (nbLinks == 3) { // wrist flexion -> from shoulder rotation
         thetaNew.block<2, 1>(1, 0) = dlsJ * delta;
         thetaNew(0) = eulerA(3);
     }
+
+    // wrist pronosup control with forearm rotation
+    //thetaNew(0) = -atan(Rhand_rel(0, 2) / sqrt(1 - Rhand_rel(0, 2) * Rhand_rel(0, 2))); //rotation around Y-axis
 
     // deadzone
     for (int i = 0; i < nbLinks; i++) {
@@ -723,7 +842,7 @@ void LawJacobian::controlLaw_v4(int lt, int lsh, int k, int lambda[], double thr
     }
 
     if (_cnt % 50 == 0) {
-        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
         debug() << "thetaNew(after threshold, deg): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;

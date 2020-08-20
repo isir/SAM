@@ -1,4 +1,6 @@
 #include "jf_opti.h"
+#include "algo/myocontrol.h"
+#include "components/internal/hand/touch_bionics_hand.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
 #include <filesystem>
@@ -14,9 +16,9 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 20)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
-    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 0)
+    , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
-    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 0)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 2)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -27,8 +29,12 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
 
     _menu->set_description("Jacobian Formulation Opti");
     _menu->set_code("jfo");
-    _menu->add_item("tare", "Tare IMUs", [this](std::string) { this->tare_IMU(); });
+    _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
+    _menu->add_item("tareWhite", "Tare white IMU", [this](std::string) { this->tare_whiteIMU(); });
+    _menu->add_item("tareYellow", "Tare yellow IMU", [this](std::string) { this->tare_yellowIMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
+    _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
+    _menu->add_item("opti", "Check OptiTrack", [this](std::string) { this->displayRBnb(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
@@ -57,7 +63,7 @@ JacobianFormulationOpti::~JacobianFormulationOpti()
     stop_and_join();
 }
 
-void JacobianFormulationOpti::tare_IMU()
+void JacobianFormulationOpti::tare_allIMU()
 {
     if (_robot->sensors.white_imu)
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
@@ -70,6 +76,66 @@ void JacobianFormulationOpti::tare_IMU()
 
     usleep(6 * 1000000);
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qWhite[4], qYellow[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+    }
+    if (_robot->sensors.yellow_imu) {
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+}
+
+void JacobianFormulationOpti::tare_whiteIMU()
+{
+    if (_robot->sensors.white_imu)
+        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qWhite[4], qYellow[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+    }
+    if (_robot->sensors.yellow_imu) {
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+}
+
+void JacobianFormulationOpti::tare_yellowIMU()
+{
+    if (_robot->sensors.yellow_imu)
+        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+
+    debug("Wait ...");
+
+    usleep(6 * 1000000);
+    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+
+    double qWhite[4], qYellow[4];
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+    }
+    if (_robot->sensors.yellow_imu) {
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+}
+
+void JacobianFormulationOpti::elbowTo90()
+{
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(90, 10);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 10);
 }
 
 void JacobianFormulationOpti::calibrations()
@@ -77,8 +143,9 @@ void JacobianFormulationOpti::calibrations()
     // HAND
     if (_robot->joints.hand) {
         _robot->joints.hand->take_ownership();
-        _robot->joints.hand->init_sequence();
-        _robot->joints.hand->move(14);
+        //        //        _robot->joints.hand->init_sequence();
+        //        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
+        //        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
     }
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
@@ -103,7 +170,7 @@ void JacobianFormulationOpti::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(-60, 20);
+    _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void JacobianFormulationOpti::receiveData()
@@ -151,6 +218,13 @@ void JacobianFormulationOpti::displayPin()
     debug() << "PinDown: " << pin_down_value;
 }
 
+void JacobianFormulationOpti::displayRBnb()
+{
+    _robot->sensors.optitrack->update();
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    debug() << "nbRigid Bodies: " << data.nRigidBodies << "\n";
+}
+
 bool JacobianFormulationOpti::setup()
 {
     // Check for calibration
@@ -169,23 +243,25 @@ bool JacobianFormulationOpti::setup()
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     // OPEN AND NAME DATA FILE
-    std::string filename("JFOpti");
-    std::string suffix;
+    if (saveData) {
+        std::string filename("JFOpti");
+        std::string suffix;
 
-    int cnt = 0;
-    nbRigidBodies = 0;
-    std::string extension(".txt");
-    do {
-        ++cnt;
-        suffix = "_" + std::to_string(cnt);
-    } while (std::filesystem::exists(filename + suffix + extension));
+        int cnt = 0;
+        nbRigidBodies = 0;
+        std::string extension(".txt");
+        do {
+            ++cnt;
+            suffix = "_" + std::to_string(cnt);
+        } while (std::filesystem::exists(filename + suffix + extension));
 
-    _file = std::ofstream(filename + suffix + extension);
-    if (!_file.good()) {
-        critical() << "Failed to open" << (filename + suffix + extension);
-        return false;
+        _file = std::ofstream(filename + suffix + extension);
+        if (!_file.good()) {
+            critical() << "Failed to open" << (filename + suffix + extension);
+            return false;
+        }
+        _need_to_write_header = true;
     }
-    _need_to_write_header = true;
     _start_time = clock::now();
 
     // INITIALIZATION
@@ -201,6 +277,14 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
 
+    static std::unique_ptr<MyoControl::Classifier> handcontrol;
+
+    static const unsigned int counts_after_mode_change = 15;
+    static const unsigned int counts_btn = 2;
+    static const unsigned int counts_before_bubble = 2;
+    static const unsigned int counts_after_bubble = 10;
+    static const MyoControl::EMGThresholds thresholds(15, 8, 15, 15, 8, 15);
+
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     if (_cnt == 0) {
@@ -212,18 +296,27 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     double debugData[40];
 
     /// WRITE FILE HEADERS
-    if (_need_to_write_header) {
-        _file << " time, pinUp, pinDown,";
-        _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
-        _file << " qYellow.w, qYellow.x, qYellow.y, qYellow.z,";
-        _file << " to complete,";
-        _file << " nbRigidBodies";
-        for (int i = 0; i < nbRigidBodies; i++) {
-            _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
+    if (saveData) {
+        if (_need_to_write_header) {
+            _file << " time, pinUp, pinDown,";
+            _file << " qWhite.w, qWhite.x, qWhite.y, qWhite.z, qTronc.w, qTronc.x, qTronc.y, qTronc.z,";
+            _file << " qYellow.w, qYellow.x, qYellow.y, qYellow.z,";
+            _file << " to complete,";
+            _file << " nbRigidBodies";
+            for (int i = 0; i < nbRigidBodies; i++) {
+                _file << ", ID, bTrackingValid, fError, qw, qx, qy, qz, x, y, z";
+            }
+            _file << "\r\n";
+            _need_to_write_header = false;
         }
-        _file << "\r\n";
-        _need_to_write_header = false;
     }
+
+    // button "mode compensation" of cybathlon to indicate beginning of motion
+    int btnStart;
+    if (!_robot->btn3)
+        btnStart = 0;
+    else
+        btnStart = 1;
 
     ///GET DATA
     /// OPTITRACK
@@ -252,7 +345,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     qArm.z() = 0.;
 
     for (int i = 0; i < nbRigidBodies; i++) {
-        if (data.rigidBodies[i].ID == 3) {
+        if (data.rigidBodies[i].ID == 4) {
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
@@ -266,7 +359,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             //            qHip.y() = data.rigidBodies[i].qy;
             //            qHip.z() = data.rigidBodies[i].qz;
             index_hip = i;
-        } else if (data.rigidBodies[i].ID == 4) {
+        } else if (data.rigidBodies[i].ID == 2) {
             //            qHand.w() = data.rigidBodies[i].qw;
             //            qHand.x() = data.rigidBodies[i].qx;
             //            qHand.y() = data.rigidBodies[i].qy;
@@ -327,7 +420,11 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         l[2] = _lua;
 
         theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
-        theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+        if (protoCyb)
+            theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+        else
+            theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << "\r\n";
         // in radians:
@@ -349,24 +446,73 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     }
     if (_robot->sensors.red_imu) {
         _robot->sensors.red_imu->get_quat(qRed);
-        qHip.w() = qRed[0];
-        qHip.x() = qRed[1];
-        qHip.y() = qRed[2];
-        qHip.z() = qRed[3];
-        //        debug() << "qRed: " << qHip.w() << "; " << qHip.x() << "; " << qHip.y() << "; " << qHip.z();
+        qArm.w() = qRed[0];
+        qArm.x() = qRed[1];
+        qArm.y() = qRed[2];
+        qArm.z() = qRed[3];
+        debug() << "qRed: " << qHip.w() << "; " << qHip.x() << "; " << qHip.y() << "; " << qHip.z();
     }
     if (_robot->sensors.yellow_imu) {
         _robot->sensors.yellow_imu->get_quat(qYellow);
-        qArm.w() = qYellow[0];
-        qArm.x() = qYellow[1];
-        qArm.y() = qYellow[2];
-        qArm.z() = qYellow[3];
+        qHip.w() = qYellow[0];
+        qHip.x() = qYellow[1];
+        qHip.y() = qYellow[2];
+        qHip.z() = qYellow[3];
         //        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
     }
 
-    /// PIN PUSH-BUTTONS CONTROL
-    int pin_down_value = _robot->btn2;
-    int pin_up_value = _robot->btn1;
+    /// PUSH-BUTTONS FOR HAND CONTROL
+
+    uint16_t electrodes[2];
+    int pin_down_value, pin_up_value;
+    if (protoCyb) {
+        //EMG5 and EMG6: push-buttons
+        static bool btn = 0;
+        electrodes[0] = _robot->sensors.adc3->readADC_SingleEnded(2);
+        electrodes[1] = _robot->sensors.adc3->readADC_SingleEnded(0);
+        if (_cnt % 50 == 0) {
+            debug() << "Electrodes 5-6: " << electrodes[0] << "; " << electrodes[1];
+        }
+
+        if (electrodes[0] == 0 && electrodes[1] != 0) {
+            // open hand
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+        } else if (electrodes[1] == 0 && electrodes[0] != 0) {
+            //close hand
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+        }
+    } else {
+
+        pin_down_value = _robot->btn2;
+        pin_up_value = _robot->btn1;
+        static int prev_pin_up_value = 1, prev_pin_down_value = 1;
+        if (!_robot->joints.hand) {
+            printf("Quantum hand \n");
+            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+                // close hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+                //open hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+                // do nothing
+            }
+        }
+
+        else {
+            printf("TB hand\n");
+            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+                _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
+            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+                _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+                _robot->joints.hand->move(TouchBionicsHand::STOP);
+            }
+        }
+
+        prev_pin_down_value = pin_down_value;
+        prev_pin_up_value = pin_up_value;
+    }
 
     /// CONTROL LOOP
     if (_cnt == 0) {
@@ -384,7 +530,8 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
-        _lawJ.controlLaw_v1(_k, _lambda, _threshold, _cnt);
+        _lawJ.scaleDisplacementHip(_cnt);
+        _lawJ.controlLaw_v1(posA, _k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -398,34 +545,60 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
                 debug() << "elbow flex vel :" << thetaDot_toSend[2] << "\n";
             }
         } else {
-            _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
-            _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[1]);
-            if (_cnt % 50 == 0) {
-                debug() << "pronosup vel :" << thetaDot_toSend[0] << "\n";
-                debug() << "elbow flex vel :" << thetaDot_toSend[1] << "\n";
+            if (protoCyb) {
+                if ((_robot->joints.wrist_pronation->pos() > 100) && (-thetaDot_toSend[0] > 0))
+                    _robot->joints.wrist_pronation->set_velocity_safe(0);
+                else if ((_robot->joints.wrist_pronation->pos() < -100) && (-thetaDot_toSend[0] < 0))
+                    _robot->joints.wrist_pronation->set_velocity_safe(0);
+                else
+                    _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
+
+                _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[1]);
+                if (_cnt % 50 == 0) {
+                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
+                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
+                }
+            } else {
+                if ((_robot->joints.wrist_pronation->pos() > 100) && (-thetaDot_toSend[0] > 0))
+                    _robot->joints.wrist_pronation->set_velocity_safe(0);
+                else if ((_robot->joints.wrist_pronation->pos() < -100) && (-thetaDot_toSend[0] < 0))
+                    _robot->joints.wrist_pronation->set_velocity_safe(0);
+                else
+                    _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
+
+                _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[1]);
+                if (_cnt % 50 == 0) {
+                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
+                    debug() << "elbow flex vel :" << thetaDot_toSend[1] << "\n";
+                }
             }
         }
     }
 
-    _lawJ.writeDebugData(debugData, theta);
-    /// WRITE DATA
-    _file << nbDOF << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
-    _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
-    _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
-    _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
-    for (int i = 0; i < 40; i++) {
-        _file << ' ' << debugData[i];
-    }
-    _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
-    _file << ' ' << data.nRigidBodies;
+    if (saveData) {
+        _lawJ.writeDebugData(debugData, theta);
+        /// WRITE DATA
+        if (protoCyb)
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << btnStart << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+        else
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << btnStart << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
 
-    for (int i = 0; i < nbRigidBodies; i++) {
-        _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
-        _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
-        _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
-    }
-    _file << std::endl;
+        _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
+        _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
+        _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
+        for (int i = 0; i < 40; i++) {
+            _file << ' ' << debugData[i];
+        }
+        _file << ' ' << pronoSupEncoder << ' ' << wristFlexEncoder << ' ' << elbowEncoder;
+        _file << ' ' << data.nRigidBodies;
 
+        for (int i = 0; i < nbRigidBodies; i++) {
+            _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
+            _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
+            _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;
+        }
+        _file << std::endl;
+    }
     ++_cnt;
     std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
@@ -435,7 +608,7 @@ void JacobianFormulationOpti::cleanup()
     _robot->joints.wrist_pronation->forward(0);
     if (_robot->joints.wrist_flexion)
         _robot->joints.wrist_flexion->forward(0);
-    //    _robot->joints.elbow_flexion->move_to(0, 20);
+    _robot->joints.elbow_flexion->set_velocity_safe(0);
     if (_robot->joints.hand)
         _robot->joints.hand->release_ownership();
     _file.close();

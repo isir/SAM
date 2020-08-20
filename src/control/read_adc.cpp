@@ -1,12 +1,16 @@
 #include "read_adc.h"
+#include "algo/myocontrol.h"
 #include "ui/visual/ledstrip.h"
 #include <filesystem>
 #include <iostream>
 #include "algo/myocontrol.h"
 #include "utils/check_ptr.h"
 
+// indicate if optitrack is on
+#define OPTITRACK 1
+
 ReadADC::ReadADC(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Read ADC", .04)
+    : ThreadedLoop("Read ADC", .025)
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand_quantum)) {
@@ -26,7 +30,7 @@ ReadADC::~ReadADC()
 
 void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
 {
-     //clock::time_point time1 = clock::now();
+    clock::time_point time1 = clock::now();
 
     // Set configuration bits
     uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
@@ -43,14 +47,13 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
     uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
     uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
 
-
     //Write config register to the ADC
     _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
     _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
     _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
 
     // Wait for the conversion to complete
-    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
         ;
 
     // Read the conversion results
@@ -58,14 +61,13 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
     _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
     _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
 
-
     //Write config register to the ADC
     _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
     _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
     _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
 
     // Wait for the conversion to complete
-    while (!( _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
         ;
 
     // Read the conversion results
@@ -79,7 +81,6 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
         }
     }
 }
-
 
 bool ReadADC::setup()
 {
@@ -99,12 +100,15 @@ bool ReadADC::setup()
         suffix = "_" + std::to_string(cnt);
     } while (std::filesystem::exists(filename + suffix + extension));
 
-    _file = std::ofstream(filename + suffix + extension);
-    if (!_file.good()) {
-        critical() << "Failed to open" << (filename + suffix + extension);
-        return false;
+        _file = std::ofstream(filename + suffix + extension);
+        if (!_file.good()) {
+            critical() << "Failed to open" << (filename + suffix + extension);
+            return false;
+        }
     }
 
+    _cnt = 0;
+    int nbRigidBodies = 0;
     _start_time = clock::now();
     return true;
 }
