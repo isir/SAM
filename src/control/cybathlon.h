@@ -20,6 +20,7 @@ public:
 
 private:
     void readAllADC();
+    void processQuantumHand(int emg1, int emg2, uint16_t btn_posture);
 
     std::shared_ptr<SAM::Components> _robot;
 

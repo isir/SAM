@@ -120,6 +120,102 @@ void Cybathlon::readAllADC() //Optimized function to read all 6 electrodes
     }
 }
 
+void Cybathlon::processQuantumHand(int emg1, int emg2, uint16_t btn_posture) {
+    static const unsigned int counts_after_mode_change = 15;
+    static const unsigned int counts_btn = 2;
+    static const unsigned int counts_before_bubble = 2;
+    static const unsigned int counts_after_bubble = 10;
+    static bool smoothly_changed_mode = false;
+    static bool has_to_check_btn = false;
+    static unsigned int mode_changed_counter = 0;
+    static unsigned int btn_counter = 0;
+    static unsigned int before_bubble_counter = 0;
+    static unsigned int after_bubble_counter = 0;
+    static unsigned int activated_emg = 1;
+
+    static uint16_t posture_th1 = 9000;
+    static uint16_t posture_th2 = 18000;
+    static uint16_t posture_th3 = 26000;
+
+    static const MyoControl::EMGThresholds thresholds(5000, 2200, 0, 5000, 2200, 0);
+
+
+    if (mode_changed_counter > counts_after_mode_change) { //si on a laissé assez de temps après le changement de posture
+        if (btn_posture < posture_th1) { //si on a bien relaché le bouton
+            smoothly_changed_mode = true;
+        }
+        if (smoothly_changed_mode) { //si le bouton a bien été relaché depuis le dernier changement de mode
+            if (has_to_check_btn) { //s'il s'est écoulé suffisamment de temps depuis la dernière contraction
+                if (btn_posture > posture_th1) { //si appui sur le bouton
+                    if (btn_counter > counts_btn) { //si le bouton est maintenu assez longtemps
+                        btn_counter = 0;
+                        mode_changed_counter = 0;
+                        smoothly_changed_mode = false;
+                        if (btn_posture > posture_th3) {
+                            _robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION);
+                        } else if (btn_posture > posture_th2) {
+                            _robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION);
+                        } else {
+                            _robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION);
+                        }
+                    } else {
+                        btn_counter++;
+                    }
+                }
+                else {
+                    btn_counter = 0;
+                    if (emg1 > thresholds.forward_upper) {
+                        ++before_bubble_counter;
+                        activated_emg = 1;
+                        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); //fermer main lentement
+//                    } else if (emg1 > _thresholds.backward_lower) {
+//                        ++before_bubble_counter;
+//                        activated_emg = 1;
+//                       _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); //fermer main lentement
+                    } else if (emg2 > thresholds.backward_upper) {
+                        ++before_bubble_counter;
+                        activated_emg = 2;
+                        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); //ouvrir main rapidement
+                    } else if (emg2 > thresholds.backward_lower) {
+                        ++before_bubble_counter;
+                        activated_emg = 2;
+                        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); //ouvrir main lentement
+                    } else {
+                        before_bubble_counter = 0;
+                    }
+
+                    if (before_bubble_counter > counts_before_bubble) {
+                        has_to_check_btn = false;
+                        after_bubble_counter = 0;
+                    }
+                }
+            } else {
+                if (emg1 > thresholds.forward_upper && activated_emg == 1) {
+                    after_bubble_counter = 0;
+                    // _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); //fermer main rapidement
+                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); //fermer main lentement
+//                } else if (emg1 > _thresholds.backward_lower && activated_emg == 1) {
+//                    after_bubble_counter = 0;
+//                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); //fermer main lentement
+                } else if (emg2 > thresholds.backward_upper && activated_emg == 2) {
+                    after_bubble_counter = 0;
+                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); //ouvrir main rapidement
+                } else if (emg2 > thresholds.backward_lower && activated_emg == 2) {
+                    after_bubble_counter = 0;
+                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); //ouvrir main lentement
+                } else {
+                    ++after_bubble_counter;
+                }
+
+                if (after_bubble_counter > counts_after_bubble) {
+                    has_to_check_btn = true;
+                }
+            }
+        }
+    } else
+        mode_changed_counter++;
+}
+
 bool Cybathlon::setup()
 {
     if (_robot->joints.elbow_flexion->is_calibrated() == false)
@@ -153,42 +249,6 @@ void Cybathlon::loop(double dt, clock::time_point time)
 {
     double timeWithDelta = std::chrono::duration_cast<std::chrono::microseconds>(time - _start_time).count();
 
-    static std::unique_ptr<MyoControl::Classifier> handcontrol;
-
-    static const unsigned int counts_after_mode_change = 15;
-    static const unsigned int counts_btn = 2;
-    static const unsigned int counts_before_bubble = 2;
-    static const unsigned int counts_after_bubble = 10;
-
-    static const MyoControl::EMGThresholds thresholds(5000, 2200, 0, 5000, 2200, 0);
-
-    auto robot = _robot;
-    MyoControl::Action co_contraction("Co contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION); });
-    MyoControl::Action double_contraction("Double contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION); });
-    MyoControl::Action triple_contraction("Triple contraction",
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); },
-        [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION); });
-    std::vector<MyoControl::Action> s1 {co_contraction, double_contraction, triple_contraction};
-
-    static bool first = true;
-    if (first) {
-        handcontrol = std::make_unique<MyoControl::QuantumClassifier>(s1, thresholds, counts_after_mode_change, counts_btn, counts_before_bubble, counts_after_bubble);
-        first = false;
-    }
-
     static std::vector<LedStrip::color> colors(11, LedStrip::white);
     static std::string payload;
 
@@ -202,27 +262,12 @@ void Cybathlon::loop(double dt, clock::time_point time)
     std::cout << std::endl;
 
     //EMG1 and EMG2 = hand
-    static bool btn = 0;
-    if (!_robot->btn2) {
-        btn = 1;
-    } else {
-        btn = 0;
-    }
-    handcontrol->process(_electrodes[0], _electrodes[1], btn);
+    static uint16_t hand_btn;
+    hand_btn = _robot->sensors.adc1->readADC_SingleEnded(0);
+    processQuantumHand(_electrodes[0], _electrodes[1], hand_btn);
 
+    // ELBOW CONTROL
     static bool elbow_available = 1;
-    static bool smoothly_changed_mode = true;
-
-//    if (_robot->btn1) {
-//        smoothly_changed_mode = true;
-//    }
-//    if (smoothly_changed_mode) {
-//        if (!_robot->btn1) {
-//            elbow_available = !elbow_available;
-//            smoothly_changed_mode = false;
-//        }
-//    }
-
     if (!_robot->btn1) {
         //EMG3 and EMG5 = elbow
         if (_electrodes[2]>_th_high[2] && _electrodes[4]<_th_low[4] && _electrodes[3]<(_electrodes[2]-1500)) { //EMG3 activation
@@ -240,9 +285,9 @@ void Cybathlon::loop(double dt, clock::time_point time)
         elbow_available = 0;
     }
 
+    // WRIST CONTROL
     static int previous_value_wrist = 1;
-
-    if(!_robot->btn3) {
+    if(!_robot->btn2) { //Mode myo
         //EMG4 and EMG6 = wrist rotator
         if (_electrodes[3]>_th_high[3] && _electrodes[5]<(_electrodes[3]-500) && _electrodes[4]<(_electrodes[3]-500) && _electrodes[2]<_electrodes[3]) { //EMG4 activation
             _robot->joints.wrist_pronation->set_velocity_safe(-40);
@@ -254,8 +299,7 @@ void Cybathlon::loop(double dt, clock::time_point time)
             _robot->joints.wrist_pronation->set_velocity_safe(0);
         }
         previous_value_wrist = 0;
-    } else {
-        //compensation IMU
+    } else { //compensation IMU
         if (previous_value_wrist==0) {
             _cnt = 0;
         }
@@ -293,14 +337,14 @@ void Cybathlon::loop(double dt, clock::time_point time)
         previous_value_wrist = 1;
     }
 
-    //LED feedback
+    //LED FEEDBACK
     _robot->user_feedback.leds->set(colors);
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         colors[i] = LedStrip::white;
     }
 
     _file << timeWithDelta << "\t" << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[2] << "\t" << _electrodes[3] << "\t" << _electrodes[4] << "\t" << _electrodes[5];
-    _file << "\t" << btn << "\t" << previous_value_wrist << "\t" << elbow_available;
+    _file << "\t" << hand_btn << "\t" << previous_value_wrist << "\t" << elbow_available;
     _file << std::endl;
 
 }
