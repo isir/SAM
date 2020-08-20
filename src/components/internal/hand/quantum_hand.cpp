@@ -112,7 +112,7 @@ void QuantumHand::makeContraction(CONTRACTION_TYPE contraction_type, int emg, ui
         _cfg.time_contraction_us = 100000;
         break;
     case LONG_CONTRACTION:
-        _cfg.time_contraction_us = 5000000/intensity;
+        _cfg.time_contraction_us = 5000000/ _cfg.intensity;
         break;
     case DOUBLE_CONTRACTION:
         _cfg.n_contractions = 2;
