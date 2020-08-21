@@ -22,11 +22,10 @@ private:
     std::shared_ptr<SAM::Components> _robot;
     static const uint16_t _n_electrodes = 6;
     uint16_t _electrodes[_n_electrodes];
-    std::ofstream _file;
 
-    int _cnt;
     // indicate whether to save data
     bool saveData = true;
+    std::ofstream _file;
 };
 
 #endif // READADC_H

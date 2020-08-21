@@ -1,7 +1,7 @@
 #ifndef CYBATHLON_H
 #define CYBATHLON_H
 
-#include "control/algo/lawimu.h"
+#include "control/algo/lawimu_wrist.h"
 #include "sam/sam.h"
 #include "utils/interfaces/mqtt_user.h"
 #include "utils/threaded_loop.h"
@@ -17,6 +17,7 @@ public:
     void cleanup() override;
 
     void tare_IMU();
+    void init_IMU();
 
 private:
     void readAllADC();
@@ -27,7 +28,7 @@ private:
     clock::time_point _start_time;
 
     int _cnt;
-    LawIMU _lawimu;
+    LawIMU_wrist _lawimu;
 
     Param<int> _lambdaW;
     Param<double> _thresholdW;

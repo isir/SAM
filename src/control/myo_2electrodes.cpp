@@ -70,6 +70,7 @@ void myo_2electrodes::tare_yellowIMU()
     usleep(6 * 1000000);
     _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
 }
+
 void myo_2electrodes::calibrations()
 {
     // ELBOW

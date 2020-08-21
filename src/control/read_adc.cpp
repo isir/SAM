@@ -90,15 +90,16 @@ bool ReadADC::setup()
         _electrodes[i] = 0;
     }
 
-    std::string filename("myo");
-    std::string suffix;
+    if (saveData) {
+        std::string filename("myo");
+        std::string suffix;
 
-    int cnt = 0;
-    std::string extension(".txt");
-    do {
-        ++cnt;
-        suffix = "_" + std::to_string(cnt);
-    } while (std::filesystem::exists(filename + suffix + extension));
+        int cnt = 0;
+        std::string extension(".txt");
+        do {
+            ++cnt;
+            suffix = "_" + std::to_string(cnt);
+        } while (std::filesystem::exists(filename + suffix + extension));
 
         _file = std::ofstream(filename + suffix + extension);
         if (!_file.good()) {
@@ -107,8 +108,6 @@ bool ReadADC::setup()
         }
     }
 
-    _cnt = 0;
-    int nbRigidBodies = 0;
     _start_time = clock::now();
     return true;
 }
@@ -127,8 +126,10 @@ void ReadADC::loop(double, clock::time_point time)
     std::cout << std::endl;
 
     // Write in .txt file
+    if (saveData) {
     _file << timeWithDelta << "\t" << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[2] << "\t" << _electrodes[3] << "\t" << _electrodes[4] << "\t" << _electrodes[5];
     _file << std::endl;
+    }
 }
 
 void ReadADC::cleanup()
