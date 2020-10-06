@@ -7,7 +7,7 @@
 DemoIMU::DemoIMU(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("Demo IMU", 0.01)
     , _robot(robot)
-    , _lambdaW(3)
+    , _lambdaW(5)
     , _thresholdW(4. * M_PI / 180.)
     , _pin_up(23)
     , _pin_down(22)
@@ -15,7 +15,7 @@ DemoIMU::DemoIMU(std::shared_ptr<SAM::Components> robot)
     , _pin_mode2(26)
     , _pin_status(24)
 {
-    if (!check_ptr(_robot->joints.wrist_pronation, _robot->sensors.red_imu)) {
+    if (!check_ptr(_robot->joints.wrist_pronation, _robot->sensors.white_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
@@ -41,8 +41,8 @@ DemoIMU::~DemoIMU()
 }
 
 void DemoIMU::tare_IMU()
-{ /// IMU to use = red IMU
-    _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
+{ /// IMU to use = white IMU
+    _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
 
     debug() << "Wait ...";
 
@@ -113,7 +113,7 @@ void DemoIMU::action_loop_imu()
     if (pin_mode_value2 == 1) {
         /// ERGONOMIC MODE
         double qFA[4];
-        _robot->sensors.red_imu->get_quat(qFA);
+        _robot->sensors.white_imu->get_quat(qFA);
 
         Eigen::Quaterniond qFA_record;
         qFA_record.w() = qFA[0];
@@ -131,8 +131,10 @@ void DemoIMU::action_loop_imu()
 
             if (_lawimu.returnWristVel_deg() == 0) {
                 _robot->joints.wrist_pronation->forward(0);
+            } else if (_lawimu.returnWristVel_deg() > 0) {
+                _robot->joints.wrist_pronation->forward(_lawimu.returnWristVel_deg());
             } else {
-                _robot->joints.wrist_pronation->set_velocity_safe(_lawimu.returnWristVel_deg());
+                _robot->joints.wrist_pronation->backward(-_lawimu.returnWristVel_deg());
             }
         }
     }
@@ -153,9 +155,9 @@ void DemoIMU::action_loop_pb()
 
         /// WRIST
         if (pin_down_value == 1 && prev_pin_down_value == 0) {
-            _robot->joints.wrist_pronation->set_velocity_safe(-50);
+            _robot->joints.wrist_pronation->backward(40);
         } else if (pin_up_value == 1 && prev_pin_up_value == 0) {
-            _robot->joints.wrist_pronation->set_velocity_safe(50);
+            _robot->joints.wrist_pronation->forward(40);
         } else if ((pin_down_value == 0 && pin_up_value == 0) && (prev_pin_down_value == 1 || prev_pin_up_value == 1)) {
             _robot->joints.wrist_pronation->forward(0);
         }
