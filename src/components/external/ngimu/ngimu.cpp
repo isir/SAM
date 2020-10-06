@@ -46,6 +46,7 @@ void NGIMU::init_imudata()
     imudata_sensors_available = false;
     imudata_humidity_available = false;
     imudata_batt_available = false;
+    serialnumber_available = false;
 }
 
 void NGIMU::loop(double, clock::time_point)
@@ -425,7 +426,11 @@ OscError NGIMU::ProcessSerialNumber(OscMessage oscMessage)
     OscError oscError;
     oscError = oscMessage.OscMessageGetArgumentAsString(_serial_number, sizeof(_serial_number));
     if (oscError != OscErrorNone) {
+        debug() << OscErrorGetMessage(oscError);
         return oscError;
+    } else {
+        serialnumber_available = true;
+        info() << "NGIMU serial number : " << _serial_number;
     }
 
     return OscErrorNone;
@@ -519,4 +524,16 @@ bool NGIMU::send_command_algorithm_init()
 bool NGIMU::send_command_serial_number()
 {
     return send_command_message("/serialnumber");
+}
+
+std::string NGIMU::get_serialnumber()
+{
+    std::lock_guard scoped_lock(_mutex); //will be freed on function exit
+    std::string nb(_serial_number);
+    return nb;
+}
+
+bool NGIMU::is_serialnumber_available()
+{
+    return serialnumber_available;
 }

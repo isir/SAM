@@ -16,8 +16,14 @@ Sensors::Sensors()
     int cnt = 0;
     do {
         ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu"+std::to_string(cnt), B115200);
+        if (ng_imu) {
+            while(!ng_imu->is_serialnumber_available())
+                ng_imu->send_command_serial_number();
+            if (ng_imu->get_serialnumber()=="0035F6E2")
+                info() << "red_ngimu";
+        }
         ++cnt;
-    } while (!ng_imu && cnt<10);
+    } while (!ng_imu && cnt<5);
 
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);

@@ -7,6 +7,7 @@
 #include "utils/threaded_loop.h"
 #include <mutex>
 #include "ux/Osc99/Osc99.h"
+#include <string>
 
 #define NGIMU_BAUDRATE B115200
 
@@ -21,6 +22,9 @@ public:
     bool get_battery(double* b);
     bool get_humidity(double h);
     bool get_temperature(double* t);
+
+    std::string get_serialnumber();
+    bool is_serialnumber_available();
 
     bool send_command_message(const char* const commandAddress);
     bool send_command_message(const char* const commandAddress, const bool argument);
@@ -46,7 +50,8 @@ private:
     OscMessage _oscMessage;
     OscTimeTag _oscTimeTag;
 
-    char _serial_number[8];
+    char _serial_number[9];
+    bool serialnumber_available;
 
     //sensors data
     double imudata_sensors[10];

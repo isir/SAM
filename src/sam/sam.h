@@ -54,6 +54,7 @@ public:
     std::unique_ptr<XIMU> red_imu;
     std::unique_ptr<XIMU> yellow_imu;
     std::unique_ptr<NGIMU> ng_imu;
+    std::unique_ptr<NGIMU> red_ngimu;
     std::unique_ptr<Adafruit_ADS1115> adc0;
     std::unique_ptr<Adafruit_ADS1115> adc1;
     std::unique_ptr<Adafruit_ADS1115> adc2;
