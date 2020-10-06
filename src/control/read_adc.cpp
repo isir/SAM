@@ -75,11 +75,11 @@ void ReadADC::readAllADC() //Optimized function to read all 6 electrodes
     _electrodes[3] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
     _electrodes[5] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
 
-    for (uint16_t i = 0; i < _n_electrodes; i++) {
-        if (_electrodes[i] > 65500) {
-            _electrodes[i] = 0;
-        }
-    }
+//    for (uint16_t i = 0; i < _n_electrodes; i++) {
+//        if (_electrodes[i] > 65500) {
+//            _electrodes[i] = 0;
+//        }
+//    }
 }
 
 bool ReadADC::setup()

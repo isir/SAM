@@ -68,7 +68,7 @@ adsGain_t Adafruit_ADS1015::getGain()
     return m_gain;
 }
 
-uint16_t Adafruit_ADS1015::readADC_SingleEnded(uint8_t channel)
+int16_t Adafruit_ADS1015::readADC_SingleEnded(uint8_t channel)
 {
     if (channel > 3) {
         return 0;
@@ -115,12 +115,12 @@ uint16_t Adafruit_ADS1015::readADC_SingleEnded(uint8_t channel)
 
     // Read the conversion results
     // Shift 12-bit results right 4 bits for the ADS1015
-    uint16_t result = readRegister(ADS1015_REG_POINTER_CONVERT);
+    int16_t result = readRegister(ADS1015_REG_POINTER_CONVERT);
 
-    if (result > 65500)
-        result = 0;
+   // if (result > 65500)
+     //   result = 0;
 
-    return result >> m_bitShift;
+    return result;// >> m_bitShift;
 }
 
 /**************************************************************************/

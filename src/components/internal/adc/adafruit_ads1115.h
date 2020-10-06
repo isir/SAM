@@ -104,7 +104,7 @@ public:
     Adafruit_ADS1015(const char* deviceName, uint8_t i2cAddress);
     void writeRegister(uint8_t reg, uint16_t value);
     uint16_t readRegister(uint8_t reg);
-    uint16_t readADC_SingleEnded(uint8_t channel);
+    int16_t readADC_SingleEnded(uint8_t channel);
     int16_t readADC_Differential_0_1(void);
     int16_t readADC_Differential_2_3(void);
     void startComparator_SingleEnded(uint8_t channel, int16_t threshold);
