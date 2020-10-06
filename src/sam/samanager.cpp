@@ -34,6 +34,16 @@ SAManager::~SAManager()
 void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
+
+    if(_robot->joints.wrist_pronation)
+        _robot->joints.wrist_pronation->forward(0);
+    if(_robot->joints.wrist_flexion)
+        _robot->joints.wrist_flexion->forward(0);
+    if (_robot->joints.elbow_flexion)
+        _robot->joints.elbow_flexion->forward(0);
+    if (_robot->joints.shoulder_medial_rotation)
+        _robot->joints.shoulder_medial_rotation->forward(0);
+
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::white, 11);
 
