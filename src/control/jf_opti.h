@@ -16,6 +16,7 @@ private:
     void tare_allIMU();
     void tare_whiteIMU();
     void tare_yellowIMU();
+    void tare_redIMU();
     void elbowTo90();
     void receiveData();
     void displayPin();

@@ -32,6 +32,7 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
     _menu->add_item("tareWhite", "Tare white IMU", [this](std::string) { this->tare_whiteIMU(); });
     _menu->add_item("tareYellow", "Tare yellow IMU", [this](std::string) { this->tare_yellowIMU(); });
+    _menu->add_item("tareRed", "Tare red IMU", [this](std::string) { this->tare_redIMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
     _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
     _menu->add_item("opti", "Check OptiTrack", [this](std::string) { this->displayRBnb(); });
@@ -65,68 +66,138 @@ JacobianFormulationOpti::~JacobianFormulationOpti()
 
 void JacobianFormulationOpti::tare_allIMU()
 {
-    if (_robot->sensors.white_imu)
-        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
-    if (_robot->sensors.red_imu)
-        _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
-    if (_robot->sensors.yellow_imu)
-        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+    if (!_robot->sensors.red_imu || !_robot->sensors.yellow_imu) {
+        std::cout << "An IMU is missing."  << std::endl;
+        critical() << "An IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
 
-    debug("Wait ...");
+        if (_robot->sensors.white_imu)
+            _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+        if (_robot->sensors.yellow_imu)
+            _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+        if (_robot->sensors.red_imu)
+            _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        debug("Wait ...");
 
-    double qWhite[4], qYellow[4];
-    if (_robot->sensors.white_imu) {
-        _robot->sensors.white_imu->get_quat(qWhite);
-        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
-    }
-    if (_robot->sensors.yellow_imu) {
-        _robot->sensors.yellow_imu->get_quat(qYellow);
-        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+        usleep(6 * 1000000);
+
+        double qWhite[4], qYellow[4], qRed[4], qNG[4];
+        if (_robot->sensors.white_imu) {
+            _robot->sensors.white_imu->get_quat(qWhite);
+            debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+        }
+        if (_robot->sensors.yellow_imu) {
+            _robot->sensors.yellow_imu->get_quat(qYellow);
+            debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+        }
+        if (_robot->sensors.red_imu) {
+            _robot->sensors.red_imu->get_quat(qYellow);
+            debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
+        }
+
+        if (qRed[0]<5E-5 || qYellow[0]<5E-5) {
+            std::cout << "An IMU was not correctly tared."  << std::endl;
+            critical() << "An IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
     }
 }
 
 void JacobianFormulationOpti::tare_whiteIMU()
 {
-    if (_robot->sensors.white_imu)
+    if (!_robot->sensors.white_imu) {
+        std::cout << "White IMU is missing."  << std::endl;
+        critical() << "White IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
+
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
 
-    debug("Wait ...");
+        debug("Wait ...");
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        usleep(6 * 1000000);
 
-    double qWhite[4], qYellow[4];
-    if (_robot->sensors.white_imu) {
+        double qWhite[4], qYellow[4];
+
         _robot->sensors.white_imu->get_quat(qWhite);
         debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
-    }
-    if (_robot->sensors.yellow_imu) {
-        _robot->sensors.yellow_imu->get_quat(qYellow);
-        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+
+        if (_robot->sensors.yellow_imu) {
+            _robot->sensors.yellow_imu->get_quat(qYellow);
+            debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+        }
+
+        if (qWhite[0]<5E-5) {
+            std::cout << "White IMU was not correctly tared."  << std::endl;
+            critical() << "White IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
     }
 }
 
 void JacobianFormulationOpti::tare_yellowIMU()
 {
-    if (_robot->sensors.yellow_imu)
+    if (!_robot->sensors.yellow_imu) {
+        std::cout << "Yellow IMU is missing."  << std::endl;
+        critical() << "Yellow IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
         _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
-    debug("Wait ...");
+        debug("Wait ...");
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        usleep(6 * 1000000);
 
-    double qWhite[4], qYellow[4];
-    if (_robot->sensors.white_imu) {
-        _robot->sensors.white_imu->get_quat(qWhite);
-        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
-    }
-    if (_robot->sensors.yellow_imu) {
+        double qWhite[4], qYellow[4];
+        if (_robot->sensors.white_imu) {
+            _robot->sensors.white_imu->get_quat(qWhite);
+            debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+        }
+
         _robot->sensors.yellow_imu->get_quat(qYellow);
         debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+
+        if (qYellow[0]<5E-5) {
+            std::cout << "Yellow IMU was not correctly tared."  << std::endl;
+            critical() << "Yellow IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
+    }
+}
+
+void JacobianFormulationOpti::tare_redIMU()
+{
+    if (!_robot->sensors.red_imu) {
+        std::cout << "Red IMU is missing."  << std::endl;
+        critical() << "Red IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
+        _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
+
+        debug("Wait ...");
+
+        usleep(6 * 1000000);
+
+        double qRed[4];
+
+        _robot->sensors.red_imu->get_quat(qRed);
+        debug() << "qyellow: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
+
+        if (qRed[0]<5E-5) {
+            std::cout << "Red IMU was not correctly tared."  << std::endl;
+            critical() << "Red IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
     }
 }
 
@@ -143,10 +214,11 @@ void JacobianFormulationOpti::calibrations()
     // HAND
     if (_robot->joints.hand) {
         _robot->joints.hand->take_ownership();
-        //        //        _robot->joints.hand->init_sequence();
-        //        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
-        //        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+//        _robot->joints.hand->init_sequence();
+//        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
+//        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
     }
+
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
         _robot->joints.elbow_flexion->calibrate();
@@ -223,6 +295,7 @@ void JacobianFormulationOpti::displayRBnb()
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
     debug() << "nbRigid Bodies: " << data.nRigidBodies << "\n";
+    std::cout << "nbRigid Bodies: " << data.nRigidBodies << std::endl;
 }
 
 bool JacobianFormulationOpti::setup()
@@ -242,6 +315,17 @@ bool JacobianFormulationOpti::setup()
 
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
+    // Check for OptiTrack
+    _robot->sensors.optitrack->update();
+    optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+    if (data.nRigidBodies==0 || data.nRigidBodies>100) {
+        critical() << "No data from OptiTrack" << "\n";
+        std::cout << "No data from OptiTrack" << std::endl;
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        return false;
+    }
+
+
     // OPEN AND NAME DATA FILE
     if (saveData) {
         std::string filename("JFOpti");
@@ -258,6 +342,7 @@ bool JacobianFormulationOpti::setup()
         _file = std::ofstream(filename + suffix + extension);
         if (!_file.good()) {
             critical() << "Failed to open" << (filename + suffix + extension);
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
             return false;
         }
         _need_to_write_header = true;
@@ -436,21 +521,13 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     }
 
     /// IMU
-    double qWhite[4], qRed[4], qYellow[4];
-    if (_robot->sensors.white_imu) {
-        _robot->sensors.white_imu->get_quat(qWhite);
-        qHand.w() = qWhite[0];
-        qHand.x() = qWhite[1];
-        qHand.y() = qWhite[2];
-        qHand.z() = qWhite[3];
-    }
+    double qWhite[4], qYellow[4], qRed[4];
     if (_robot->sensors.red_imu) {
         _robot->sensors.red_imu->get_quat(qRed);
-        qArm.w() = qRed[0];
-        qArm.x() = qRed[1];
-        qArm.y() = qRed[2];
-        qArm.z() = qRed[3];
-        debug() << "qRed: " << qHip.w() << "; " << qHip.x() << "; " << qHip.y() << "; " << qHip.z();
+        qHand.w() = qRed[0];
+        qHand.x() = qRed[1];
+        qHand.y() = qRed[2];
+        qHand.z() = qRed[3];
     }
     if (_robot->sensors.yellow_imu) {
         _robot->sensors.yellow_imu->get_quat(qYellow);
@@ -458,7 +535,13 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         qHip.x() = qYellow[1];
         qHip.y() = qYellow[2];
         qHip.z() = qYellow[3];
-        //        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+    }
+    if (_robot->sensors.white_imu) {
+        _robot->sensors.white_imu->get_quat(qWhite);
+        qArm.w() = qWhite[0];
+        qArm.x() = qWhite[1];
+        qArm.y() = qWhite[2];
+        qArm.z() = qWhite[3];
     }
 
     /// PUSH-BUTTONS FOR HAND CONTROL
@@ -487,15 +570,14 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         pin_up_value = _robot->btn1;
         static int prev_pin_up_value = 1, prev_pin_down_value = 1;
         if (!_robot->joints.hand) {
-            printf("Quantum hand \n");
-            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+            // printf("Quantum hand \n");
+            std::cout << pin_down_value << "\t" << pin_up_value << std::endl;
+            if (pin_down_value == 0 && pin_up_value == 1) {
                 // close hand
                 _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
-            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+            } else if (pin_up_value == 0 && pin_down_value == 1) {
                 //open hand
                 _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-                // do nothing
             }
         }
 
@@ -584,7 +666,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             _file << nbDOF << ' ' << timeWithDelta << ' ' << btnStart << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
 
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
-        _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
+        _file << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3] << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3];
         _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
         for (int i = 0; i < 40; i++) {
             _file << ' ' << debugData[i];
