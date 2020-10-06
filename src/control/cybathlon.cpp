@@ -37,7 +37,7 @@ Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     _th_high[2] = 3000;
     _th_high[3] = 2500;
     _th_high[4] = 2000;
-    _th_high[5] = 5000;
+    _th_high[5] = 2500;
 
     for (uint16_t i = 0; i < _n_electrodes; i++) {
         _electrodes[i] = 0;
@@ -127,7 +127,7 @@ void Cybathlon::readAllADC() //Optimized function to read all 6 electrodes
     _electrodes[5] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
 
     for (uint16_t i = 0; i < _n_electrodes; i++) {
-        if (_electrodes[i] > 65500) {
+        if (_electrodes[i] > 60000) {
             _electrodes[i] = 0;
         }
     }
@@ -147,10 +147,10 @@ void Cybathlon::processQuantumHand(int emg1, int emg2, uint16_t btn_posture) {
     static unsigned int activated_emg = 1;
 
     static uint16_t posture_th1 = 9000;
-    static uint16_t posture_th2 = 18000;
-    static uint16_t posture_th3 = 26000;
+    static uint16_t posture_th2 = 17000;
+    static uint16_t posture_th3 = 25000;
 
-    static const MyoControl::EMGThresholds thresholds(5000, 2200, 0, 5000, 2200, 0);
+    static const MyoControl::EMGThresholds thresholds(4000, 2200, 0, 4000, 1300, 0);
 
 
     if (mode_changed_counter > counts_after_mode_change) { //si on a laissé assez de temps après le changement de posture
@@ -189,10 +189,10 @@ void Cybathlon::processQuantumHand(int emg1, int emg2, uint16_t btn_posture) {
                         ++before_bubble_counter;
                         activated_emg = 2;
                         _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); //ouvrir main rapidement
-                    } else if (emg2 > thresholds.backward_lower) {
-                        ++before_bubble_counter;
-                        activated_emg = 2;
-                        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); //ouvrir main lentement
+//                    } else if (emg2 > thresholds.backward_lower) {
+//                        ++before_bubble_counter;
+//                        activated_emg = 2;
+//                        _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); //ouvrir main lentement
                     } else {
                         before_bubble_counter = 0;
                     }
@@ -213,9 +213,9 @@ void Cybathlon::processQuantumHand(int emg1, int emg2, uint16_t btn_posture) {
                 } else if (emg2 > thresholds.backward_upper && activated_emg == 2) {
                     after_bubble_counter = 0;
                     _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); //ouvrir main rapidement
-                } else if (emg2 > thresholds.backward_lower && activated_emg == 2) {
-                    after_bubble_counter = 0;
-                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); //ouvrir main lentement
+//                } else if (emg2 > thresholds.backward_lower && activated_emg == 2) {
+//                    after_bubble_counter = 0;
+//                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); //ouvrir main lentement
                 } else {
                     ++after_bubble_counter;
                 }
@@ -267,23 +267,23 @@ void Cybathlon::loop(double dt, clock::time_point time)
 
     readAllADC();
 
-    //Publish EMG values with MQTT
-    for (uint16_t i = 0; i < _n_electrodes; i++) {
-        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(_electrodes[i]));
-        std::cout << _electrodes[i] << "\t";
-    }
-    std::cout << std::endl;
-
     //EMG1 and EMG2 = hand
     static uint16_t hand_btn;
     hand_btn = _robot->sensors.adc1->readADC_SingleEnded(0);
     processQuantumHand(_electrodes[0], _electrodes[1], hand_btn);
 
+    //Publish EMG values with MQTT
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(_electrodes[i]));
+        std::cout << _electrodes[i] << "\t";
+    }
+    std::cout << hand_btn << std::endl;
+
     // ELBOW CONTROL
     static bool elbow_available = 1;
     if (!_robot->btn1) {
         //EMG3 and EMG5 = elbow
-        if (_electrodes[2]>_th_high[2] && _electrodes[4]<_th_low[4] && _electrodes[3]<(_electrodes[2]-1500)) { //EMG3 activation
+        if (_electrodes[2]>_th_high[2] && _electrodes[5]<_electrodes[2]+500 && _electrodes[3]<_electrodes[2]+500) { //EMG3 activation
             _robot->joints.elbow_flexion->set_velocity_safe(25); //Elbow flexion
             colors[2] = LedStrip::red_bright;
         } else if (_electrodes[4]>_th_high[4] && _electrodes[2]<_th_low[2] && _electrodes[3]<_th_low[3] && _electrodes[5]<_th_low[3]) { //EMG5 activation
@@ -303,10 +303,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
     if(!_robot->btn2) { //Mode myo
         //EMG4 and EMG6 = wrist rotator
         if (_electrodes[3]>_th_high[3] && _electrodes[5]<(_electrodes[3]-500) && _electrodes[4]<(_electrodes[3]-500) && _electrodes[2]<_electrodes[3]) { //EMG4 activation
-            _robot->joints.wrist_pronation->set_velocity_safe(-40);
+            _robot->joints.wrist_pronation->set_velocity_safe(-120);
             colors[3] = LedStrip::red_bright;
-        } else if (_electrodes[5]>_th_high[5] && _electrodes[3]<_th_high[5] && _electrodes[4]<_th_high[5]) { //EMG6 activation
-            _robot->joints.wrist_pronation->set_velocity_safe(40);
+        } else if (_electrodes[5]>_th_high[5] && _electrodes[3]<_electrodes[5] && _electrodes[4]<_electrodes[5]) { //EMG6 activation
+            _robot->joints.wrist_pronation->set_velocity_safe(120);
             colors[5] = LedStrip::red_bright;
         } else {
             _robot->joints.wrist_pronation->set_velocity_safe(0);
@@ -323,8 +323,11 @@ void Cybathlon::loop(double dt, clock::time_point time)
             _robot->sensors.white_imu->get_quat(qBras);
         if (_robot->sensors.red_imu)
             _robot->sensors.red_imu->get_quat(qTronc);
-        if (_robot->sensors.yellow_imu)
+        if (_robot->sensors.yellow_imu) {
             _robot->sensors.yellow_imu->get_quat(qFA);
+        } else if (_robot->sensors.ng_imu) {
+            _robot->sensors.ng_imu->get_quat(qFA);
+        }
 
         Eigen::Quaterniond qFA_record;
         qFA_record.w() = qFA[0];
