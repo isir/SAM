@@ -9,6 +9,7 @@ LedStrip::color LedStrip::red(led_value, 0, 0, 1);
 LedStrip::color LedStrip::red_bright(3*led_value, 0, 0, 1);
 LedStrip::color LedStrip::green(0, led_value, 0, 1);
 LedStrip::color LedStrip::blue(0, 0, led_value, 1);
+LedStrip::color LedStrip::purple(led_value, 0, led_value, 1);
 LedStrip::color LedStrip::none(0, 0, 0, 0);
 
 LedStrip::LedStrip()
