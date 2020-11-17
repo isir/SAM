@@ -13,10 +13,12 @@ public:
         LONG_CONTRACTION,
         DOUBLE_CONTRACTION,
         TRIPLE_CONTRACTION,
-        CO_CONTRACTION
+        CO_CONTRACTION,
+        STOP
     };
 
     struct ContractionConfig {
+        bool time_limited;
         int n_contractions;
         int time_contraction_us;
         int time_between_contractions_us;
