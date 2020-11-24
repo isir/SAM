@@ -322,11 +322,11 @@ void Cybathlon::loop(double dt, clock::time_point time)
                 colors[5] = LedStrip::LedStrip::purple;
             } else if (_electrodes[5]>_th[5] && _electrodes[2]<_electrodes[5] && _electrodes[3]<(_electrodes[5]+500) && _electrodes[4]<_electrodes[5]) { //EMG6 activation
                 _robot->joints.elbow_flexion->set_velocity_safe(0);
-                _robot->joints.wrist_pronation->forward(75); //Wrist
+                _robot->joints.wrist_pronation->set_velocity_safe(127); //Wrist
                 colors[6] = LedStrip::LedStrip::purple;
             } else if (_electrodes[3]>_th[3] && _electrodes[2]<_electrodes[3] && _electrodes[4]<_electrodes[3] && (_electrodes[5]<_electrodes[3]-500)) { //EMG4 activation
                 _robot->joints.elbow_flexion->set_velocity_safe(0);
-                _robot->joints.wrist_pronation->backward(75); //Wrist
+                _robot->joints.wrist_pronation->set_velocity_safe(-127); //Wrist
                 colors[4] = LedStrip::LedStrip::purple;
             } else {
                 _robot->joints.elbow_flexion->set_velocity_safe(0);
@@ -343,10 +343,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
 
             //EMG4 and EMG6 = wrist rotator
             if (_electrodes[5]>_th[5] && _electrodes[2]<_electrodes[5] && (_electrodes[3]<_electrodes[5]+500) && _electrodes[4]<_electrodes[5]) { //EMG6 activation
-                _robot->joints.wrist_pronation->forward(75);
+                _robot->joints.wrist_pronation->set_velocity_safe(127);
                 colors[6] = LedStrip::LedStrip::purple;
             } else if (_electrodes[3]>_th[3] && _electrodes[2]<_electrodes[3] && _electrodes[4]<_electrodes[3] && (_electrodes[5]<_electrodes[3]-500)) { //EMG4 activation
-                _robot->joints.wrist_pronation->backward(75);
+                _robot->joints.wrist_pronation->set_velocity_safe(-127);
                 colors[4] = LedStrip::LedStrip::purple;
             } else {
                 _robot->joints.wrist_pronation->set_velocity_safe(0);
