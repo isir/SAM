@@ -61,7 +61,7 @@ private:
     Param<double> _thresholdWPS;
 
     // boolean to indicate which prototype and whether we save data
-    bool protoCyb = false;
+    bool protoCyb = true;
     bool saveData = false;
 };
 

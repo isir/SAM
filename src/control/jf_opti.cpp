@@ -18,7 +18,7 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
-    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 2)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 4)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -93,7 +93,7 @@ void JacobianFormulationOpti::tare_allIMU()
             debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
         }
         if (_robot->sensors.red_imu) {
-            _robot->sensors.red_imu->get_quat(qYellow);
+            _robot->sensors.red_imu->get_quat(qRed);
             debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
         }
 
@@ -121,15 +121,9 @@ void JacobianFormulationOpti::tare_whiteIMU()
 
         usleep(6 * 1000000);
 
-        double qWhite[4], qYellow[4];
-
+        double qWhite[4];
         _robot->sensors.white_imu->get_quat(qWhite);
         debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
-
-        if (_robot->sensors.yellow_imu) {
-            _robot->sensors.yellow_imu->get_quat(qYellow);
-            debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
-        }
 
         if (qWhite[0]<5E-5) {
             std::cout << "White IMU was not correctly tared."  << std::endl;
@@ -154,12 +148,7 @@ void JacobianFormulationOpti::tare_yellowIMU()
 
         usleep(6 * 1000000);
 
-        double qWhite[4], qYellow[4];
-        if (_robot->sensors.white_imu) {
-            _robot->sensors.white_imu->get_quat(qWhite);
-            debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
-        }
-
+        double qYellow[4];
         _robot->sensors.yellow_imu->get_quat(qYellow);
         debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
 
@@ -187,9 +176,8 @@ void JacobianFormulationOpti::tare_redIMU()
         usleep(6 * 1000000);
 
         double qRed[4];
-
         _robot->sensors.red_imu->get_quat(qRed);
-        debug() << "qyellow: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
+        debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
 
         if (qRed[0]<5E-5) {
             std::cout << "Red IMU was not correctly tared."  << std::endl;
@@ -242,7 +230,10 @@ void JacobianFormulationOpti::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(-90, 20);
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(90, 30, true);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void JacobianFormulationOpti::receiveData()
@@ -546,7 +537,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
     /// PUSH-BUTTONS FOR HAND CONTROL
 
-    uint16_t electrodes[2];
+    int16_t electrodes[2];
     int pin_down_value, pin_up_value;
     if (protoCyb) {
         //EMG5 and EMG6: push-buttons
@@ -557,12 +548,14 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             debug() << "Electrodes 5-6: " << electrodes[0] << "; " << electrodes[1];
         }
 
-        if (electrodes[0] == 0 && electrodes[1] != 0) {
+        if (electrodes[0] <= 0 && electrodes[1] > 0) {
             // open hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-        } else if (electrodes[1] == 0 && electrodes[0] != 0) {
+        } else if (electrodes[1] <= 0 && electrodes[0] > 0) {
             //close hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+        } else {
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
         }
     } else {
 
@@ -578,6 +571,8 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             } else if (pin_up_value == 0 && pin_down_value == 1) {
                 //open hand
                 _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            } else {
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
             }
         }
 
