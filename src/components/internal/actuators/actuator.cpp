@@ -135,6 +135,21 @@ void Actuator::set_params_position(float kp, float ki, float kd, uint32_t i_max,
     set_position_pid(p_params);
 }
 
+double Actuator::get_max_angle()
+{
+    return _max_angle;
+}
+
+double Actuator::get_min_angle()
+{
+    return _min_angle;
+}
+
+uint32_t Actuator::get_acc()
+{
+    return _acc;
+}
+
 void Actuator::on_exit()
 {
     forward(0);

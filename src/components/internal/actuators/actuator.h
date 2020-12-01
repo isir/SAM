@@ -20,6 +20,10 @@ public:
     virtual bool is_calibrated() { return _calibrated; }
     virtual uint32_t r_incs_per_deg() { return _incs_per_deg; }
 
+    double get_max_angle();
+    double get_min_angle();
+    uint32_t get_acc();
+
 protected:
     virtual void on_exit();
 
