@@ -139,81 +139,83 @@ QuantumClassifier::QuantumClassifier(std::vector<Action> actions, EMGThresholds 
 void QuantumClassifier::process(int forward_emg, int backward_emg, bool btn)
 {
     static bool smoothly_changed_mode = false;
-        static bool has_to_check_btn = false;
-        static unsigned int mode_changed_counter = 0;
-        static unsigned int btn_counter = 0;
-        static unsigned int before_bubble_counter = 0;
-        static unsigned int after_bubble_counter = 0;
-        static unsigned int activated_emg = 1;
+    static bool has_to_check_btn = false;
+    static unsigned int mode_changed_counter = 0;
+    static unsigned int btn_counter = 0;
+    static unsigned int before_bubble_counter = 0;
+    static unsigned int after_bubble_counter = 0;
+    static unsigned int activated_emg = 1;
 
-        if (mode_changed_counter > _counts_after_mode_change) { //si on a laissé assez de temps après le changement de posture
-            if (!btn) { //si on a bien relaché le bouton
-                smoothly_changed_mode = true;
-            }
-            if (smoothly_changed_mode) { //si le bouton a bien été relaché depuis le dernier changement de mode
-                if (has_to_check_btn) { //s'il s'est écoulé suffisamment de temps depuis la dernière contraction
-                    if (btn) { //si appui sur le bouton
-                        if (btn_counter > _counts_cocontraction) { //si le bouton est maintenu assez longtemps
-                            btn_counter = 0;
-                            mode_changed_counter = 0;
-                            smoothly_changed_mode = false;
-                            _it->on_none(); //changement de posture (malgré le nom on_none)
-                            next();
-                        } else {
-                            btn_counter++;
-                        }
-                    }
-                    else {
+    if (mode_changed_counter > _counts_after_mode_change) { //si on a laissé assez de temps après le changement de posture
+        if (!btn) { //si on a bien relaché le bouton
+            smoothly_changed_mode = true;
+        }
+        if (smoothly_changed_mode) { //si le bouton a bien été relaché depuis le dernier changement de mode
+            if (has_to_check_btn) { //s'il s'est écoulé suffisamment de temps depuis la dernière contraction
+                if (btn) { //si appui sur le bouton
+                    if (btn_counter > _counts_cocontraction) { //si le bouton est maintenu assez longtemps
                         btn_counter = 0;
-                        if (forward_emg > _thresholds.forward_upper) {
-                            ++before_bubble_counter;
-                            activated_emg = 1;
-                            //_it->on_forward(); //fermer main rapidement
-                        } else if (forward_emg > _thresholds.backward_lower) {
-                            ++before_bubble_counter;
-                            activated_emg = 1;
-                            _it->on_forward_slow(); //fermer main lentement
-                        } else if (backward_emg > _thresholds.backward_upper) {
-                            ++before_bubble_counter;
-                            activated_emg = 2;
-                            _it->on_backward(); //ouvrir main rapidement
-                        } else if (backward_emg > _thresholds.backward_lower) {
-                            ++before_bubble_counter;
-                            activated_emg = 2;
-                            _it->on_backward_slow(); //ouvrir main lentement
-                        } else {
-                            before_bubble_counter = 0;
-                        }
-
-                        if (before_bubble_counter > _counts_before_bubble) {
-                            has_to_check_btn = false;
-                            after_bubble_counter = 0;
-                        }
-                    }
-                } else {
-                    if (forward_emg > _thresholds.forward_upper && activated_emg == 1) {
-                        after_bubble_counter = 0;
-                        _it->on_forward(); //fermer main rapidement
-                    } else if (forward_emg > _thresholds.backward_lower && activated_emg == 1) {
-                        after_bubble_counter = 0;
-                        _it->on_forward_slow(); //fermer main lentement
-                    } else if (backward_emg > _thresholds.backward_upper && activated_emg == 2) {
-                        after_bubble_counter = 0;
-                        _it->on_backward(); //ouvrir main rapidement
-                    } else if (backward_emg > _thresholds.backward_lower && activated_emg == 2) {
-                        after_bubble_counter = 0;
-                        _it->on_backward_slow(); //ouvrir main lentement
+                        mode_changed_counter = 0;
+                        smoothly_changed_mode = false;
+                        _it->on_none(); //changement de posture (malgré le nom on_none)
+                        next();
                     } else {
-                        ++after_bubble_counter;
-                    }
-
-                    if (after_bubble_counter > _counts_after_bubble) {
-                        has_to_check_btn = true;
+                        btn_counter++;
                     }
                 }
+                else {
+                    btn_counter = 0;
+                    if (forward_emg > _thresholds.forward_upper) {
+                        ++before_bubble_counter;
+                        activated_emg = 1;
+                        //_it->on_forward(); //fermer main rapidement
+                        _it->on_forward_slow(); //fermer main lentement
+//                    } else if (forward_emg > _thresholds.backward_lower) {
+//                        ++before_bubble_counter;
+//                        activated_emg = 1;
+//                        _it->on_forward_slow(); //fermer main lentement
+                    } else if (backward_emg > _thresholds.backward_upper) {
+                        ++before_bubble_counter;
+                        activated_emg = 2;
+                        _it->on_backward(); //ouvrir main rapidement
+                    } else if (backward_emg > _thresholds.backward_lower) {
+                        ++before_bubble_counter;
+                        activated_emg = 2;
+                        _it->on_backward_slow(); //ouvrir main lentement
+                    } else {
+                        before_bubble_counter = 0;
+                    }
+
+                    if (before_bubble_counter > _counts_before_bubble) {
+                        has_to_check_btn = false;
+                        after_bubble_counter = 0;
+                    }
+                }
+            } else {
+                if (forward_emg > _thresholds.forward_upper && activated_emg == 1) {
+                    after_bubble_counter = 0;
+                    //_it->on_forward(); //fermer main rapidement
+                    _it->on_forward_slow(); //fermer main lentement
+//                } else if (forward_emg > _thresholds.backward_lower && activated_emg == 1) {
+//                    after_bubble_counter = 0;
+//                    _it->on_forward_slow(); //fermer main lentement
+                } else if (backward_emg > _thresholds.backward_upper && activated_emg == 2) {
+                    after_bubble_counter = 0;
+                    _it->on_backward(); //ouvrir main rapidement
+                } else if (backward_emg > _thresholds.backward_lower && activated_emg == 2) {
+                    after_bubble_counter = 0;
+                    _it->on_backward_slow(); //ouvrir main lentement
+                } else {
+                    ++after_bubble_counter;
+                }
+
+                if (after_bubble_counter > _counts_after_bubble) {
+                    has_to_check_btn = true;
+                }
             }
-        } else
-            mode_changed_counter++;
+        }
+    } else
+        mode_changed_counter++;
 }
 
 }

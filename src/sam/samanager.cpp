@@ -23,26 +23,35 @@ SAManager::~SAManager()
 {
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
-        _robot->user_feedback.leds->set(LedStrip::none, 10);
+        _robot->user_feedback.leds->set(LedStrip::none, 11);
     _robot->mosfet_gpio = false;
     //    if (_robot->joints.elbow_flexion) {
     //        _robot->joints.elbow_flexion->move_to(0, 20);
-    //    usleep(4 * 1000000);
-    //}
+    //        usleep(4 * 1000000);
+    //    }
 }
 
 void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
+
+    if(_robot->joints.wrist_pronation)
+        _robot->joints.wrist_pronation->forward(0);
+    if(_robot->joints.wrist_flexion)
+        _robot->joints.wrist_flexion->forward(0);
+    if (_robot->joints.elbow_flexion)
+        _robot->joints.elbow_flexion->forward(0);
+    if (_robot->joints.shoulder_medial_rotation)
+        _robot->joints.shoulder_medial_rotation->forward(0);
+
     if (_robot->user_feedback.leds)
-        _robot->user_feedback.leds->set(LedStrip::white, 10);
+        _robot->user_feedback.leds->set(LedStrip::white, 11);
 
     _robot->mosfet_gpio = true;
 
     instantiate_controllers();
     fill_menus();
     autostart_demo();
-    //    autostart_adc();
 
     std::unique_lock lock(_cv_mutex);
     _cv.wait(lock);
@@ -56,11 +65,13 @@ void SAManager::fill_menus()
     buzzer_submenu->add_item("tb", "Triple Buzz", [this](std::string) { _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ); });
     _main_menu->add_item(buzzer_submenu);
 
+    if (_robot->sensors.ng_imu) {
     std::shared_ptr<MenuBackend> ngimu_submenu = std::make_shared<MenuBackend>("ngimu", "NGIMU submenu");
     ngimu_submenu->add_item("id", "Identify", [this](std::string) { _robot->sensors.ng_imu->send_command_identify(); });
     ngimu_submenu->add_item("init", "Initialise", [this](std::string) { _robot->sensors.ng_imu->send_command_algorithm_init(); });
     ngimu_submenu->add_item("serial", "Get serial number", [this](std::string) { _robot->sensors.ng_imu->send_command_serial_number(); });
     _main_menu->add_item(ngimu_submenu);
+    }
 
     _main_menu->add_submenu_from_user(_adc);
     _main_menu->add_submenu_from_user(_cyb);
@@ -77,9 +88,10 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_imu);
     _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_submenu_from_user(_testimu);
+    _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_pb);
     _main_menu->add_submenu_from_user(_myo2);
-    //    _main_menu->add_submenu_from_user(_demoimu);
     _main_menu->add_submenu_from_user(_jfOpti);
     _main_menu->add_submenu_from_user(_jfIMU4);
     _main_menu->add_submenu_from_user(_recordData);
@@ -130,26 +142,18 @@ void SAManager::instantiate_controllers()
     } catch (std::exception&) {
     }
     try {
+        _cyb = std::make_unique<Cybathlon>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _testimu = std::make_unique<TestIMU>(_robot);
+    } catch (std::exception&) {
+    }
+
+    try {
         _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
     } catch (std::exception&) {
     }
-    try {
-        _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
-    } catch (std::exception&) {
-    }
-    try {
-        _recordData = std::make_unique<RecordData>(_robot);
-    } catch (std::exception&) {
-    }
-    try {
-        _cyb = std::make_unique<Cybathlon>(_robot);
-    } catch (std::exception& e) {
-        critical() << "Couldn't create cybathlon menu : " << e.what() << ")";
-    }
-    //    try {
-    //        _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
-    //    } catch (std::exception&) {
-    //    }
     //    try {
     //        _jfIMU1 = std::make_unique<JacobianFormulationIMU>(_robot);
     //    } catch (std::exception&) {
@@ -158,38 +162,27 @@ void SAManager::instantiate_controllers()
     //        _jfIMU3 = std::make_unique<JFIMU_v3>(_robot);
     //    } catch (std::exception&) {
     //    }
-    //    try {
-    //        _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
-    //    } catch (std::exception&) {
-    //    }
-    //    try {
-    //        _recordData = std::make_unique<RecordData>(_robot);
-    //    } catch (std::exception&) {
-    //    }
+        try {
+            _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
+        } catch (std::exception&) {
+        }
+        try {
+            _recordData = std::make_unique<RecordData>(_robot);
+        } catch (std::exception&) {
+        }
 }
 
 void SAManager::autostart_demo()
 {
-    if (_demo) {
-        if (_robot->demo_gpio) {
-            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
-        } else {
+    if (_robot->demo_gpio) {
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+    } else {
+        if (_demo) {
             _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
             _main_menu->activate_item("demo");
             _demo->start();
-        }
-    }
-}
-
-void SAManager::autostart_adc()
-{
-    if (_adc) {
-        if (_robot->adc_gpio) {
-            _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
         } else {
-            _robot->user_feedback.buzzer->makeNoise(Buzzer::DOUBLE_BUZZ);
-            _main_menu->activate_item("adc");
-            _adc->start();
+           _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
         }
     }
 }

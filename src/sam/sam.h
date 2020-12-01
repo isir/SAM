@@ -37,6 +37,7 @@ std::unique_ptr<U> make_generic(std::string type, std::string name, Ts... args)
     try {
         p = std::make_unique<U>(args...);
         mqtt.publish(NamedObject::base_name + "/" + type + "/" + name, std::string("1"), Mosquittopp::Client::QoS1, true);
+        info() << "Created this component: " << name;
     } catch (std::exception& e) {
         critical() << "Couldn't create this component: " << name << " (" << e.what() << ")";
         mqtt.publish(NamedObject::base_name + "/" + type + "/" + name, std::string("0"), Mosquittopp::Client::QoS1, true);
@@ -53,6 +54,7 @@ public:
     std::unique_ptr<XIMU> red_imu;
     std::unique_ptr<XIMU> yellow_imu;
     std::unique_ptr<NGIMU> ng_imu;
+    std::unique_ptr<NGIMU> red_ngimu;
     std::unique_ptr<Adafruit_ADS1115> adc0;
     std::unique_ptr<Adafruit_ADS1115> adc1;
     std::unique_ptr<Adafruit_ADS1115> adc2;

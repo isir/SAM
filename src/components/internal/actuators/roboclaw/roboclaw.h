@@ -37,6 +37,7 @@ public:
     void set_position_pid(position_pid_params_t params);
     position_pid_params_t read_position_pid();
     void move_to(uint32_t accel, uint32_t speed, uint32_t decel, int32_t pos);
+    void move_to_2motors(uint32_t accel1, uint32_t speed1, uint32_t decel1, int32_t pos1, uint32_t accel2, uint32_t speed2, uint32_t decel2, int32_t pos2);
 
 private:
     std::vector<std::byte> send(const Message& msg);

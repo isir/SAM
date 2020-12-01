@@ -65,7 +65,8 @@ void Buzzer::makeNoise(BUZZ_TYPE buzz_type, int freq)
         break;
     case ERROR_BUZZ:
         _cfg.n_pulses = 200;
-        _cfg.n_buzzes = 15;
+        _cfg.time_between_buzzes_us = 100000;
+        _cfg.n_buzzes = 10;
         break;
     }
 

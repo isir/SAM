@@ -10,7 +10,7 @@ ElbowCybathlon::ElbowCybathlon()
 
     _max_velocity = 30;
 
-    set_params_limits(0, 100.);
+    set_params_limits(0, 150.);
     set_params_technical(4065, 100);
     set_params_velocity(0.18608f, 0.01232f, 0, 353250);
     set_params_position(26.86342f, 0., 0., 0., 0., -180., 180.);

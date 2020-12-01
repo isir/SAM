@@ -188,6 +188,6 @@ void Demo::cleanup()
     //_robot->joints.elbow_flexion->move_to(0, 20);
     _robot->joints.elbow_flexion->move_to(0, 10);
 
-    _robot->user_feedback.leds->set(LedStrip::white, 10);
+    _robot->user_feedback.leds->set(LedStrip::white, 11);
     _robot->joints.hand->release_ownership();
 }

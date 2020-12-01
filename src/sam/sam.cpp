@@ -13,7 +13,18 @@ Sensors::Sensors()
     red_imu = Components::make_component<XIMU>("red_imu", "/dev/ximu_red", XIMU::XIMU_LOGLEVEL_NONE, B115200);
     yellow_imu = Components::make_component<XIMU>("yellow_imu", "/dev/ximu_yellow", XIMU::XIMU_LOGLEVEL_NONE, B115200);
 
-    ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu1", B115200);
+    int cnt = 0;
+    do {
+        ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu"+std::to_string(cnt), B115200);
+        if (ng_imu) {
+            while(!ng_imu->is_serialnumber_available())
+                ng_imu->send_command_serial_number();
+            if (ng_imu->get_serialnumber()=="0035F6E2")
+                info() << "red_ngimu";
+        }
+        ++cnt;
+    } while (!ng_imu && cnt<5);
+
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
     adc1 = Components::make_component<Adafruit_ADS1115>("adc1", "/dev/i2c-1", 0x49);
@@ -43,7 +54,9 @@ Joints::Joints()
     wrist_pronation = Components::make_component<WristRotator>("wrist_pronation_v2");
     wrist_flexion = Components::make_component<WristFlexor>("wrist_flexor");
     hand = Components::make_component<TouchBionicsHand>("touchbionics_hand");
-    hand_quantum = Components::make_component<QuantumHand>("quantum_hand");
+    if (!hand) {
+        hand_quantum = Components::make_component<QuantumHand>("quantum_hand");
+    }
 
     if (!wrist_pronation) {
         wrist_pronation = Components::make_component<PronoSupination>("wrist_pronation_v1");

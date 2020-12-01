@@ -16,7 +16,9 @@ private:
     void tare_allIMU();
     void tare_whiteIMU();
     void tare_yellowIMU();
+    void tare_redIMU();
     void elbowTo90();
+    void set_velocity_motors(double speed_elbow, double speed_wrist);
     void receiveData();
     void displayPin();
     void displayRBnb();
@@ -60,7 +62,7 @@ private:
     Param<double> _thresholdWPS;
 
     // boolean to indicate which prototype and whether we save data
-    bool protoCyb = false;
+    bool protoCyb = true;
     bool saveData = false;
 };
 

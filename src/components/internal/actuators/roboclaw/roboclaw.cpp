@@ -163,6 +163,30 @@ void RC::RoboClaw::move_to(uint32_t accel, uint32_t speed, uint32_t decel, int32
     send(Message(_address, get_fn_code(65, 66), ff_answer, payload));
 }
 
+void RC::RoboClaw::move_to_2motors(uint32_t accel1, uint32_t speed1, uint32_t decel1, int32_t pos1, uint32_t accel2, uint32_t speed2, uint32_t decel2, int32_t pos2)
+{
+    std::vector<std::byte> tmp, payload;
+    tmp = CastHelper::from(accel1);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(speed1);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(decel1);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(pos1);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(accel2);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(speed2);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(decel2);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from(pos2);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    tmp = CastHelper::from<uint8_t>(1);
+    payload.insert(payload.end(), tmp.begin(), tmp.end());
+    send(Message(_address, 67, ff_answer, payload));
+}
+
 std::vector<std::byte> RC::RoboClaw::send(const Message& msg)
 {
     static const int to = 100;
