@@ -7,7 +7,7 @@
 #include <iostream>
 
 JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Jacobian Formulation Optitrack", 0.01)
+    : ThreadedLoop("Jacobian Formulation Optitrack", 0.025)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
     , _lt(40)
@@ -30,9 +30,9 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     _menu->set_description("Jacobian Formulation Opti");
     _menu->set_code("jfo");
     _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
-    _menu->add_item("tareWhite", "Tare white IMU", [this](std::string) { this->tare_whiteIMU(); });
-    _menu->add_item("tareYellow", "Tare yellow IMU", [this](std::string) { this->tare_yellowIMU(); });
-    _menu->add_item("tareRed", "Tare red IMU", [this](std::string) { this->tare_redIMU(); });
+    _menu->add_item("tareWhite", "Tare white IMU (trunk)", [this](std::string) { this->tare_whiteIMU(); });
+    _menu->add_item("tareYellow", "Tare yellow IMU (hip)", [this](std::string) { this->tare_yellowIMU(); });
+    _menu->add_item("tareRed", "Tare red IMU (hand)", [this](std::string) { this->tare_redIMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
     _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
     _menu->add_item("opti", "Check OptiTrack", [this](std::string) { this->displayRBnb(); });
@@ -192,9 +192,47 @@ void JacobianFormulationOpti::tare_redIMU()
 void JacobianFormulationOpti::elbowTo90()
 {
     if (protoCyb)
-        _robot->joints.elbow_flexion->move_to(90, 10);
+        _robot->joints.elbow_flexion->move_to(100, 20);
     else
         _robot->joints.elbow_flexion->move_to(-90, 10);
+}
+
+void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double speed_wrist)
+{
+    // ELBOW
+    if (_robot->joints.elbow_flexion->is_calibrated() == false) {
+        warning() << "Elbow not calibrated...";
+        return;
+    }
+    int32_t pos_elbow;
+    double max_angle_elbow = _robot->joints.elbow_flexion->get_max_angle();
+    double min_angle_elbow = _robot->joints.elbow_flexion->get_min_angle();
+    if (speed_elbow >0)
+        pos_elbow = static_cast<int32_t>(max_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
+    else
+        pos_elbow = static_cast<int32_t>(min_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
+
+    uint32_t velocity_elbow = static_cast<uint32_t>(std::fabs(speed_elbow) * _robot->joints.elbow_flexion->r_incs_per_deg());
+    if (velocity_elbow == 0)
+        velocity_elbow = 1;
+    uint32_t acc_elbow = _robot->joints.elbow_flexion->get_acc();
+
+    // WRIST PRONATION
+    int32_t pos_wrist;
+    int32_t min_angle_wrist = -130;
+    int32_t max_angle_wrist = 80;
+    if (speed_wrist > 0)
+        pos_wrist = max_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
+    else
+        pos_wrist = min_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
+
+    uint32_t velocity_wrist = static_cast<uint32_t>(std::fabs(speed_wrist) * _robot->joints.wrist_pronation->r_incs_per_deg());
+    if (velocity_wrist == 0)
+        velocity_wrist = 1;
+    uint32_t acc_wrist = 10 *_robot->joints.wrist_pronation->get_acc();
+
+    // SEND COMMAND
+    _robot->joints.elbow_flexion->move_to_2motors(acc_elbow, velocity_elbow, acc_elbow, pos_elbow, acc_wrist, velocity_wrist, acc_wrist, pos_wrist);
 }
 
 void JacobianFormulationOpti::calibrations()
@@ -202,9 +240,9 @@ void JacobianFormulationOpti::calibrations()
     // HAND
     if (_robot->joints.hand) {
         _robot->joints.hand->take_ownership();
-//        _robot->joints.hand->init_sequence();
-//        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
-//        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+        //        _robot->joints.hand->init_sequence();
+        //        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
+        //        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
     }
 
     // ELBOW
@@ -231,7 +269,7 @@ void JacobianFormulationOpti::calibrations()
         debug() << "Calibration wrist pronation: ok \n";
 
     if (protoCyb)
-        _robot->joints.elbow_flexion->move_to(90, 30, true);
+        _robot->joints.elbow_flexion->move_to(100, 20, true);
     else
         _robot->joints.elbow_flexion->move_to(-90, 20);
 }
@@ -350,16 +388,13 @@ bool JacobianFormulationOpti::setup()
 
 void JacobianFormulationOpti::loop(double, clock::time_point time)
 {
+    static double pronoSupEncoder = 0;
+    static double elbowEncoder = 0;
+    static double wristFlexEncoder = 0;
+
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
-
-    static std::unique_ptr<MyoControl::Classifier> handcontrol;
-
-    static const unsigned int counts_after_mode_change = 15;
-    static const unsigned int counts_btn = 2;
-    static const unsigned int counts_before_bubble = 2;
-    static const unsigned int counts_after_bubble = 10;
-    static const MyoControl::EMGThresholds thresholds(15, 8, 15, 15, 8, 15);
+    std::cout << timeWithDelta <<std::endl;
 
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
@@ -387,9 +422,13 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         }
     }
 
+
+    /// WRIST
+    pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+
     // button "mode compensation" of cybathlon to indicate beginning of motion
     int btnStart;
-    if (!_robot->btn3)
+    if (!_robot->btn2)
         btnStart = 0;
     else
         btnStart = 1;
@@ -447,12 +486,11 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     //        debug() << "posA: " << posA[0] << "; " << posA[1] << "; " << posA[2];
     //    }
 
+//    /// WRIST
+//    pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+
     /// ELBOW
-    double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
-    /// WRIST
-    double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
-    //    debug() << "pronosup encoder: " << pronoSupEncoder;
-    double wristFlexEncoder = 0.;
+    elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
 
     /// PROTO with wrist flexor
     if (_robot->joints.wrist_flexion) {
@@ -471,7 +509,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
+
+        pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
         theta[1] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+
         theta[2] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
@@ -495,20 +536,18 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         l[1] = _lfa;
         l[2] = _lua;
 
-        theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
         if (protoCyb)
             theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
         else
             theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+
+        theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
 
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << "\r\n";
         // in radians:
         theta[0] = theta[0] * M_PI / 180;
         theta[1] = theta[1] * M_PI / 180;
-
-        _lambda[0] = _lambdaWPS;
-        _lambda[1] = _lambdaE;
     }
 
     /// IMU
@@ -533,62 +572,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         qArm.x() = qWhite[1];
         qArm.y() = qWhite[2];
         qArm.z() = qWhite[3];
-    }
-
-    /// PUSH-BUTTONS FOR HAND CONTROL
-
-    int16_t electrodes[2];
-    int pin_down_value, pin_up_value;
-    if (protoCyb) {
-        //EMG5 and EMG6: push-buttons
-        static bool btn = 0;
-        electrodes[0] = _robot->sensors.adc3->readADC_SingleEnded(2);
-        electrodes[1] = _robot->sensors.adc3->readADC_SingleEnded(0);
-        if (_cnt % 50 == 0) {
-            debug() << "Electrodes 5-6: " << electrodes[0] << "; " << electrodes[1];
-        }
-
-        if (electrodes[0] <= 0 && electrodes[1] > 0) {
-            // open hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-        } else if (electrodes[1] <= 0 && electrodes[0] > 0) {
-            //close hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
-        } else {
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
-        }
-    } else {
-
-        pin_down_value = _robot->btn2;
-        pin_up_value = _robot->btn1;
-        static int prev_pin_up_value = 1, prev_pin_down_value = 1;
-        if (!_robot->joints.hand) {
-            // printf("Quantum hand \n");
-            std::cout << pin_down_value << "\t" << pin_up_value << std::endl;
-            if (pin_down_value == 0 && pin_up_value == 1) {
-                // close hand
-                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
-            } else if (pin_up_value == 0 && pin_down_value == 1) {
-                //open hand
-                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-            } else {
-                _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
-            }
-        }
-
-        else {
-            printf("TB hand\n");
-            if (pin_down_value == 0 && prev_pin_down_value == 1) {
-                _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
-            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
-                _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
-            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
-                _robot->joints.hand->move(TouchBionicsHand::STOP);
-            }
-        }
-
-        prev_pin_down_value = pin_down_value;
-        prev_pin_up_value = pin_up_value;
     }
 
     /// CONTROL LOOP
@@ -622,34 +605,96 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
                 debug() << "elbow flex vel :" << thetaDot_toSend[2] << "\n";
             }
         } else {
-            if (protoCyb) {
-                if ((_robot->joints.wrist_pronation->pos() > 100) && (-thetaDot_toSend[0] > 0))
-                    _robot->joints.wrist_pronation->set_velocity_safe(0);
-                else if ((_robot->joints.wrist_pronation->pos() < -100) && (-thetaDot_toSend[0] < 0))
-                    _robot->joints.wrist_pronation->set_velocity_safe(0);
-                else
-                    _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
 
-                _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[1]);
+//            double wrist_pronation_pos = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+//            if ((wrist_pronation_pos > 90) && (-thetaDot_toSend[0] > 0))
+//                _robot->joints.wrist_pronation->set_velocity_safe(0);
+//            else if ((wrist_pronation_pos < -120) && (-thetaDot_toSend[0] < 0))
+//                _robot->joints.wrist_pronation->set_velocity_safe(0);
+//            else
+//                _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
+
+//            if (protoCyb) {
+//                _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[1]);
+//                if (_cnt % 50 == 0) {
+//                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
+//                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
+//                }
+//            } else {
+//                _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[1]);
+//                if (_cnt % 50 == 0) {
+//                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
+//                    debug() << "elbow flex vel :" << thetaDot_toSend[1] << "\n";
+//                }
+//            }
+
+            if (protoCyb) {
+                set_velocity_motors(-thetaDot_toSend[1], -thetaDot_toSend[0]);
                 if (_cnt % 50 == 0) {
                     debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
                     debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
                 }
             } else {
-                if ((_robot->joints.wrist_pronation->pos() > 100) && (-thetaDot_toSend[0] > 0))
-                    _robot->joints.wrist_pronation->set_velocity_safe(0);
-                else if ((_robot->joints.wrist_pronation->pos() < -100) && (-thetaDot_toSend[0] < 0))
-                    _robot->joints.wrist_pronation->set_velocity_safe(0);
-                else
-                    _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
-
-                _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[1]);
+                set_velocity_motors(thetaDot_toSend[1], -thetaDot_toSend[0]);
                 if (_cnt % 50 == 0) {
                     debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
                     debug() << "elbow flex vel :" << thetaDot_toSend[1] << "\n";
                 }
             }
         }
+    }
+
+
+    /// PUSH-BUTTONS FOR HAND CONTROL
+    int16_t electrodes[2];
+    int pin_down_value = 0, pin_up_value = 0;
+    if (protoCyb) {
+        //EMG5 and EMG6: push-buttons
+        electrodes[0] = _robot->sensors.adc3->readADC_SingleEnded(2);
+        electrodes[1] = _robot->sensors.adc3->readADC_SingleEnded(0);
+        if (_cnt % 50 == 0) {
+            debug() << "Electrodes 5-6: " << electrodes[0] << "; " << electrodes[1];
+        }
+
+        if (electrodes[0] <= 0 && electrodes[1] > 0) {
+            // open hand
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+        } else if (electrodes[1] <= 0 && electrodes[0] > 0) {
+            //close hand
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+        } else {
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
+        }
+    } else {
+
+        pin_down_value = _robot->btn2;
+        pin_up_value = _robot->btn1;
+        static int prev_pin_up_value = 1, prev_pin_down_value = 1;
+        if (!_robot->joints.hand) {
+            // printf("Quantum hand \n");
+            std::cout << pin_down_value << "\t" << pin_up_value << std::endl;
+            if (pin_down_value == 0 && pin_up_value == 1) {
+                // close hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            } else if (pin_up_value == 0 && pin_down_value == 1) {
+                //open hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            } else {
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
+            }
+        } else {
+            printf("TB hand\n");
+            if (pin_down_value == 0 && prev_pin_down_value == 1) {
+                _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
+            } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+                _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+            } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+                _robot->joints.hand->move(TouchBionicsHand::STOP);
+            }
+        }
+
+        prev_pin_down_value = pin_down_value;
+        prev_pin_up_value = pin_up_value;
     }
 
     if (saveData) {
@@ -677,8 +722,9 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _file << std::endl;
     }
     ++_cnt;
-    std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
+    //std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
+
 
 void JacobianFormulationOpti::cleanup()
 {

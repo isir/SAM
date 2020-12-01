@@ -18,6 +18,7 @@ private:
     void tare_yellowIMU();
     void tare_redIMU();
     void elbowTo90();
+    void set_velocity_motors(double speed_elbow, double speed_wrist);
     void receiveData();
     void displayPin();
     void displayRBnb();
