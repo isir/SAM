@@ -95,7 +95,7 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
         //        R0 << 0., 1., 0.,
         //            0., 0., 1.,
         //            1., 0., 0.;
-        // if IMU on hand when cable towards bottom
+        // if IMU on hand when tare with elbow at 90°
         R0 << 0., -1., 0.,
             0., 0., -1.,
             1., 0., 0.;
