@@ -232,7 +232,11 @@ void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double spe
     uint32_t acc_wrist = 10 *_robot->joints.wrist_pronation->get_acc();
 
     // SEND COMMAND
-    _robot->joints.elbow_flexion->move_to_2motors(acc_elbow, velocity_elbow, acc_elbow, pos_elbow, acc_wrist, velocity_wrist, acc_wrist, pos_wrist);
+    try {
+        _robot->joints.elbow_flexion->move_to_2motors(acc_elbow, velocity_elbow, acc_elbow, pos_elbow, acc_wrist, velocity_wrist, acc_wrist, pos_wrist);
+    } catch (std::runtime_error& e) {
+        std::cout << "Runtime error when sending velocities : " << e.what() << std::endl;
+    }
 }
 
 void JacobianFormulationOpti::calibrations()
@@ -391,6 +395,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     static double pronoSupEncoder = 0;
     static double elbowEncoder = 0;
     static double wristFlexEncoder = 0;
+    static double tmpEncoder = 0;
 
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
@@ -424,7 +429,14 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
 
     /// WRIST
-    pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+    try {
+        tmpEncoder = pronoSupEncoder;
+        pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+    } catch (std::runtime_error& e) {
+        std::cout << "Runtime error when reading wrist encoder: " << e.what() << std::endl;
+        pronoSupEncoder = tmpEncoder;
+    }
+
 
     // button "mode compensation" of cybathlon to indicate beginning of motion
     int btnStart;
@@ -490,7 +502,13 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 //    pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
 
     /// ELBOW
-    elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
+    try {
+        tmpEncoder = elbowEncoder;
+        elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
+    } catch (std::runtime_error& e) {
+        std::cout << "Runtime error when reading elbow encoder: " << e.what() << std::endl;
+        elbowEncoder = tmpEncoder;
+    }
 
     /// PROTO with wrist flexor
     if (_robot->joints.wrist_flexion) {
