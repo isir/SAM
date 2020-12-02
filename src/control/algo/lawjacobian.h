@@ -27,6 +27,7 @@ public:
     void initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm, int initCounter, int initCounts);
     void idealFrames(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk);
+    void rotationMatrices2(Eigen::Quaterniond qHandOpti, Eigen::Quaterniond qHandIMU, Eigen::Quaterniond qHipOpti, Eigen::Quaterniond qHipIMU, Eigen::Quaterniond qTrunk);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
     void bufferingOldValues();
@@ -64,16 +65,16 @@ private:
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
     Eigen::Vector3d xref, yref, zref, Ytrunk0, Ytrunk, Xtrunk, Ztrunk;
     Eigen::Vector3d posA0; // initial position of the acromion
-    Eigen::Vector3d posA0inHip; // initial position of the acromion in hip frame
-    Eigen::Vector3d posAinHip, posAinHand, IO; // position of the acromion and the elbow in hip frame
-    Eigen::Vector3d delta, disp; // displacement between acromion initial (=reference) position and current position
+    Eigen::Vector3d posA0inHip, posA0inHipOpti; // initial position of the acromion in hip frame
+    Eigen::Vector3d posAinHip, posAinHipOpti, posAinHand, IO; // position of the acromion and the elbow in hip frame
+    Eigen::Vector3d delta, deltaOpti, disp, dispOpti; // displacement between acromion initial (=reference) position and current position
     Eigen::Vector3d posHip0; // initial position of hip
     double samplePeriod;
     double coeff; // coefficient for low-pass filtering
-    Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaDot; // joint angles and angular velocities command
+    Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaNewOpti, thetaDot; // joint angles and angular velocities command
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA; // Trunk and Arm Euler angles, expressed in hand frame
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, Rtrunk, Rhand, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel; // rotation matrices
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
 
     double theta0H, theta0T; // angles to correct trunk and hip IMU initial orientation

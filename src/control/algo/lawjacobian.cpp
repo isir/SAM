@@ -306,6 +306,28 @@ void LawJacobian::rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond 
 }
 
 /**
+ * @brief LawOpti::rotationMatrices compute the rotation matrices of the hip and forearm frames with respect to the global frame
+ * @param qHip quaternions of the hip IMU
+ * @param qhand quaternions of the hand IMU
+ * @param qTrunk quaternions of the trunk IMU
+ */
+void LawJacobian::rotationMatrices2(Eigen::Quaterniond qHandOpti, Eigen::Quaterniond qHandIMU, Eigen::Quaterniond qHipOpti, Eigen::Quaterniond qHipIMU, Eigen::Quaterniond qTrunk)
+{
+    ///  From quaternions to orientation
+    //    Rhip = qIdealH.toRotationMatrix();
+    //    Rtrunk = qIdealT.toRotationMatrix();
+
+    RhipOpti = qHipOpti.toRotationMatrix();
+    Rhip = qHipIMU.toRotationMatrix();
+    Rtrunk = qTrunk.toRotationMatrix();
+    Rhand = qHandIMU.toRotationMatrix();
+    RhandOpti = qHandOpti.toRotationMatrix();
+    //    qHand_relative = qHand.normalized() * qArm0.conjugate();
+    /// For optitrack quaternion definition
+    //    Rhand_rel = qHand_relative.toRotationMatrix();
+}
+
+/**
  * @brief LawJacobian::projectionInHip project positions in the hip frame
  * @param posA position of the acromion
  * @param posElbow position of the elbow
@@ -318,22 +340,23 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
     // project in hip frame
     if (initCounter == initCounts) {
         // for optitrack quaternions
-        //        posA0inHip = Rhip.transpose() * (posA0 - posHip0);
+        posA0inHipOpti = RhipOpti.transpose() * (posA0 - posHip0);
         // for imu quaternions
         posA0inHip = Rhip * (posA0 - posHip0);
     }
     // for optitrack quaternions
-    //    posAinHip = Rhip.transpose() * (posA - posHip);
-    // for imu quaternions
+    posAinHipOpti = RhipOpti.transpose() * (posA - posHip);
+
+    //    // for imu quaternions
     posAinHip = Rhip * (posA - posHip);
 
-    if (initCounter % 50 == 0) {
-        //        debug() << "posA in hip: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
-    }
+    //    if (initCounter % 50 == 0) {
+    //        debug() << "posA in hip IMU: " << posAinHip[0] << ", " << posAinHip[1] << ", " << posAinHip[2];
+    //    }
 }
 
 /**
- * @brief LawJacobian::projectionInHipIMU compute acromion positions in the hip frame
+ * @brief LawJacobian::projectionInHipIMU compute acromion positions in the hip frame when using only IMU (no Optitrack)
  * @param posA position of the acromion
  * @param initCounter counter
  * @param initCounts number of counts that defined the initial position
@@ -598,17 +621,22 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
  */
 void LawJacobian::scaleDisplacementHip(int _cnt)
 {
-
+    //with Optitrack quaternions
+    dispOpti = (posA0inHipOpti - posAinHipOpti);
+    // with IMU quaternions
     disp = (posA0inHip - posAinHip); //  displacement of the acromion in the hip frame, from current to initial position
-    if (_cnt % 50 == 0) {
-        debug() << "original disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
-    }
-    if (disp(2) < 0) // backward motion (trunk extension)
-        disp(2) = 2 * disp(2);
+    //    if (_cnt % 50 == 0) {
+    //        debug() << "original disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    //    }
+    //    if (disp(2) < 0) // backward motion (trunk extension)
+    //        disp(2) = 2 * disp(2);
+    //    if (_cnt % 50 == 0) {
+    //        debug() << "scaled disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
+    //    }
 
-    if (_cnt % 50 == 0) {
-        debug() << "scaled disp: " << disp(0) << "; " << disp(1) << "; " << disp(2);
-    }
+    //    // ATTENTION : éventuellement changer la coordonnée qu'on modifie en fonction du placement du cluster hanche !!!!
+    if (dispOpti(2) < 0) // backward motion (trunk extension)
+        dispOpti(2) = 2 * dispOpti(2);
 }
 
 /**
@@ -638,7 +666,7 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], do
     delta = R0 * Rhand * Rhip.transpose() * disp;
 
     /// for optitrack quaternions
-    //    delta = R0 * Rhand.transpose() * Rhip * (posA0 - posA);
+    deltaOpti = R0 * RhandOpti.transpose() * RhipOpti * (posA0inHipOpti - posAinHipOpti);
     //    delta = Rhip * Rhand.transpose() * (posA0inHip - posAinHip);
 
     /// PSEUDO INVERSE SOLUTION
@@ -648,7 +676,7 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], do
     //    dlsJ = J.transpose() * (J * J.transpose() + k * k * I3).inverse();
 
     /// COMPUTE ANG. VELOCITIES
-    thetaNew = dlsJ * delta;
+    thetaNew = dlsJ * deltaOpti;
     // deadzone
     for (int i = 0; i < nbLinks; i++) {
         if (abs(thetaNew(i)) < threshold[i])
@@ -660,12 +688,17 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, double lambda[], do
     }
     // display data
     if (_cnt % 50 == 0) {
-        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "deltaOpti: " << deltaOpti(0) << "; " << deltaOpti(1) << "; " << deltaOpti(2) << "\r\n";
         //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
         debug() << "thetaNew(after threshold, deg): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;
         }
+        //        debug() << "thetaNewOpti (after threshold, deg): ";
+        //        for (int i = 0; i < nbLinks; i++) {
+        //            debug() << thetaNewOpti(i) * 180 / M_PI;
+        //        }
     }
     // Angular velocities
     for (int i = 0; i < nbLinks; i++) {
@@ -864,6 +897,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     for (int i = 0; i < nbLinks; i++) {
         d[i] = theta[i];
         d[i + nbLinks] = thetaNew(i);
+        //        d[i + 2 * nbLinks] = thetaNewOpti(i);
         d[i + 2 * nbLinks] = thetaDot(i);
     }
     for (int i = 0; i < nbLinks; i++) {
