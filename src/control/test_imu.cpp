@@ -44,6 +44,7 @@ bool TestIMU::setup()
 {
     if (_robot->joints.elbow_flexion->is_calibrated() == false)
          _robot->joints.elbow_flexion->calibrate();
+
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     _robot->user_feedback.leds->set(LedStrip::white, 11);
@@ -62,7 +63,7 @@ bool TestIMU::setup()
         critical() << "Failed to open" << (filename + suffix + extension);
         return false;
     } else {
-       /// WRITE FILE HEADERS
+        /// WRITE FILE HEADERS
         _file << "quatximu.w \t quatximu.x \t quatximu.y \t quatximu.z \t";
         _file << "gyroximu.x \t gyroximu.y \t gyroximu.z \t";
         _file << "accximu.x \t accximu.y \t accximu.z \t";
@@ -87,11 +88,11 @@ void TestIMU::loop(double dt, clock::time_point time)
     static const MyoControl::EMGThresholds thresholds(15, 8, 15, 15, 8, 15);
     auto robot = _robot;
     MyoControl::Action elbow(
-        "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
+                "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
     MyoControl::Action wrist_pronosup(
-        "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+                "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
     MyoControl::Action hand(
-        "Hand", [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); }, [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+                "Hand", [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,4); }, [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,4); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
     static LedStrip::color current_color = LedStrip::none;
     std::vector<MyoControl::Action> s1 { hand, wrist_pronosup, elbow };
 
@@ -143,12 +144,12 @@ void TestIMU::loop(double dt, clock::time_point time)
     static bool publish = 1;
     publish = !publish;
     if (publish) {
-    for (uint16_t i = 0; i < 3; i++) {
-        _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(quatx[i]));
-    }
-    for (uint16_t i = 0; i < 3; i++) {
-        _mqtt.publish("sam/emg/time/" + std::to_string(i+3), std::to_string(quatng[i]));
-    }
+        for (uint16_t i = 0; i < 3; i++) {
+            _mqtt.publish("sam/emg/time/" + std::to_string(i), std::to_string(quatx[i]));
+        }
+        for (uint16_t i = 0; i < 3; i++) {
+            _mqtt.publish("sam/emg/time/" + std::to_string(i+3), std::to_string(quatng[i]));
+        }
     }
 
 
