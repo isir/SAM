@@ -702,9 +702,9 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, int useIMU, double 
     //    delta = R0 * RhandOpti * (posA0 - posA);
 
     /// COMPUTE ANG. VELOCITIES
-    if (isIMU == 1)
+    if (useIMU == 1)
         thetaNew = dlsJ * delta;
-    else if (isIMU == 0)
+    else if (useIMU == 0)
         thetaNew = dlsJ * deltaOpti;
 
     /// DEADZONE
@@ -929,8 +929,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     for (int i = 0; i < nbLinks; i++) {
         d[i] = theta[i];
         d[i + nbLinks] = thetaNew(i);
-        d[i + 2 * nbLinks] = thetaNewOpti(i);
-        //        d[i + 2 * nbLinks] = thetaDot(i);
+        d[i + 2 * nbLinks] = thetaDot(i);
     }
     for (int i = 0; i < nbLinks; i++) {
         for (int j = 0; j < 3; j++) {
@@ -942,8 +941,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[6 * nbLinks + j] = delta(j);
     }
     for (int j = 0; j < 3; j++) {
-        //        d[6 * nbLinks + 3 + j] = IO(j);
-        d[6 * nbLinks + 3 + j] = deltaOpti(j);
+        d[6 * nbLinks + 3 + j] = IO(j);
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 6 + j] = eulerT(j);

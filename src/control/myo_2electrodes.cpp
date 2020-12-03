@@ -43,7 +43,7 @@ myo_2electrodes::~myo_2electrodes()
 void myo_2electrodes::tare_allIMU()
 {
     if (!_robot->sensors.red_imu || !_robot->sensors.yellow_imu) {
-        std::cout << "An IMU is missing."  << std::endl;
+        std::cout << "An IMU is missing." << std::endl;
         critical() << "An IMU is missing.";
         _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
     } else {
@@ -73,8 +73,8 @@ void myo_2electrodes::tare_allIMU()
             debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
         }
 
-        if (qRed[0]<5E-5 || qYellow[0]<5E-5) {
-            std::cout << "An IMU was not correctly tared."  << std::endl;
+        if (qRed[0] < 5E-5 || qYellow[0] < 5E-5) {
+            std::cout << "An IMU was not correctly tared." << std::endl;
             critical() << "An IMU was not correctly tared.";
             _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
         } else {
@@ -86,7 +86,7 @@ void myo_2electrodes::tare_allIMU()
 void myo_2electrodes::tare_whiteIMU()
 {
     if (!_robot->sensors.white_imu) {
-        std::cout << "White IMU is missing."  << std::endl;
+        std::cout << "White IMU is missing." << std::endl;
         critical() << "White IMU is missing.";
         _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
     } else {
@@ -101,8 +101,8 @@ void myo_2electrodes::tare_whiteIMU()
         _robot->sensors.white_imu->get_quat(qWhite);
         debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
 
-        if (qWhite[0]<5E-5) {
-            std::cout << "White IMU was not correctly tared."  << std::endl;
+        if (qWhite[0] < 5E-5) {
+            std::cout << "White IMU was not correctly tared." << std::endl;
             critical() << "White IMU was not correctly tared.";
             _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
         } else {
@@ -114,7 +114,7 @@ void myo_2electrodes::tare_whiteIMU()
 void myo_2electrodes::tare_yellowIMU()
 {
     if (!_robot->sensors.yellow_imu) {
-        std::cout << "Yellow IMU is missing."  << std::endl;
+        std::cout << "Yellow IMU is missing." << std::endl;
         critical() << "Yellow IMU is missing.";
         _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
     } else {
@@ -128,8 +128,8 @@ void myo_2electrodes::tare_yellowIMU()
         _robot->sensors.yellow_imu->get_quat(qYellow);
         debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
 
-        if (qYellow[0]<5E-5) {
-            std::cout << "Yellow IMU was not correctly tared."  << std::endl;
+        if (qYellow[0] < 5E-5) {
+            std::cout << "Yellow IMU was not correctly tared." << std::endl;
             critical() << "Yellow IMU was not correctly tared.";
             _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
         } else {
@@ -141,7 +141,7 @@ void myo_2electrodes::tare_yellowIMU()
 void myo_2electrodes::tare_redIMU()
 {
     if (!_robot->sensors.red_imu) {
-        std::cout << "Red IMU is missing."  << std::endl;
+        std::cout << "Red IMU is missing." << std::endl;
         critical() << "Red IMU is missing.";
         _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
     } else {
@@ -155,8 +155,8 @@ void myo_2electrodes::tare_redIMU()
         _robot->sensors.red_imu->get_quat(qRed);
         debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
 
-        if (qRed[0]<5E-5) {
-            std::cout << "Red IMU was not correctly tared."  << std::endl;
+        if (qRed[0] < 5E-5) {
+            std::cout << "Red IMU was not correctly tared." << std::endl;
             critical() << "Red IMU was not correctly tared.";
             _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
         } else {
@@ -181,7 +181,6 @@ void myo_2electrodes::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-
     _robot->joints.elbow_flexion->move_to(100, 20, true);
 }
 
@@ -200,13 +199,13 @@ void myo_2electrodes::readAllADC() //Optimized function to read all 6 electrodes
 {
     // Set configuration bits
     uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
-            ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
-            ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
-            ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
-            ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
-            ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
-            _robot->sensors.adc0->getGain() | //Set PGA/voltage range
-            ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
+        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
+        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
+        ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
+        ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
+        ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
+        _robot->sensors.adc0->getGain() | //Set PGA/voltage range
+        ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
 
     uint16_t config_c0 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_0; //for channel 0
     //    uint16_t config_c1 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_1; //for channel 1
@@ -321,9 +320,9 @@ void myo_2electrodes::loop(double, clock::time_point time)
 
         auto robot = _robot;
         MyoControl::Action elbow(
-                    "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
+            "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
         MyoControl::Action wrist_pronosup(
-                    "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+            "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
 
         std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
 
@@ -386,6 +385,10 @@ void myo_2electrodes::loop(double, clock::time_point time)
             //        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
         }
 
+        double angles[2];
+        angles[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg(); // for Cybathlon prototype
+        angles[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+
         if (myocontrol->has_changed_mode()) {
             _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
         }
@@ -411,10 +414,10 @@ void myo_2electrodes::loop(double, clock::time_point time)
 
         if (saveData) {
             /// WRITE DATA
-            _file << timeWithDelta << ' ' << btnStart;
-            _file << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3] << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3];
+            _file << timeWithDelta << ' ' << btnStart << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
+            _file << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3] << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3];
             _file << ' ' << qYellow[0] << ' ' << qYellow[1] << ' ' << qYellow[2] << ' ' << qYellow[3];
-            _file << ' ' << pronoSupEncoder << ' ' << elbowEncoder << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
+            _file << ' ' << pronoSupEncoder << ' ' << elbowEncoder << ' ' << angles[0] << ' ' << angles[1];
 
 #if OPTITRACK
             _file << ' ' << data.nRigidBodies;

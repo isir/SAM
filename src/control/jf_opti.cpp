@@ -383,13 +383,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         pronoSupEncoder = tmpEncoder;
     }
 
-    // button "mode compensation" of cybathlon to indicate beginning of motion
-    int btnStart;
-    if (!_robot->btn2)
-        btnStart = 0;
-    else
-        btnStart = 1;
-
     ///GET DATA
     /// OPTITRACK
     int index_acromion = -1, index_hip = -1, index_hand = -1;
@@ -516,10 +509,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
         theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
 
-        double eRed[2];
-        _robot->sensors.red_imu->get_euler(eRed);
-        _mqtt.publish("sam/emg/time/0", std::to_string(-theta[0]));
-        _mqtt.publish("sam/emg/time/1", std::to_string(eRed[0]));
+        //        double eRed[2];
+        //        _robot->sensors.red_imu->get_euler(eRed);
+        //        _mqtt.publish("sam/emg/time/0", std::to_string(-theta[0]));
+        //        _mqtt.publish("sam/emg/time/1", std::to_string(eRed[0]));
 
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << "\r\n";
@@ -655,9 +648,9 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.writeDebugData(debugData, theta);
         /// WRITE DATA
         if (protoCyb)
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << btnStart << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
         else
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << btnStart << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
 
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
         _file << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3] << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3];
