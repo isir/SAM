@@ -11,7 +11,7 @@
 #define OPTITRACK 1
 
 myo_2electrodes::myo_2electrodes(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("myo_2electrodes", .01)
+    : ThreadedLoop("myo_2electrodes", .025)
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation)) {
@@ -24,9 +24,15 @@ myo_2electrodes::myo_2electrodes(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
-    _menu->add_item("tareWhite", "Tare white IMUs", [this](std::string) { this->tare_whiteIMU(); });
-    _menu->add_item("tareYellow", "Tare yellow IMUs", [this](std::string) { this->tare_yellowIMU(); });
+    _menu->add_item("tareWhite", "Tare white IMU (trunk)", [this](std::string) { this->tare_whiteIMU(); });
+    _menu->add_item("tareYellow", "Tare yellow IMU (hip)", [this](std::string) { this->tare_yellowIMU(); });
+    _menu->add_item("tareRed", "Tare red IMU (hand)", [this](std::string) { this->tare_redIMU(); });
     _menu->add_item("calib", "Calibrations", [this](std::string) { this->calibrations(); });
+    _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
+
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        _electrodes[i] = 0;
+    }
 }
 
 myo_2electrodes::~myo_2electrodes()
@@ -36,39 +42,127 @@ myo_2electrodes::~myo_2electrodes()
 
 void myo_2electrodes::tare_allIMU()
 {
-    if (_robot->sensors.white_imu)
-        _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
-    if (_robot->sensors.red_imu)
-        _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
-    if (_robot->sensors.yellow_imu)
-        _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+    if (!_robot->sensors.red_imu || !_robot->sensors.yellow_imu) {
+        std::cout << "An IMU is missing."  << std::endl;
+        critical() << "An IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
 
-    debug("Wait ...");
+        if (_robot->sensors.white_imu)
+            _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
+        if (_robot->sensors.yellow_imu)
+            _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
+        if (_robot->sensors.red_imu)
+            _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        debug("Wait ...");
+
+        usleep(6 * 1000000);
+
+        double qWhite[4], qYellow[4], qRed[4];
+        if (_robot->sensors.white_imu) {
+            _robot->sensors.white_imu->get_quat(qWhite);
+            debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+        }
+        if (_robot->sensors.yellow_imu) {
+            _robot->sensors.yellow_imu->get_quat(qYellow);
+            debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+        }
+        if (_robot->sensors.red_imu) {
+            _robot->sensors.red_imu->get_quat(qRed);
+            debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
+        }
+
+        if (qRed[0]<5E-5 || qYellow[0]<5E-5) {
+            std::cout << "An IMU was not correctly tared."  << std::endl;
+            critical() << "An IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
+    }
 }
 
 void myo_2electrodes::tare_whiteIMU()
 {
-    if (_robot->sensors.white_imu)
+    if (!_robot->sensors.white_imu) {
+        std::cout << "White IMU is missing."  << std::endl;
+        critical() << "White IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
+
         _robot->sensors.white_imu->send_command_algorithm_init_then_tare();
 
-    debug("Wait ...");
+        debug("Wait ...");
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        usleep(6 * 1000000);
+
+        double qWhite[4];
+        _robot->sensors.white_imu->get_quat(qWhite);
+        debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+
+        if (qWhite[0]<5E-5) {
+            std::cout << "White IMU was not correctly tared."  << std::endl;
+            critical() << "White IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
+    }
 }
 
 void myo_2electrodes::tare_yellowIMU()
 {
-    if (_robot->sensors.yellow_imu)
+    if (!_robot->sensors.yellow_imu) {
+        std::cout << "Yellow IMU is missing."  << std::endl;
+        critical() << "Yellow IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
         _robot->sensors.yellow_imu->send_command_algorithm_init_then_tare();
 
-    debug("Wait ...");
+        debug("Wait ...");
 
-    usleep(6 * 1000000);
-    _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        usleep(6 * 1000000);
+
+        double qYellow[4];
+        _robot->sensors.yellow_imu->get_quat(qYellow);
+        debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+
+        if (qYellow[0]<5E-5) {
+            std::cout << "Yellow IMU was not correctly tared."  << std::endl;
+            critical() << "Yellow IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
+    }
+}
+
+void myo_2electrodes::tare_redIMU()
+{
+    if (!_robot->sensors.red_imu) {
+        std::cout << "Red IMU is missing."  << std::endl;
+        critical() << "Red IMU is missing.";
+        _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+    } else {
+        _robot->sensors.red_imu->send_command_algorithm_init_then_tare();
+
+        debug("Wait ...");
+
+        usleep(6 * 1000000);
+
+        double qRed[4];
+        _robot->sensors.red_imu->get_quat(qRed);
+        debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
+
+        if (qRed[0]<5E-5) {
+            std::cout << "Red IMU was not correctly tared."  << std::endl;
+            critical() << "Red IMU was not correctly tared.";
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::ERROR_BUZZ);
+        } else {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::TRIPLE_BUZZ);
+        }
+    }
 }
 
 void myo_2electrodes::calibrations()
@@ -86,28 +180,77 @@ void myo_2electrodes::calibrations()
     }
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
+
+
+    _robot->joints.elbow_flexion->move_to(100, 20, true);
+}
+
+void myo_2electrodes::elbowTo90()
+{
+    // ELBOW
+    if (_robot->joints.elbow_flexion->is_calibrated() == false) {
+        warning() << "Elbow not calibrated...";
+        return;
+    } else {
+        _robot->joints.elbow_flexion->move_to(100, 20);
+    }
+}
+
+void myo_2electrodes::readAllADC() //Optimized function to read all 6 electrodes
+{
+    // Set configuration bits
+    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
+            ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
+            ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
+            ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
+            ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
+            ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
+            _robot->sensors.adc0->getGain() | //Set PGA/voltage range
+            ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
+
+    uint16_t config_c0 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_0; //for channel 0
+    //    uint16_t config_c1 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_1; //for channel 1
+    uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
+    uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
+
+    //Write config register to the ADC
+    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+    //    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
+
+    // Wait for the conversion to complete
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+        ;
+
+    // Read the conversion results
+    _electrodes[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    //    _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
+
+    //Write config register to the ADC
+    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
+    //    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
+    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
+
+    // Wait for the conversion to complete
+    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
+        ;
+
+    // Read the conversion results
+    _electrodes[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
+    //    _electrodes[3] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
+    _electrodes[5] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
+
+    for (uint16_t i = 0; i < _n_electrodes; i++) {
+        if (_electrodes[i] > 60000) {
+            _electrodes[i] = 0;
+        }
+    }
 }
 
 bool myo_2electrodes::setup()
 {
     _robot->joints.wrist_pronation->set_encoder_position(0);
-
-    // ADC setup
-    _param_file = std::ifstream("myo_thresholds");
-    if (!_param_file.good()) {
-        critical() << "Failed to open myo_thresholds file. Using default values instead.";
-    } else {
-        std::string number_string;
-        for (uint16_t i = 0; i < _n_electrodes; i++) {
-            std::getline(_param_file, number_string);
-            _th_low[i] = std::stoi(number_string);
-        }
-        for (uint16_t i = 0; i < _n_electrodes; i++) {
-            std::getline(_param_file, number_string);
-            _th_high[i] = std::stoi(number_string);
-        }
-    }
-    _param_file.close();
 
     if (saveData) {
         // OPEN AND NAME DATA FILE
@@ -135,60 +278,11 @@ bool myo_2electrodes::setup()
     return true;
 }
 
-void myo_2electrodes::readAllADC() //Optimized function to read all 6 electrodes
-{
-    // Set configuration bits
-    uint16_t config_global = ADS1015_REG_CONFIG_CQUE_NONE | // Disable the comparator (default val)
-        ADS1015_REG_CONFIG_CLAT_NONLAT | // Non-latching (default val)
-        ADS1015_REG_CONFIG_CPOL_ACTVLOW | // Alert/Rdy active low   (default val)
-        ADS1015_REG_CONFIG_CMODE_TRAD | // Traditional comparator (default val)
-        ADS1015_REG_CONFIG_DR_3300SPS | // 3300 samples per second (ie 860sps pour un ADS1115)
-        ADS1015_REG_CONFIG_MODE_SINGLE | // Single-shot mode (default)
-        _robot->sensors.adc0->getGain() | //Set PGA/voltage range
-        ADS1015_REG_CONFIG_OS_SINGLE; // Set 'start single-conversion' bit
-
-    uint16_t config_c0 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_0; //for channel 0
-    uint16_t config_c1 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_1; //for channel 1
-    uint16_t config_c2 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_2; //for channel 2
-    uint16_t config_c3 = config_global | ADS1015_REG_CONFIG_MUX_SINGLE_3; //for channel 3
-
-    //Write config register to the ADC
-    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
-    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
-    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c2);
-
-    // Wait for the conversion to complete
-    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
-        ;
-
-    // Read the conversion results
-    _electrodes[0] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
-    _electrodes[2] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
-    _electrodes[4] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
-
-    //Write config register to the ADC
-    _robot->sensors.adc0->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c3);
-    _robot->sensors.adc2->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
-    _robot->sensors.adc3->writeRegister(ADS1015_REG_POINTER_CONFIG, config_c0);
-
-    // Wait for the conversion to complete
-    while (!(_robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONFIG) >> 15))
-        ;
-
-    // Read the conversion results
-    _electrodes[1] = _robot->sensors.adc0->readRegister(ADS1015_REG_POINTER_CONVERT);
-    _electrodes[3] = _robot->sensors.adc2->readRegister(ADS1015_REG_POINTER_CONVERT);
-    _electrodes[5] = _robot->sensors.adc3->readRegister(ADS1015_REG_POINTER_CONVERT);
-
-    for (uint16_t i = 0; i < _n_electrodes; i++) {
-        if (_electrodes[i] > 65500) {
-            _electrodes[i] = 0;
-        }
-    }
-}
-
 void myo_2electrodes::loop(double, clock::time_point time)
 {
+    static double pronoSupEncoder = 0;
+    static double elbowEncoder = 0;
+    static double tmpEncoder = 0;
 
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
 
@@ -209,7 +303,7 @@ void myo_2electrodes::loop(double, clock::time_point time)
 
         // button "mode compensation" of cybathlon to indicate beginning of motion
         int btnStart;
-        if (!_robot->btn3)
+        if (!_robot->btn2)
             btnStart = 0;
         else
             btnStart = 1;
@@ -217,21 +311,19 @@ void myo_2electrodes::loop(double, clock::time_point time)
         double timeWithDelta = (time - _start_time).count();
 
         static std::unique_ptr<MyoControl::Classifier> myocontrol;
-        static std::unique_ptr<MyoControl::Classifier> handcontrol;
 
         static const unsigned int counts_after_mode_change = 15;
-        static const unsigned int counts_btn = 2;
         static const unsigned int counts_cocontraction = 5;
         static const unsigned int counts_before_bubble = 2;
         static const unsigned int counts_after_bubble = 10;
 
-        static const MyoControl::EMGThresholds thresholds(3500, 2200, 2200, 3500, 2200, 2200);
+        static const MyoControl::EMGThresholds thresholds(3500, 3500, 3500, 3500, 3500, 3500);
 
         auto robot = _robot;
         MyoControl::Action elbow(
-            "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
+                    "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
         MyoControl::Action wrist_pronosup(
-            "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+                    "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
 
         std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
 
@@ -245,25 +337,40 @@ void myo_2electrodes::loop(double, clock::time_point time)
         }
 
         readAllADC();
+        /// MYO CONTROL FOR WRIST AND ELBOW
         myocontrol->process(_electrodes[0], _electrodes[1]);
-        //        debug() << "electrodes 4 et 5: " << _electrodes[4] << " " << _electrodes[5];
         if (_cnt % 50 == 0)
             debug() << "electrodes 0 et 1: " << _electrodes[0] << " " << _electrodes[1];
 
-        if (_electrodes[4] == 0 && _electrodes[5] != 0) {
+        ///PUSH-BUTTONS FOR HAND CONTROL
+        //        debug() << "electrodes 4 et 5: " << _electrodes[4] << " " << _electrodes[5];
+        std::cout << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[4] << "\t" << _electrodes[5] << std::endl;
+        if (_electrodes[4] <= 0 && _electrodes[5] > 0) {
             // Open quantum hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-        } else if (_electrodes[5] == 0 && _electrodes[4] != 0) {
+        } else if (_electrodes[5] <= 0 && _electrodes[4] > 0) {
             // Close quantum hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
         } else {
-            // rien
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
         }
 
         /// ELBOW
-        double elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
+        try {
+            tmpEncoder = elbowEncoder;
+            elbowEncoder = _robot->joints.elbow_flexion->read_encoder_position();
+        } catch (std::runtime_error& e) {
+            std::cout << "Runtime error when reading elbow encoder: " << e.what() << std::endl;
+            elbowEncoder = tmpEncoder;
+        }
         /// WRIST
-        double pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+        try {
+            tmpEncoder = pronoSupEncoder;
+            pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+        } catch (std::runtime_error& e) {
+            std::cout << "Runtime error when reading wrist encoder: " << e.what() << std::endl;
+            pronoSupEncoder = tmpEncoder;
+        }
         //    debug() << "pronosup encoder: " << pronoSupEncoder;
 
         double qWhite[4], qRed[4], qYellow[4];
@@ -311,7 +418,7 @@ void myo_2electrodes::loop(double, clock::time_point time)
 
 #if OPTITRACK
             _file << ' ' << data.nRigidBodies;
-            for (int i = 0; i < data.nRigidBodies; i++) {
+            for (unsigned int i = 0; i < data.nRigidBodies; i++) {
                 _file << ' ' << data.rigidBodies[i].ID << ' ' << data.rigidBodies[i].bTrackingValid << ' ' << data.rigidBodies[i].fError;
                 _file << ' ' << data.rigidBodies[i].qw << ' ' << data.rigidBodies[i].qx << ' ' << data.rigidBodies[i].qy << ' ' << data.rigidBodies[i].qz;
                 _file << ' ' << data.rigidBodies[i].x << ' ' << data.rigidBodies[i].y << ' ' << data.rigidBodies[i].z;

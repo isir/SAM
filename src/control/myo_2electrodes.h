@@ -14,6 +14,8 @@ public:
     void tare_allIMU();
     void tare_whiteIMU();
     void tare_yellowIMU();
+    void tare_redIMU();
+    void elbowTo90();
     void calibrations();
     void readAllADC();
 
@@ -26,9 +28,6 @@ private:
 
     uint16_t _electrodes[6];
     static const uint16_t _n_electrodes = 6;
-    int _th_low[_n_electrodes];
-    int _th_high[_n_electrodes];
-    std::ifstream _param_file;
 
     int _pin1, _pin2;
 
