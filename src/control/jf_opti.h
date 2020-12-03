@@ -5,9 +5,10 @@
 #include "sam/sam.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
+#include "utils/interfaces/mqtt_user.h"
 #include <fstream>
 
-class JacobianFormulationOpti : public ThreadedLoop {
+class JacobianFormulationOpti : public ThreadedLoop, public MqttUser {
 public:
     explicit JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot);
     ~JacobianFormulationOpti() override;
