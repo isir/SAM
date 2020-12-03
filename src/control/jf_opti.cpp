@@ -83,7 +83,7 @@ void JacobianFormulationOpti::tare_allIMU()
 
         usleep(6 * 1000000);
 
-        double qWhite[4], qYellow[4], qRed[4], qNG[4];
+        double qWhite[4], qYellow[4], qRed[4];
         if (_robot->sensors.white_imu) {
             _robot->sensors.white_imu->get_quat(qWhite);
             debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
@@ -560,6 +560,11 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
 
         theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+
+        double eRed[2];
+        _robot->sensors.red_imu->get_euler(eRed);
+        _mqtt.publish("sam/emg/time/0", std::to_string(-theta[0]));
+        _mqtt.publish("sam/emg/time/1", std::to_string(eRed[0]));
 
         if (_cnt % 50 == 0)
             debug() << "theta(deg): " << theta[0] << ", " << theta[1] << "\r\n";
