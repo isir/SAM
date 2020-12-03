@@ -19,7 +19,6 @@ private:
     void tare_redIMU();
     void elbowTo90();
     void set_velocity_motors(double speed_elbow, double speed_wrist);
-    void receiveData();
     void displayPin();
     void displayRBnb();
     void calibrations();
@@ -37,10 +36,6 @@ private:
     LawJacobian _lawJ;
     int nbDOF;
     int _lt;
-    //    int _Lua;
-    //    int _Lfa;
-    //    int _lhand;
-    //    int _lwrist;
     double _lambda[nbLinks];
     int _pin_up;
     int _pin_down;
@@ -50,16 +45,17 @@ private:
     int l[nbLinks];
     int nbRigidBodies;
 
-    Param<int> _k;
-    Param<double> _lua;
-    Param<double> _lfa;
-    Param<double> _lwrist;
-    Param<double> _lambdaE;
-    Param<double> _lambdaWF;
-    Param<double> _lambdaWPS;
-    Param<double> _thresholdE;
-    Param<double> _thresholdWF;
-    Param<double> _thresholdWPS;
+    Param<int> _k; // gain for damped least square solution
+    Param<int> _useIMU; // 0 or 1, indicate if we use IMUs (1) for hip and hand frame or optitrack (0)
+    Param<double> _lua; // upperarm length
+    Param<double> _lfa; // forearm length
+    Param<double> _lwrist; // wrist length (from wrist to hand)
+    Param<double> _lambdaE; // gain for elbow velocity control
+    Param<double> _lambdaWF; // gain for wrist flexion velocity control
+    Param<double> _lambdaWPS; // gain for wrist pronosup velocity control
+    Param<double> _thresholdE; // threshold for elbow deadzone
+    Param<double> _thresholdWF; // threshold for wrist flexion deadzone
+    Param<double> _thresholdWPS; // threshold for wrist pronosup deadzone
 
     // boolean to indicate which prototype and whether we save data
     bool protoCyb = true;

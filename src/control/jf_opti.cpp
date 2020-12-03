@@ -10,6 +10,7 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     : ThreadedLoop("Jacobian Formulation Optitrack", 0.025)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
+    , _useIMU("isIMU", BaseParam::ReadWrite, this, 0)
     , _lt(40)
     , _pin_up(24)
     , _pin_down(22)
@@ -51,10 +52,6 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
         nbDOF = 2;
         debug() << "nDOF: " << nbDOF;
     }
-
-    //    for (int i = 0; i < nbLinks; i++) {
-    //        _threshold[i] = 10. * M_PI / 180;
-    //    }
 }
 
 JacobianFormulationOpti::~JacobianFormulationOpti()
@@ -86,15 +83,15 @@ void JacobianFormulationOpti::tare_allIMU()
         double qWhite[4], qYellow[4], qRed[4], qNG[4];
         if (_robot->sensors.white_imu) {
             _robot->sensors.white_imu->get_quat(qWhite);
-            debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
+            //            debug() << "qWhite: " << qWhite[0] << "; " << qWhite[1] << "; " << qWhite[2] << "; " << qWhite[3];
         }
         if (_robot->sensors.yellow_imu) {
             _robot->sensors.yellow_imu->get_quat(qYellow);
-            debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
+            //            debug() << "qyellow: " << qYellow[0] << "; " << qYellow[1] << "; " << qYellow[2] << "; " << qYellow[3];
         }
         if (_robot->sensors.red_imu) {
             _robot->sensors.red_imu->get_quat(qRed);
-            debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
+            //            debug() << "qred: " << qRed[0] << "; " << qRed[1] << "; " << qRed[2] << "; " << qRed[3];
         }
 
         if (qRed[0] < 5E-5 || qYellow[0] < 5E-5) {
@@ -220,7 +217,7 @@ void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double spe
     // WRIST PRONATION
     int32_t pos_wrist;
     int32_t min_angle_wrist = -130;
-    int32_t max_angle_wrist = 80;
+    int32_t max_angle_wrist = 90;
     if (speed_wrist > 0)
         pos_wrist = max_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
     else
@@ -278,43 +275,6 @@ void JacobianFormulationOpti::calibrations()
         _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
-void JacobianFormulationOpti::receiveData()
-{
-    while (_receiver.available()) {
-
-        auto data = _receiver.receive();
-        std::string buf;
-        buf.resize(data.size());
-        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) -> char { return static_cast<char>(b); });
-        std::istringstream ts(buf);
-        int tmp;
-
-        //        ts >> tmp;
-        //        _lua = tmp; // _lua
-
-        //        ts >> tmp;
-        //        _lfa = tmp; // _lfa
-
-        //        ts >> tmp;
-        //        _lwrist = tmp; // _lwrist
-
-        //        ts >> tmp;
-        //        _lhand = tmp; // _lhand
-
-        //        ts >> tmp;
-        //        _lambda = tmp;
-
-        ts >> tmp;
-        _threshold[0] = tmp * M_PI / 180.; // dead zone limit for pronosup, in rad.
-
-        ts >> tmp;
-        _threshold[1] = tmp * M_PI / 180; // dead zone limit for wrist flex, in rad.
-
-        ts >> tmp;
-        _threshold[2] = tmp * M_PI / 180; // dead zone limit for elbow flex, in rad.
-    }
-}
-
 void JacobianFormulationOpti::displayPin()
 {
     int pin_down_value = _robot->btn2;
@@ -333,19 +293,6 @@ void JacobianFormulationOpti::displayRBnb()
 
 bool JacobianFormulationOpti::setup()
 {
-    // Check for calibration
-    //    if (_robot->joints.wrist_flexion) {
-    //        if ((_robot->joints.elbow_flexion->is_calibrated() == false) || (_robot->joints.wrist_flexion->is_calibrated() == false) || (_robot->joints.wrist_pronation->is_calibrated() == false)) {
-    //            debug() << "Actuators not calibrated";
-    //            return false;
-    //        }
-    //    } else {
-    //        if ((_robot->joints.elbow_flexion->is_calibrated() == false)) {
-    //            debug() << "Elbow not calibrated";
-    //            return false;
-    //        }
-    //    }
-
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
     // Check for OptiTrack
@@ -436,7 +383,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         pronoSupEncoder = tmpEncoder;
     }
 
-
     // button "mode compensation" of cybathlon to indicate beginning of motion
     int btnStart;
     if (!_robot->btn2)
@@ -482,11 +428,13 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
     for (int i = 0; i < nbRigidBodies; i++) {
         if (data.rigidBodies[i].ID == 4) {
+            // acromion position
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
             index_acromion = i;
         } else if (data.rigidBodies[i].ID == 7) {
+            // hip position and orientation
             posHip[0] = data.rigidBodies[i].x * 100;
             posHip[1] = data.rigidBodies[i].y * 100;
             posHip[2] = data.rigidBodies[i].z * 100;
@@ -496,6 +444,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             qHipOpti.z() = data.rigidBodies[i].qz;
             index_hip = i;
         } else if (data.rigidBodies[i].ID == 1) {
+            // hand orientation
             qHandOpti.w() = data.rigidBodies[i].qw;
             qHandOpti.x() = data.rigidBodies[i].qx;
             qHandOpti.y() = data.rigidBodies[i].qy;
@@ -506,9 +455,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     //    if (_cnt % 50 == 0) {
     //        debug() << "posA: " << posA[0] << "; " << posA[1] << "; " << posA[2];
     //    }
-
-    //    /// WRIST
-    //    pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
 
     /// ELBOW
     try {
@@ -607,7 +553,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.initializationOpti(posA);
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
-        _lawJ.initialQuat(qHip, qTrunk, qArm, _cnt, init_cnt);
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
         _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
@@ -618,7 +563,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.updateFrames(theta);
         _lawJ.computeOriginsVectors(l, nbDOF);
         _lawJ.scaleDisplacementHip(_cnt);
-        _lawJ.controlLaw_v1(posA, _k, _lambda, _threshold, _cnt);
+        _lawJ.controlLaw_v1(posA, _k, _useIMU, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -632,28 +577,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             //                debug() << "elbow flex vel :" << thetaDot_toSend[2] << "\n";
             //            }
         } else {
-
-            //            double wrist_pronation_pos = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
-            //            if ((wrist_pronation_pos > 90) && (-thetaDot_toSend[0] > 0))
-            //                _robot->joints.wrist_pronation->set_velocity_safe(0);
-            //            else if ((wrist_pronation_pos < -120) && (-thetaDot_toSend[0] < 0))
-            //                _robot->joints.wrist_pronation->set_velocity_safe(0);
-            //            else
-            //                _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[0]);
-
-            //            if (protoCyb) {
-            //                _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[1]);
-            //                if (_cnt % 50 == 0) {
-            //                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
-            //                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
-            //                }
-            //            } else {
-            //                _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[1]);
-            //                if (_cnt % 50 == 0) {
-            //                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
-            //                    debug() << "elbow flex vel :" << thetaDot_toSend[1] << "\n";
-            //                }
-            //            }
 
             if (protoCyb) {
                 set_velocity_motors(-thetaDot_toSend[1], -thetaDot_toSend[0]);
