@@ -3,9 +3,9 @@
 
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
+#include "utils/interfaces/mqtt_user.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
-#include "utils/interfaces/mqtt_user.h"
 #include <fstream>
 
 class JacobianFormulationOpti : public ThreadedLoop, public MqttUser {
@@ -19,6 +19,9 @@ private:
     void tare_yellowIMU();
     void tare_redIMU();
     void elbowTo90();
+    void toPos0();
+    void toPos1();
+    void toPos2();
     void set_velocity_motors(double speed_elbow, double speed_wrist);
     void displayPin();
     void displayRBnb();
@@ -48,6 +51,7 @@ private:
 
     Param<int> _k; // gain for damped least square solution
     Param<int> _useIMU; // 0 or 1, indicate if we use IMUs (1) for hip and hand frame or optitrack (0)
+    Param<double> _lsh; // acromion offset
     Param<double> _lua; // upperarm length
     Param<double> _lfa; // forearm length
     Param<double> _lwrist; // wrist length (from wrist to hand)
@@ -60,7 +64,7 @@ private:
 
     // boolean to indicate which prototype and whether we save data
     bool protoCyb = true;
-    bool saveData = false;
+    bool saveData = true;
 };
 
 #endif // GENERAL_FORMULATION_H

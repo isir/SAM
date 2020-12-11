@@ -10,13 +10,14 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     : ThreadedLoop("Jacobian Formulation Optitrack", 0.025)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 5)
-    , _useIMU("isIMU", BaseParam::ReadWrite, this, 0)
+    , _useIMU("useIMU", BaseParam::ReadWrite, this, 0)
     , _lt(40)
     , _pin_up(24)
     , _pin_down(22)
-    , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
-    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 20)
-    , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
+    , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 5)
+    , _lua("lua(cm)", BaseParam::ReadWrite, this, 40)
+    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 29)
+    , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 7)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
     , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 4)
@@ -36,6 +37,9 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     _menu->add_item("tareRed", "Tare red IMU (hand)", [this](std::string) { this->tare_redIMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
     _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
+    _menu->add_item("pos0", "Flex elbow at 50 deg, rotate wrist to -90 deg", [this](std::string) { this->toPos0(); });
+    _menu->add_item("pos1", "Flex elbow at 90 deg, rotate wrist to 30 deg", [this](std::string) { this->toPos1(); });
+    _menu->add_item("pos2", "Flex elbow at 100 deg, rotate wrist to -30 deg", [this](std::string) { this->toPos2(); });
     _menu->add_item("opti", "Check OptiTrack", [this](std::string) { this->displayRBnb(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
@@ -194,6 +198,36 @@ void JacobianFormulationOpti::elbowTo90()
         _robot->joints.elbow_flexion->move_to(-90, 10);
 }
 
+void JacobianFormulationOpti::toPos0()
+{
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(50, 20);
+    else
+        _robot->joints.elbow_flexion->move_to(-50, 10);
+
+    _robot->joints.wrist_pronation->move_to(-90, 40);
+}
+
+void JacobianFormulationOpti::toPos1()
+{
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(100, 20);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 10);
+
+    _robot->joints.wrist_pronation->move_to(30, 40);
+}
+
+void JacobianFormulationOpti::toPos2()
+{
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(110, 20);
+    else
+        _robot->joints.elbow_flexion->move_to(-100, 10);
+
+    _robot->joints.wrist_pronation->move_to(-30, 40);
+}
+
 void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double speed_wrist)
 {
     // ELBOW
@@ -203,7 +237,7 @@ void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double spe
     }
     int32_t pos_elbow;
     double max_angle_elbow = _robot->joints.elbow_flexion->get_max_angle();
-    double min_angle_elbow = _robot->joints.elbow_flexion->get_min_angle();
+    double min_angle_elbow = 5; // _robot->joints.elbow_flexion->get_min_angle();
     if (speed_elbow > 0)
         pos_elbow = static_cast<int32_t>(max_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
     else
@@ -266,6 +300,7 @@ void JacobianFormulationOpti::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated() == false) {
         _robot->joints.wrist_pronation->calibrate();
     }
+
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
@@ -472,6 +507,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         l[0] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
         l[1] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
         l[2] = _lua; // from the elbow joint to the acromion/shoulder joint
+        l[3] = _lsh; // acromion offset
 
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
@@ -603,10 +639,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
             debug() << "Electrodes 5-6: " << electrodes[0] << "; " << electrodes[1];
         }
 
-        if (electrodes[0] <= 0 && electrodes[1] > 0) {
+        if (electrodes[1] <= 0 && electrodes[0] > 0) {
             // open hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-        } else if (electrodes[1] <= 0 && electrodes[0] > 0) {
+        } else if (electrodes[0] <= 0 && electrodes[1] > 0) {
             //close hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
         } else {
@@ -648,9 +684,9 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.writeDebugData(debugData, theta);
         /// WRITE DATA
         if (protoCyb)
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lsh;
         else
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lsh;
 
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
         _file << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3] << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3];
