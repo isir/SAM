@@ -13,6 +13,10 @@
 myo_2electrodes::myo_2electrodes(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("myo_2electrodes", .025)
     , _robot(robot)
+    , _forward_upper("F upper", BaseParam::ReadWrite, this, 3500)
+    , _forward_lower("F lower", BaseParam::ReadWrite, this, 3500)
+    , _backward_upper("B upper", BaseParam::ReadWrite, this, 3500)
+    , _backward_lower("B lower", BaseParam::ReadWrite, this, 3500)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation)) {
         throw std::runtime_error("myo_2electrodes is missing components");
@@ -316,13 +320,13 @@ void myo_2electrodes::loop(double, clock::time_point time)
         static const unsigned int counts_before_bubble = 2;
         static const unsigned int counts_after_bubble = 10;
 
-        static const MyoControl::EMGThresholds thresholds(3500, 3500, 3500, 3500, 3500, 3500);
+        static const MyoControl::EMGThresholds thresholds(_forward_upper, _forward_lower, _forward_upper, _backward_upper, _backward_lower, _backward_upper);
 
         auto robot = _robot;
         MyoControl::Action elbow(
             "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
         MyoControl::Action wrist_pronosup(
-            "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+            "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
 
         std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
 
@@ -344,10 +348,10 @@ void myo_2electrodes::loop(double, clock::time_point time)
         ///PUSH-BUTTONS FOR HAND CONTROL
         //        debug() << "electrodes 4 et 5: " << _electrodes[4] << " " << _electrodes[5];
         std::cout << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[4] << "\t" << _electrodes[5] << std::endl;
-        if (_electrodes[4] <= 0 && _electrodes[5] > 0) {
+        if (_electrodes[5] <= 0 && _electrodes[4] > 0) {
             // Open quantum hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-        } else if (_electrodes[5] <= 0 && _electrodes[4] > 0) {
+        } else if (_electrodes[4] <= 0 && _electrodes[5] > 0) {
             // Close quantum hand
             _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
         } else {
@@ -444,7 +448,7 @@ void myo_2electrodes::cleanup()
     _robot->joints.wrist_pronation->forward(0);
 
     //_robot->joints.elbow_flexion->move_to(0, 20);
-    _robot->joints.elbow_flexion->move_to(0, 10);
+    //    _robot->joints.elbow_flexion->move_to(0, 10);
 
     _robot->user_feedback.leds->set(LedStrip::white, 10);
 }
