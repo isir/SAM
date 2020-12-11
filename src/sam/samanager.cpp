@@ -35,9 +35,9 @@ void SAManager::run()
 {
     _robot = std::make_shared<SAM::Components>();
 
-    if(_robot->joints.wrist_pronation)
+    if (_robot->joints.wrist_pronation)
         _robot->joints.wrist_pronation->forward(0);
-    if(_robot->joints.wrist_flexion)
+    if (_robot->joints.wrist_flexion)
         _robot->joints.wrist_flexion->forward(0);
     if (_robot->joints.elbow_flexion)
         _robot->joints.elbow_flexion->forward(0);
@@ -66,11 +66,11 @@ void SAManager::fill_menus()
     _main_menu->add_item(buzzer_submenu);
 
     if (_robot->sensors.ng_imu) {
-    std::shared_ptr<MenuBackend> ngimu_submenu = std::make_shared<MenuBackend>("ngimu", "NGIMU submenu");
-    ngimu_submenu->add_item("id", "Identify", [this](std::string) { _robot->sensors.ng_imu->send_command_identify(); });
-    ngimu_submenu->add_item("init", "Initialise", [this](std::string) { _robot->sensors.ng_imu->send_command_algorithm_init(); });
-    ngimu_submenu->add_item("serial", "Get serial number", [this](std::string) { _robot->sensors.ng_imu->send_command_serial_number(); });
-    _main_menu->add_item(ngimu_submenu);
+        std::shared_ptr<MenuBackend> ngimu_submenu = std::make_shared<MenuBackend>("ngimu", "NGIMU submenu");
+        ngimu_submenu->add_item("id", "Identify", [this](std::string) { _robot->sensors.ng_imu->send_command_identify(); });
+        ngimu_submenu->add_item("init", "Initialise", [this](std::string) { _robot->sensors.ng_imu->send_command_algorithm_init(); });
+        ngimu_submenu->add_item("serial", "Get serial number", [this](std::string) { _robot->sensors.ng_imu->send_command_serial_number(); });
+        _main_menu->add_item(ngimu_submenu);
     }
 
     _main_menu->add_submenu_from_user(_adc);
@@ -82,19 +82,20 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_robot->joints.elbow_flexion);
     _main_menu->add_submenu_from_user(_robot->joints.hand);
     _main_menu->add_submenu_from_user(_robot->joints.hand_quantum);
-    _main_menu->add_submenu_from_user(_vc);
+    // _main_menu->add_submenu_from_user(_vc);
     _main_menu->add_submenu_from_user(_rm);
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_imu);
-    _main_menu->add_submenu_from_user(_opti);
-    _main_menu->add_submenu_from_user(_demo);
+    //    _main_menu->add_submenu_from_user(_opti);
+    // _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_testimu);
-    _main_menu->add_submenu_from_user(_demoimu);
-    _main_menu->add_submenu_from_user(_pb);
+    // _main_menu->add_submenu_from_user(_demoimu);
+    // _main_menu->add_submenu_from_user(_pb);
     _main_menu->add_submenu_from_user(_myo2);
     _main_menu->add_submenu_from_user(_jfOpti);
-    _main_menu->add_submenu_from_user(_jfIMU4);
-    _main_menu->add_submenu_from_user(_recordData);
+    _main_menu->add_submenu_from_user(_jfOptiOrientation);
+    // _main_menu->add_submenu_from_user(_jfIMU4);
+    // _main_menu->add_submenu_from_user(_recordData);
 
     _main_menu->activate();
 }
@@ -162,14 +163,14 @@ void SAManager::instantiate_controllers()
     //        _jfIMU3 = std::make_unique<JFIMU_v3>(_robot);
     //    } catch (std::exception&) {
     //    }
-        try {
-            _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
-        } catch (std::exception&) {
-        }
-        try {
-            _recordData = std::make_unique<RecordData>(_robot);
-        } catch (std::exception&) {
-        }
+    try {
+        _jfIMU4 = std::make_unique<JFIMU_v4>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _recordData = std::make_unique<RecordData>(_robot);
+    } catch (std::exception&) {
+    }
 }
 
 void SAManager::autostart_demo()
@@ -182,7 +183,7 @@ void SAManager::autostart_demo()
             _main_menu->activate_item("demo");
             _demo->start();
         } else {
-           _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
         }
     }
 }
