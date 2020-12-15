@@ -15,7 +15,7 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     , _pin_up(24)
     , _pin_down(22)
     , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 5)
-    , _lua("lua(cm)", BaseParam::ReadWrite, this, 40)
+    , _lua("lua(cm)", BaseParam::ReadWrite, this, 35)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 29)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 7)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
@@ -537,6 +537,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         l[0] = _lwrist;
         l[1] = _lfa;
         l[2] = _lua;
+        l[3] = _lsh;
 
         if (protoCyb)
             theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
