@@ -13,7 +13,7 @@ set(SOURCES
     demo.cpp
     demo_imu.cpp
     jf_opti.cpp
-    jf_opti_orientation.cpp
+    jfoptiorientation.cpp
     jfimu_sk.cpp
     jfimu_v3.cpp
     jfimu_v4.cpp

@@ -1,4 +1,5 @@
-#include "jf_opti_orientation.h"
+
+#include "jfoptiorientation.h"
 #include "algo/myocontrol.h"
 #include "components/internal/hand/touch_bionics_hand.h"
 #include "utils/check_ptr.h"
@@ -7,7 +8,7 @@
 #include <iostream>
 
 JFOptiOrientation::JFOptiOrientation(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Jacobian Formulation Optitrack", 0.025)
+    : ThreadedLoop("JFOptitrack Orientation", 0.025)
     , _robot(robot)
     , _k("k", BaseParam::ReadWrite, this, 0.1)
     , _pin_up(24)
@@ -563,12 +564,16 @@ void JFOptiOrientation::loop(double, clock::time_point time)
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
+        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
+        //        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
     } else {
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
+        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
+        //        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
         _lawJ.controlLaw_orientation(_k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
@@ -586,10 +591,10 @@ void JFOptiOrientation::loop(double, clock::time_point time)
 
             if (protoCyb) {
                 set_velocity_motors(-thetaDot_toSend[1], -thetaDot_toSend[0]);
-                if (_cnt % 50 == 0) {
-                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
-                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
-                }
+                //                if (_cnt % 50 == 0) {
+                //                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
+                //                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
+                //                }
             } else {
                 //                set_velocity_motors(thetaDot_toSend[1], -thetaDot_toSend[0]);
                 if (_cnt % 50 == 0) {

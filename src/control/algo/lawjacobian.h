@@ -30,6 +30,7 @@ public:
     void rotationMatrices2(Eigen::Quaterniond qHandOpti, Eigen::Quaterniond qHandIMU, Eigen::Quaterniond qHipOpti, Eigen::Quaterniond qHipIMU, Eigen::Quaterniond qTrunk);
     void projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
+    void orientationInWrist(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
     void bufferingOldValues();
     void updateTrunkFrame(Eigen::Quaterniond qTrunk);
@@ -69,15 +70,16 @@ private:
     Eigen::Vector3d posA0; // initial position of the acromion
     Eigen::Vector3d posA0inHip, posA0inHipOpti; // initial position of the acromion in hip frame
     Eigen::Vector3d posAinHip, posAinHipOpti, posAinHand, IO; // position of the acromion and the elbow in hip frame
-    Eigen::Vector3d HA0, HA; // hip to acromion vectors (initial and current)
+    Eigen::Vector3d HA0, HA, HA0w, HAw; // hip to acromion vectors (initial and current) in hand and wrist frames
     Eigen::Vector3d delta, deltaOpti, disp, dispOpti; // displacement between acromion initial (=reference) position and current position
     Eigen::Vector3d posHip0; // initial position of hip
     double samplePeriod;
     double coeff; // coefficient for low-pass filtering
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaNewOpti, thetaDot; // joint angles and angular velocities command
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA, eulerHA; // Trunk, Arm and Hip-Acromion Euler angles, expressed in hand frame
+    Eigen::Matrix<double, 2, 1, Eigen::DontAlign> omega; // orientation of the hip-acromion vector, around Z0 and Z1 axis
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel, RHA; // rotation matrices
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> R01, Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel, RHA; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
     Eigen::Matrix<double, 2, 2, Eigen::DontAlign> I2;
 

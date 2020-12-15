@@ -155,6 +155,10 @@ void SAManager::instantiate_controllers()
         _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
     } catch (std::exception&) {
     }
+    try {
+        _jfOptiOrientation = std::make_unique<JFOptiOrientation>(_robot);
+    } catch (std::exception&) {
+    }
     //    try {
     //        _jfIMU1 = std::make_unique<JacobianFormulationIMU>(_robot);
     //    } catch (std::exception&) {

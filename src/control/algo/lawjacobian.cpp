@@ -74,6 +74,7 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     deltaOpti[0] = 0;
     deltaOpti[1] = 0;
     deltaOpti[2] = 0;
+    RHA = Eigen::Matrix3d::Zero();
     Rhip = Eigen::Matrix3d::Zero();
     Rhand = Eigen::Matrix3d::Zero();
     RhipOpti = Eigen::Matrix3d::Zero();
@@ -85,6 +86,8 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     thetaNewOpti = Eigen::MatrixXd::Zero(nbLinks, 1);
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
     eulerT = Eigen::MatrixXd::Zero(3, 1);
+    eulerHA = Eigen::MatrixXd::Zero(3, 1);
+    omega = Eigen::MatrixXd::Zero(2, 1);
     J = Eigen::MatrixXd::Zero(3, nbLinks);
     Jp = Eigen::MatrixXd::Zero(3, 1);
     Jo = Eigen::MatrixXd::Zero(3, nbLinks - 1);
@@ -374,7 +377,7 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
 }
 
 /**
- * @brief LawJacobian::orientationInHand compute the orientation change of the hip-acromion vector in hand frame
+ * @brief LawJacobian::orientationInHand computes the orientation change around Z-axis of the hip-acromion vector in hand frame
  * @param posA acromion position
  * @param posHip hip position
  * @param initCounter
@@ -382,21 +385,21 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
  */
 void LawJacobian::orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
-    /// Compute hip-aromion vector in hand frame
+    /// Compute hip-aromion vector in global frame
     /// Initial vector
     if (initCounter == initCounts) {
-        /// for OPTITRACK quaternions
-        HA0 = R0 * RhandOpti.transpose() * (posA0 - posHip0);
-        HA0 = HA0.normalized();
+        HA0 = posA0inHipOpti.normalized();
     }
     /// Current vector
-    HA = R0 * RhandOpti.transpose() * (posA - posHip);
-    HA = HA.normalized();
+    HA = posAinHipOpti.normalized();
 
     ///Compute quaternion of the rotation
-    if (initCounter < initCounts) {
+    if (initCounter > initCounts) {
         Eigen::Vector3d crossP = HA0.cross(HA);
         crossP = crossP.normalized();
+        // projection of the rotation vector in hand frame
+        /// for OPTITRACK quaternions
+        crossP = R0 * RhandOpti.transpose() * RhipOpti * crossP;
         thetaHA = acos(HA0.dot(HA));
         qHA.w() = cos(-thetaHA / 2);
         qHA.x() = sin(-thetaHA / 2) * crossP(0);
@@ -404,9 +407,52 @@ void LawJacobian::orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip
         qHA.z() = sin(-thetaHA / 2) * crossP(2);
 
         RHA = qHA.toRotationMatrix();
-        eulerHA(0) = atan2(RHA(1, 2), RHA(2, 2)); //rotation around X-axis
-        eulerHA(1) = -atan(RHA(0, 2) / sqrt(1 - RHA(0, 2) * RHA(0, 2))); //rotation around Y-axis
-        eulerHA(2) = atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+        omega(0) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+
+        eulerHA(0) = -atan2(RHA(1, 2), RHA(2, 2)); //rotation around X-axis
+        eulerHA(1) = atan(RHA(0, 2) / sqrt(1 - RHA(0, 2) * RHA(0, 2))); //rotation around Y-axis
+        eulerHA(2) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+        //        if (initCounter % 50 == 0)
+        //            debug() << "Rotation around Z0: " << omega(0);
+    }
+}
+/**
+ * @brief LawJacobian::orientationInWrist computes the orientation change around Z-axis of the hip-acromion vector in wrist frame
+ * @param posA acromion position in global frame
+ * @param posHip hip position in global frame
+ * @param initCounter
+ * @param initCounts
+ */
+void LawJacobian::orientationInWrist(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts)
+{
+    /// Compute hip-aromion vector in wrist frame
+    /// Initial vector
+    if (initCounter == initCounts) {
+        /// for OPTITRACK quaternions
+        HA0w = R01 * R0 * RhandOpti.transpose() * (posA0 - posHip0);
+        HA0w = HA0w.normalized();
+    }
+    /// Current vector
+    HAw = R01 * R0 * RhandOpti.transpose() * (posA - posHip);
+    HAw = HAw.normalized();
+
+    ///Compute quaternion of the rotation
+    if (initCounter > initCounts) {
+        Eigen::Vector3d crossPw = HA0w.cross(HAw);
+        crossPw = crossPw.normalized();
+        thetaHA = acos(HA0w.dot(HAw));
+        qHA.w() = cos(-thetaHA / 2);
+        qHA.x() = sin(-thetaHA / 2) * crossPw(0);
+        qHA.y() = sin(-thetaHA / 2) * crossPw(1);
+        qHA.z() = sin(-thetaHA / 2) * crossPw(2);
+
+        RHA = qHA.toRotationMatrix();
+        omega(1) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+        if (initCounter % 50 == 0) {
+            //            debug() << "HA0w: " << HA0w(0) << ";" << HA0w(1) << ";" << HA0w(2);
+            //            debug() << "RHA wrist: " << RHA(0, 0) << RHA(0, 1);
+            debug() << "Rotation around Z1: " << omega(1);
+        }
     }
 }
 
@@ -550,6 +596,10 @@ void LawJacobian::updateFrames(double theta[])
         //        debug() << "x" << i << ": " << x(0, i) << "; " << x(1, i) << "; " << x(2, i) << "\n";
         //        debug() << "y" << i << ": " << y(0, i) << "; " << y(1, i) << "; " << y(2, i) << "\n";
         //        debug() << "z" << i << ": " << z(0, i) << "; " << z(1, i) << "; " << z(2, i) << "\n";
+
+        //        if (i == 1) {
+        //            R01 = Rframe;
+        //        }
     }
 }
 
@@ -646,9 +696,8 @@ void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
         OO(1, 1) = -l[2] * y(1, 2) - l[3] * z(0, 2);
         OO(2, 1) = -l[2] * y(2, 2) - l[3] * z(0, 2);
 
-        //    debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
-        //    debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
-        //    debug() << "OO 24: " << OO(0, 2) << "; " << OO(1, 2) << "; " << OO(2, 2) << "\n";
+        //        debug() << "OO 02: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
+        //        debug() << "OO 12: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
     }
 
     if (nbDOF == 3) {
@@ -687,9 +736,9 @@ void LawJacobian::scaleDisplacementHip(int _cnt)
     //    // ATTENTION : éventuellement changer la coordonnée qu'on modifie en fonction du placement du cluster hanche !!!!
     if (dispOpti(2) < 0) // backward motion (trunk extension)
         dispOpti(2) = 2 * dispOpti(2);
-    //    if (_cnt % 50 == 0) {
-    //        debug() << "rescaled disp opti: " << dispOpti(0) << "; " << dispOpti(1) << "; " << dispOpti(2);
-    //    }
+    if (_cnt % 50 == 0) {
+        debug() << "rescaled disp opti: " << dispOpti(0) << "; " << dispOpti(1) << "; " << dispOpti(2);
+    }
 
     //// With IMU quaternions
     /// Displacement of the acromion in hip frame, from current to initial position
@@ -795,6 +844,9 @@ void LawJacobian::controlLaw_orientation(double k, double lambda[], double thres
     dlsJ = (J.transpose() * J + k * k * I2).inverse() * J.transpose();
 
     thetaNew = dlsJ * eulerHA;
+
+    //    thetaNew(0) = omega(0);
+    //    thetaNew(1) = -omega(1);
 
     /// DEADZONE
     for (int i = 0; i < nbLinks; i++) {
@@ -1020,20 +1072,26 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[i + nbLinks] = thetaNew(i);
         d[i + 2 * nbLinks] = thetaDot(i);
     }
-    for (int i = 0; i < nbLinks; i++) {
-        for (int j = 0; j < 3; j++) {
-            d[3 * nbLinks + j + 3 * i] = OO(j, i);
-        }
-    }
+    //    for (int i = 0; i < nbLinks; i++) {
+    //        for (int j = 0; j < 3; j++) {
+    //            d[3 * nbLinks + j + 3 * i] = OO(j, i);
+    //        }
+    //    }
+
+    d[3 * nbLinks] = thetaHA;
+    d[3 * nbLinks + 1] = qHA.w();
+    d[3 * nbLinks + 2] = qHA.x();
+    d[3 * nbLinks + 3] = qHA.y();
+    d[3 * nbLinks + 4] = qHA.z();
 
     for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + j] = deltaOpti(j);
+        d[6 * nbLinks + j] = HA(j);
     }
     for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + 3 + j] = posAinHipOpti(j);
+        d[6 * nbLinks + 3 + j] = HA0(j);
     }
     for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + 6 + j] = dispOpti(j);
+        d[6 * nbLinks + 6 + j] = posA0(j);
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 9 + j] = eulerHA(j);

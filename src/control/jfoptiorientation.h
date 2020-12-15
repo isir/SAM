@@ -1,5 +1,6 @@
-#ifndef JACOBIAN_FORMULATION_OPTI_ORIENTATION_H
-#define JACOBIAN_FORMULATION_OPTI_ORIENTATION_H
+#ifndef JFOPTIORIENTATION_H
+#define JFOPTIORIENTATION_H
+
 
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
@@ -58,7 +59,7 @@ private:
 
     // boolean to indicate which prototype and whether we save data
     bool protoCyb = true;
-    bool saveData = false;
+    bool saveData = true;
 };
 
-#endif //
+#endif // // JFOPTIORIENTATION_H
