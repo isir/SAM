@@ -385,13 +385,13 @@ void LawJacobian::projectionInHip(Eigen::Vector3d posA, Eigen::Vector3d posHip, 
  */
 void LawJacobian::orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts)
 {
-    /// Compute hip-aromion vector in global frame
+    /// Compute hip-aromion vector in current hand frame
     /// Initial vector
-    if (initCounter == initCounts) {
-        HA0 = posA0inHipOpti.normalized();
-    }
+    HA0 = R0 * RhandOpti.transpose() * (posA0 - posHip0);
+    HA0 = HA0.normalized();
+
     /// Current vector
-    HA = posAinHipOpti.normalized();
+    HA = (R0 * RhandOpti.transpose() * (posA - posHip)).normalized();
 
     ///Compute quaternion of the rotation
     if (initCounter > initCounts) {
@@ -399,7 +399,6 @@ void LawJacobian::orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip
         crossP = crossP.normalized();
         // projection of the rotation vector in hand frame
         /// for OPTITRACK quaternions
-        crossP = R0 * RhandOpti.transpose() * RhipOpti * crossP;
         thetaHA = acos(HA0.dot(HA));
         qHA.w() = cos(-thetaHA / 2);
         qHA.x() = sin(-thetaHA / 2) * crossP(0);
