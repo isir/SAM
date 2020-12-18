@@ -564,13 +564,10 @@ void JFOptiOrientation::loop(double, clock::time_point time)
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
-        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
-        _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         //        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
     } else {
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
-        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
         //        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
@@ -618,10 +615,10 @@ void JFOptiOrientation::loop(double, clock::time_point time)
 
         if (electrodes[1] <= 0 && electrodes[0] > 0) {
             // open hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
         } else if (electrodes[0] <= 0 && electrodes[1] > 0) {
             //close hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
         } else {
             _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
         }
