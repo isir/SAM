@@ -350,10 +350,10 @@ void myo_2electrodes::loop(double, clock::time_point time)
         std::cout << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[4] << "\t" << _electrodes[5] << std::endl;
         if (_electrodes[5] <= 0 && _electrodes[4] > 0) {
             // Open quantum hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
         } else if (_electrodes[4] <= 0 && _electrodes[5] > 0) {
             // Close quantum hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
         } else {
             _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
         }
