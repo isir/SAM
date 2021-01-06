@@ -565,12 +565,12 @@ void JFOptiOrientation::loop(double, clock::time_point time)
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
         _lawJ.updateFrames(theta);
-        //        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
+        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
     } else {
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
-        _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
+        //        _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
-        //        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
+        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
         _lawJ.controlLaw_orientation(_k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
