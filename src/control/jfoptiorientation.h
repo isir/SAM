@@ -1,18 +1,18 @@
-#ifndef JACOBIAN_FORMULATION_OPTI_H
-#define JACOBIAN_FORMULATION_OPTI_H
+#ifndef JFOPTIORIENTATION_H
+#define JFOPTIORIENTATION_H
+
 
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
 #include "utils/interfaces/mqtt_user.h"
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
-#include "utils/interfaces/mqtt_user.h"
 #include <fstream>
 
-class JacobianFormulationOpti : public ThreadedLoop, public MqttUser {
+class JFOptiOrientation : public ThreadedLoop, public MqttUser {
 public:
-    explicit JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot);
-    ~JacobianFormulationOpti() override;
+    explicit JFOptiOrientation(std::shared_ptr<SAM::Components> robot);
+    ~JFOptiOrientation() override;
 
 private:
     void tare_allIMU();
@@ -32,7 +32,6 @@ private:
     void cleanup() override;
 
     std::shared_ptr<SAM::Components> _robot;
-    Socket _receiver;
     std::ofstream _file;
     bool _need_to_write_header;
     int _cnt;
@@ -50,12 +49,7 @@ private:
     int l[nbLinks];
     int nbRigidBodies;
 
-    Param<int> _k; // gain for damped least square solution
-    Param<int> _useIMU; // 0 or 1, indicate if we use IMUs (1) for hip and hand frame or optitrack (0)
-    Param<double> _lsh; // acromion offset
-    Param<double> _lua; // upperarm length
-    Param<double> _lfa; // forearm length
-    Param<double> _lwrist; // wrist length (from wrist to hand)
+    Param<double> _k; // gain for damped least square solution
     Param<double> _lambdaE; // gain for elbow velocity control
     Param<double> _lambdaWF; // gain for wrist flexion velocity control
     Param<double> _lambdaWPS; // gain for wrist pronosup velocity control
@@ -68,4 +62,4 @@ private:
     bool saveData = true;
 };
 
-#endif // GENERAL_FORMULATION_H
+#endif // // JFOPTIORIENTATION_H

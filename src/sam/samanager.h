@@ -4,21 +4,22 @@
 #include "control/compensation_imu.h"
 #include "control/compensation_optitrack.h"
 #include "control/cybathlon.h"
+#include "control/cybathlon.h"
 #include "control/demo.h"
 #include "control/demo_imu.h"
 #include "control/jf_opti.h"
 #include "control/jfimu_v1.h"
 #include "control/jfimu_v3.h"
 #include "control/jfimu_v4.h"
+#include "control/jfoptiorientation.h"
 #include "control/matlab_receiver.h"
 #include "control/myo_2electrodes.h"
 #include "control/pushbuttons.h"
 #include "control/read_adc.h"
 #include "control/recorddata.h"
 #include "control/remote_computer_control.h"
-#include "control/voluntary_control.h"
-#include "control/cybathlon.h"
 #include "control/test_imu.h"
+#include "control/voluntary_control.h"
 #include "sam/sam.h"
 #include "sam/system_monitor.h"
 #include "ui/menu/menu_console.h"
@@ -47,6 +48,7 @@ private:
     std::unique_ptr<pushButtons> _pb;
     std::unique_ptr<myo_2electrodes> _myo2;
     std::unique_ptr<JacobianFormulationOpti> _jfOpti;
+    std::unique_ptr<JFOptiOrientation> _jfOptiOrientation;
     std::unique_ptr<JFIMU_v1> _jfIMU1;
     std::unique_ptr<JFIMU_v3> _jfIMU3;
     std::unique_ptr<JFIMU_v4> _jfIMU4;

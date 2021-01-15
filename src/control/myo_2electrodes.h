@@ -38,6 +38,12 @@ private:
     std::string _filename;
     clock::time_point _start_time;
     int _cnt;
+
+    // Myo thresholds for state machine
+    Param<int> _forward_upper;
+    Param<int> _forward_lower;
+    Param<int> _backward_upper;
+    Param<int> _backward_lower;
 };
 
 #endif // MYO_2ELECTRODES_H

@@ -1,4 +1,5 @@
-#include "jf_opti.h"
+
+#include "jfoptiorientation.h"
 #include "algo/myocontrol.h"
 #include "components/internal/hand/touch_bionics_hand.h"
 #include "utils/check_ptr.h"
@@ -6,18 +7,12 @@
 #include <filesystem>
 #include <iostream>
 
-JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Jacobian Formulation Optitrack", 0.025)
+JFOptiOrientation::JFOptiOrientation(std::shared_ptr<SAM::Components> robot)
+    : ThreadedLoop("JFOptitrack Orientation", 0.025)
     , _robot(robot)
-    , _k("k", BaseParam::ReadWrite, this, 5)
-    , _useIMU("useIMU", BaseParam::ReadWrite, this, 0)
-    , _lt(40)
+    , _k("k", BaseParam::ReadWrite, this, 0.1)
     , _pin_up(24)
     , _pin_down(22)
-    , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 5)
-    , _lua("lua(cm)", BaseParam::ReadWrite, this, 35)
-    , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 29)
-    , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 7)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
     , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
     , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 4)
@@ -29,8 +24,8 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
         throw std::runtime_error("Jacobian Formulation Control is missing components");
     }
 
-    _menu->set_description("Jacobian Formulation Opti");
-    _menu->set_code("jfo");
+    _menu->set_description("JF Opti Orientation");
+    _menu->set_code("jfoo");
     _menu->add_item("tareAll", "Tare all IMUs", [this](std::string) { this->tare_allIMU(); });
     _menu->add_item("tareWhite", "Tare white IMU (trunk)", [this](std::string) { this->tare_whiteIMU(); });
     _menu->add_item("tareYellow", "Tare yellow IMU (hip)", [this](std::string) { this->tare_yellowIMU(); });
@@ -58,14 +53,14 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     }
 }
 
-JacobianFormulationOpti::~JacobianFormulationOpti()
+JFOptiOrientation::~JFOptiOrientation()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
     stop_and_join();
 }
 
-void JacobianFormulationOpti::tare_allIMU()
+void JFOptiOrientation::tare_allIMU()
 {
     if (!_robot->sensors.red_imu || !_robot->sensors.yellow_imu) {
         std::cout << "An IMU is missing." << std::endl;
@@ -108,7 +103,7 @@ void JacobianFormulationOpti::tare_allIMU()
     }
 }
 
-void JacobianFormulationOpti::tare_whiteIMU()
+void JFOptiOrientation::tare_whiteIMU()
 {
     if (!_robot->sensors.white_imu) {
         std::cout << "White IMU is missing." << std::endl;
@@ -136,7 +131,7 @@ void JacobianFormulationOpti::tare_whiteIMU()
     }
 }
 
-void JacobianFormulationOpti::tare_yellowIMU()
+void JFOptiOrientation::tare_yellowIMU()
 {
     if (!_robot->sensors.yellow_imu) {
         std::cout << "Yellow IMU is missing." << std::endl;
@@ -163,7 +158,7 @@ void JacobianFormulationOpti::tare_yellowIMU()
     }
 }
 
-void JacobianFormulationOpti::tare_redIMU()
+void JFOptiOrientation::tare_redIMU()
 {
     if (!_robot->sensors.red_imu) {
         std::cout << "Red IMU is missing." << std::endl;
@@ -190,7 +185,7 @@ void JacobianFormulationOpti::tare_redIMU()
     }
 }
 
-void JacobianFormulationOpti::elbowTo90()
+void JFOptiOrientation::elbowTo90()
 {
     if (protoCyb)
         _robot->joints.elbow_flexion->move_to(100, 20);
@@ -198,7 +193,7 @@ void JacobianFormulationOpti::elbowTo90()
         _robot->joints.elbow_flexion->move_to(-90, 10);
 }
 
-void JacobianFormulationOpti::toPos0()
+void JFOptiOrientation::toPos0()
 {
     if (protoCyb)
         _robot->joints.elbow_flexion->move_to(50, 20);
@@ -208,7 +203,7 @@ void JacobianFormulationOpti::toPos0()
     _robot->joints.wrist_pronation->move_to(-90, 40);
 }
 
-void JacobianFormulationOpti::toPos1()
+void JFOptiOrientation::toPos1()
 {
     if (protoCyb)
         _robot->joints.elbow_flexion->move_to(100, 20);
@@ -218,7 +213,7 @@ void JacobianFormulationOpti::toPos1()
     _robot->joints.wrist_pronation->move_to(30, 40);
 }
 
-void JacobianFormulationOpti::toPos2()
+void JFOptiOrientation::toPos2()
 {
     if (protoCyb)
         _robot->joints.elbow_flexion->move_to(110, 20);
@@ -228,7 +223,7 @@ void JacobianFormulationOpti::toPos2()
     _robot->joints.wrist_pronation->move_to(-30, 40);
 }
 
-void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double speed_wrist)
+void JFOptiOrientation::set_velocity_motors(double speed_elbow, double speed_wrist)
 {
     // ELBOW
     if (_robot->joints.elbow_flexion->is_calibrated() == false) {
@@ -237,7 +232,7 @@ void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double spe
     }
     int32_t pos_elbow;
     double max_angle_elbow = _robot->joints.elbow_flexion->get_max_angle();
-    double min_angle_elbow = 5; // _robot->joints.elbow_flexion->get_min_angle();
+    double min_angle_elbow = _robot->joints.elbow_flexion->get_min_angle();
     if (speed_elbow > 0)
         pos_elbow = static_cast<int32_t>(max_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
     else
@@ -270,14 +265,11 @@ void JacobianFormulationOpti::set_velocity_motors(double speed_elbow, double spe
     }
 }
 
-void JacobianFormulationOpti::calibrations()
+void JFOptiOrientation::calibrations()
 {
     // HAND
     if (_robot->joints.hand) {
         _robot->joints.hand->take_ownership();
-        //        _robot->joints.hand->init_sequence();
-        //        _robot->joints.hand->setPosture(TouchBionicsHand::PINCH_POSTURE);
-        //        _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
     }
 
     // ELBOW
@@ -310,7 +302,7 @@ void JacobianFormulationOpti::calibrations()
         _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
-void JacobianFormulationOpti::displayPin()
+void JFOptiOrientation::displayPin()
 {
     int pin_down_value = _robot->btn2;
     int pin_up_value = _robot->btn1;
@@ -318,7 +310,7 @@ void JacobianFormulationOpti::displayPin()
     debug() << "PinDown: " << pin_down_value;
 }
 
-void JacobianFormulationOpti::displayRBnb()
+void JFOptiOrientation::displayRBnb()
 {
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
@@ -326,7 +318,7 @@ void JacobianFormulationOpti::displayRBnb()
     std::cout << "nbRigid Bodies: " << data.nRigidBodies << std::endl;
 }
 
-bool JacobianFormulationOpti::setup()
+bool JFOptiOrientation::setup()
 {
     _robot->joints.wrist_pronation->set_encoder_position(0);
 
@@ -343,7 +335,7 @@ bool JacobianFormulationOpti::setup()
 
     // OPEN AND NAME DATA FILE
     if (saveData) {
-        std::string filename("JFOpti");
+        std::string filename("JFOptiOrientation");
         std::string suffix;
 
         int cnt = 0;
@@ -372,7 +364,7 @@ bool JacobianFormulationOpti::setup()
     return true;
 }
 
-void JacobianFormulationOpti::loop(double, clock::time_point time)
+void JFOptiOrientation::loop(double, clock::time_point time)
 {
     static double pronoSupEncoder = 0;
     static double elbowEncoder = 0;
@@ -448,12 +440,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     qTrunk.y() = 0.;
     qTrunk.z() = 0.;
 
-    Eigen::Quaterniond qArm;
-    qArm.w() = 0.;
-    qArm.x() = 0.;
-    qArm.y() = 0.;
-    qArm.z() = 0.;
-
     for (int i = 0; i < nbRigidBodies; i++) {
         if (data.rigidBodies[i].ID == 4) {
             // acromion position
@@ -503,11 +489,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lambda[0] = _lambdaWF;
         _lambda[1] = _lambdaWPS;
         _lambda[2] = _lambdaE;
-        // set arm lengths
-        l[0] = _lwrist; //  from the pronosupination joint to the wrist flexion/ext joint
-        l[1] = _lfa; //  from the wrist flex/ext joint to the elbow flex/ext joint
-        l[2] = _lua; // from the elbow joint to the acromion/shoulder joint
-        l[3] = _lsh; // acromion offset
 
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
@@ -532,12 +513,6 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         // set gain
         _lambda[0] = _lambdaWPS;
         _lambda[1] = _lambdaE;
-
-        // set arm lengths
-        l[0] = _lwrist;
-        l[1] = _lfa;
-        l[2] = _lua;
-        l[3] = _lsh;
 
         if (protoCyb)
             theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
@@ -576,10 +551,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     }
     if (_robot->sensors.white_imu) {
         _robot->sensors.white_imu->get_quat(qWhite);
-        qArm.w() = qWhite[0];
-        qArm.x() = qWhite[1];
-        qArm.y() = qWhite[2];
-        qArm.z() = qWhite[3];
+        qTrunk.w() = qWhite[0];
+        qTrunk.x() = qWhite[1];
+        qTrunk.y() = qWhite[2];
+        qTrunk.z() = qWhite[3];
     }
 
     /// CONTROL LOOP
@@ -589,16 +564,14 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
-        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
-        _lawJ.computeOriginsVectors(l, nbDOF);
+        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
     } else {
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
-        _lawJ.projectionInHip(posA, posHip, _cnt, init_cnt);
+        //        _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
-        _lawJ.computeOriginsVectors(l, nbDOF);
-        _lawJ.scaleDisplacementHip(_cnt);
-        _lawJ.controlLaw_v1(posA, _k, _useIMU, _lambda, _threshold, _cnt);
+        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
+        _lawJ.controlLaw_orientation(_k, _lambda, _threshold, _cnt);
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -615,10 +588,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
             if (protoCyb) {
                 set_velocity_motors(-thetaDot_toSend[1], -thetaDot_toSend[0]);
-                if (_cnt % 50 == 0) {
-                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
-                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
-                }
+                //                if (_cnt % 50 == 0) {
+                //                    debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
+                //                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
+                //                }
             } else {
                 //                set_velocity_motors(thetaDot_toSend[1], -thetaDot_toSend[0]);
                 if (_cnt % 50 == 0) {
@@ -642,10 +615,10 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
 
         if (electrodes[1] <= 0 && electrodes[0] > 0) {
             // open hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
         } else if (electrodes[0] <= 0 && electrodes[1] > 0) {
             //close hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
         } else {
             _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
         }
@@ -685,9 +658,9 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.writeDebugData(debugData, theta);
         /// WRITE DATA
         if (protoCyb)
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lsh;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << electrodes[0] << ' ' << electrodes[1];
         else
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lsh;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << pin_down_value << ' ' << pin_up_value;
 
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
         _file << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3] << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3];
@@ -709,7 +682,7 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
     //std::cout << std::chrono::duration_cast<std::chrono::milliseconds>(time.time_since_epoch()).count() << "ms" << std::endl;
 }
 
-void JacobianFormulationOpti::cleanup()
+void JFOptiOrientation::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
     if (_robot->joints.wrist_flexion)
