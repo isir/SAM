@@ -178,14 +178,18 @@ void myo_2electrodes::calibrations()
     if (_robot->joints.elbow_flexion->is_calibrated())
         debug() << "Calibration elbow: ok \n";
 
-    // WRIST PRONATION
-    if (_robot->joints.wrist_pronation->is_calibrated() == false) {
-        _robot->joints.wrist_pronation->calibrate();
-    }
-    if (_robot->joints.wrist_pronation->is_calibrated())
-        debug() << "Calibration wrist pronation: ok \n";
+//    // WRIST PRONATION
+//    if (_robot->joints.wrist_pronation->is_calibrated() == false) {
+//        _robot->joints.wrist_pronation->calibrate();
+//    }
+//    if (_robot->joints.wrist_pronation->is_calibrated())
+//        debug() << "Calibration wrist pronation: ok \n";
 
-    _robot->joints.elbow_flexion->move_to(100, 20, true);
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(100, 20, true);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 20, true);
+
 }
 
 void myo_2electrodes::elbowTo90()
@@ -195,7 +199,10 @@ void myo_2electrodes::elbowTo90()
         warning() << "Elbow not calibrated...";
         return;
     } else {
-        _robot->joints.elbow_flexion->move_to(100, 20);
+        if (protoCyb)
+            _robot->joints.elbow_flexion->move_to(100, 20);
+        else
+            _robot->joints.elbow_flexion->move_to(-90,20);
     }
 }
 
@@ -304,13 +311,6 @@ void myo_2electrodes::loop(double, clock::time_point time)
         }
 #endif
 
-        // button "mode compensation" of cybathlon to indicate beginning of motion
-        int btnStart;
-        if (!_robot->btn2)
-            btnStart = 0;
-        else
-            btnStart = 1;
-
         double timeWithDelta = (time - _start_time).count();
 
         static std::unique_ptr<MyoControl::Classifier> myocontrol;
@@ -323,41 +323,96 @@ void myo_2electrodes::loop(double, clock::time_point time)
         static const MyoControl::EMGThresholds thresholds(_forward_upper, _forward_lower, _forward_upper, _backward_upper, _backward_lower, _backward_upper);
 
         auto robot = _robot;
-        MyoControl::Action elbow(
-            "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
-        MyoControl::Action wrist_pronosup(
-            "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
-
-        std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
 
         static LedStrip::color current_color = LedStrip::none;
 
-        static bool first = true;
-        if (first) {
-            current_color = LedStrip::green;
-            myocontrol = std::make_unique<MyoControl::BubbleCocoClassifier>(s1, thresholds, counts_after_mode_change, counts_cocontraction, counts_before_bubble, counts_after_bubble);
-            first = false;
+        if (protoCyb){
+            MyoControl::Action elbow(
+                        "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
+            MyoControl::Action wrist_pronosup(
+                        "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+
+            std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
+
+            static bool first = true;
+            if (first) {
+                current_color = LedStrip::green;
+                myocontrol = std::make_unique<MyoControl::BubbleCocoClassifier>(s1, thresholds, counts_after_mode_change, counts_cocontraction, counts_before_bubble, counts_after_bubble);
+                first = false;
+            }
+
+            readAllADC();
+            /// MYO CONTROL FOR WRIST AND ELBOW
+            myocontrol->process(_electrodes[0], _electrodes[1]);
+        }
+        else {
+            MyoControl::Action elbow(
+                        "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-25); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
+            MyoControl::Action wrist_pronosup(
+                        "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(80); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+
+            std::vector<MyoControl::Action> s1{ wrist_pronosup, elbow };
+
+            static bool first = true;
+            if (first) {
+                current_color = LedStrip::green;
+                myocontrol = std::make_unique<MyoControl::BubbleCocoClassifier>(s1, thresholds, counts_after_mode_change, counts_cocontraction, counts_before_bubble, counts_after_bubble);
+                first = false;
+            }
+
+            readAllADC();
+            /// MYO CONTROL FOR WRIST AND ELBOW
+            myocontrol->process(_electrodes[4], _electrodes[5]);
         }
 
-        readAllADC();
-        /// MYO CONTROL FOR WRIST AND ELBOW
-        myocontrol->process(_electrodes[0], _electrodes[1]);
         if (_cnt % 50 == 0)
-            debug() << "electrodes 0 et 1: " << _electrodes[0] << " " << _electrodes[1];
+            debug() << "electrodes 0 et 1: " << _electrodes[4] << " " << _electrodes[5];
 
         ///PUSH-BUTTONS FOR HAND CONTROL
+        int pin_down_value = 0, pin_up_value = 0;
         //        debug() << "electrodes 4 et 5: " << _electrodes[4] << " " << _electrodes[5];
         std::cout << _electrodes[0] << "\t" << _electrodes[1] << "\t" << _electrodes[4] << "\t" << _electrodes[5] << std::endl;
-        if (_electrodes[5] <= 0 && _electrodes[4] > 0) {
-            // Open quantum hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
-        } else if (_electrodes[4] <= 0 && _electrodes[5] > 0) {
-            // Close quantum hand
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
-        } else {
-            _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
+        if (protoCyb){
+            if (_electrodes[5] <= 0 && _electrodes[4] > 0) {
+                // Open quantum hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+            } else if (_electrodes[4] <= 0 && _electrodes[5] > 0) {
+                // Close quantum hand
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+            } else {
+                _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
+            }
         }
+        else{
+            pin_down_value = _robot->btn2;
+            pin_up_value = _robot->btn1;
+            static int prev_pin_up_value = 1, prev_pin_down_value = 1;
+            if (!_robot->joints.hand) {
+                // printf("Quantum hand \n");
+                std::cout << pin_down_value << "\t" << pin_up_value << std::endl;
+                if (pin_down_value == 0 && pin_up_value == 1) {
+                    // close hand
+                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 2, 2);
+                } else if (pin_up_value == 0 && pin_down_value == 1) {
+                    //open hand
+                    _robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION, 1, 2);
+                } else {
+                    _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
+                }
+            } else {
+                printf("TB hand\n");
+                if (pin_down_value == 0 && prev_pin_down_value == 1) {
+                    _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
+                } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
+                    _robot->joints.hand->move(TouchBionicsHand::PINCH_OPENING);
+                } else if ((pin_down_value == 1 && pin_up_value == 1) && (prev_pin_down_value == 0 || prev_pin_up_value == 0)) {
+                    _robot->joints.hand->move(TouchBionicsHand::STOP);
+                }
+            }
 
+            prev_pin_down_value = pin_down_value;
+            prev_pin_up_value = pin_up_value;
+        }
         /// ELBOW
         try {
             tmpEncoder = elbowEncoder;
@@ -390,8 +445,14 @@ void myo_2electrodes::loop(double, clock::time_point time)
         }
 
         double angles[2];
-        angles[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg(); // for Cybathlon prototype
-        angles[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        if (protoCyb){
+            angles[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg(); // for Cybathlon prototype
+            angles[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        }
+        else{
+            angles[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg(); // for Cybathlon prototype
+            angles[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        }
 
         if (myocontrol->has_changed_mode()) {
             _robot->user_feedback.buzzer->makeNoise(Buzzer::STANDARD_BUZZ);
@@ -416,6 +477,7 @@ void myo_2electrodes::loop(double, clock::time_point time)
         }
         _robot->user_feedback.leds->set(colors);
 
+        int btnStart = 0;
         if (saveData) {
             /// WRITE DATA
             _file << timeWithDelta << ' ' << btnStart << ' ' << _electrodes[0] << ' ' << _electrodes[1] << ' ' << _electrodes[4] << ' ' << _electrodes[5];
