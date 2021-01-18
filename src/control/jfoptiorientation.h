@@ -1,7 +1,6 @@
 #ifndef JFOPTIORIENTATION_H
 #define JFOPTIORIENTATION_H
 
-
 #include "algo/lawjacobian.h"
 #include "sam/sam.h"
 #include "utils/interfaces/mqtt_user.h"
@@ -58,7 +57,7 @@ private:
     Param<double> _thresholdWPS; // threshold for wrist pronosup deadzone
 
     // boolean to indicate which prototype and whether we save data
-    bool protoCyb = true;
+    bool protoCyb = false;
     bool saveData = true;
 };
 

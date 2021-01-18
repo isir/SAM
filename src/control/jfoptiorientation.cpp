@@ -514,12 +514,13 @@ void JFOptiOrientation::loop(double, clock::time_point time)
         _lambda[0] = _lambdaWPS;
         _lambda[1] = _lambdaE;
 
-        if (protoCyb)
+        if (protoCyb) {
             theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
-        else
+            theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        } else {
             theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
-
-        theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+            theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        }
 
         //        double eRed[2];
         //        _robot->sensors.red_imu->get_euler(eRed);
@@ -593,7 +594,7 @@ void JFOptiOrientation::loop(double, clock::time_point time)
                 //                    debug() << "elbow flex vel :" << -thetaDot_toSend[1] << "\n";
                 //                }
             } else {
-                //                set_velocity_motors(thetaDot_toSend[1], -thetaDot_toSend[0]);
+                set_velocity_motors(thetaDot_toSend[1], -thetaDot_toSend[0]);
                 if (_cnt % 50 == 0) {
                     debug() << "pronosup vel :" << -thetaDot_toSend[0] << "\n";
                     debug() << "elbow flex vel :" << thetaDot_toSend[1] << "\n";
