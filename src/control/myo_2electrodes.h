@@ -31,7 +31,7 @@ private:
 
     int _pin1, _pin2;
 
-    bool saveData = false;
+    bool saveData = true;
     bool protoCyb = false;
 
     std::ofstream _file;
@@ -45,7 +45,6 @@ private:
     Param<int> _forward_lower;
     Param<int> _backward_upper;
     Param<int> _backward_lower;
-
 };
 
 #endif // MYO_2ELECTRODES_H
