@@ -10,8 +10,8 @@ PronoSupination::PronoSupination()
 
     set_params_limits(-100., 0.);
     set_params_technical(102, 100);
-    set_params_velocity(4.2f, 0.56f, 0, 6000);
-    set_params_position(51., 1.4f, 428., 60., 0., -180., 180.);
+    set_params_velocity(4.15f, 0.4f, 0, 7500);
+    set_params_position(10., 0., 0., 0., 0., -180., 180.);
 }
 
 void PronoSupination::set_velocity_safe(double deg_s)
