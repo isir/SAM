@@ -23,6 +23,6 @@ target_link_libraries(sam
                       ui
                       utils
                       ux
-                      wiringPi)
+                      bcm2835)
 
 install(TARGETS sam RUNTIME DESTINATION /opt/)

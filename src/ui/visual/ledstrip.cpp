@@ -1,6 +1,6 @@
 #include "ledstrip.h"
 #include "utils/log/log.h"
-#include "wiringPiSPI.h"
+#include <bcm2835.h>
 
 static const uint8_t led_value = 50;
 
@@ -12,13 +12,16 @@ LedStrip::color LedStrip::none(0, 0, 0, 0);
 
 LedStrip::LedStrip()
 {
-    if (wiringPiSPISetup(0, 500000) < 0) {
-        critical() << "wiringPiSPISetup failed";
+    if (bcm2835_spi_begin() < 0) {
+        critical() << "bcm2835_spi_begin failed";
     }
+    bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_512);
+    bcm2835_spi_chipSelect(BCM2835_SPI_CS0);
 }
 
 LedStrip::~LedStrip()
 {
+    bcm2835_spi_end();
 }
 
 void LedStrip::set(std::vector<color> colors)
@@ -41,23 +44,23 @@ void LedStrip::set(color c, unsigned int n)
 
 void LedStrip::send_opening_bytes()
 {
-    uint8_t buf[4] = { 0x00, 0x00, 0x00, 0x00 };
-    wiringPiSPIDataRW(0, reinterpret_cast<unsigned char*>(&buf), 4);
+    char buf[4] = { 0x00, 0x00, 0x00, 0x00 };
+    bcm2835_spi_writenb(reinterpret_cast<char*>(&buf), 4);
 }
 
 void LedStrip::send_closing_bytes()
 {
-    uint8_t buf[4] = { 0xff, 0xff, 0xff, 0xff };
-    wiringPiSPIDataRW(0, reinterpret_cast<unsigned char*>(&buf), 4);
+    char buf[4] = { 0xff, 0xff, 0xff, 0xff };
+    bcm2835_spi_writenb(reinterpret_cast<char*>(&buf), 4);
 }
 
 void LedStrip::send_color_bytes(color c)
 {
-    uint8_t led_frame[4];
+    char led_frame[4];
     led_frame[0] = 0b11100000 | (0b00011111 & c.brightness);
     led_frame[1] = c.b;
     led_frame[2] = c.g;
     led_frame[3] = c.r;
 
-    wiringPiSPIDataRW(0, led_frame, 4);
+    bcm2835_spi_writenb(reinterpret_cast<char*>(&led_frame), 4);
 }
