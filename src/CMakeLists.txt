@@ -7,7 +7,8 @@ set(SOURCES
     sam/samanager.cpp
     sam/system_monitor.cpp)
 
-include_directories(.)
+include_directories(. /opt/vc/include)
+link_directories(/opt/vc/lib)
 
 add_subdirectory(components)
 add_subdirectory(control)
