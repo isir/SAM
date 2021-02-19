@@ -14,6 +14,7 @@ JacobianFormulationOpti::JacobianFormulationOpti(std::shared_ptr<SAM::Components
     , _lt(40)
     , _pin_up(24)
     , _pin_down(22)
+    , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 7)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 35)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 29)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 5)
