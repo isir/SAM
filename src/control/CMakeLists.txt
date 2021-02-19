@@ -14,9 +14,6 @@ set(SOURCES
     demo_imu.cpp
     jf_opti.cpp
     jfoptiorientation.cpp
-    jfimu_sk.cpp
-    jfimu_v3.cpp
-    jfimu_v4.cpp
     matlab_receiver.cpp
     read_adc.cpp
     remote_computer_control.cpp

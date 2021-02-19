@@ -8,9 +8,6 @@
 #include "control/demo.h"
 #include "control/demo_imu.h"
 #include "control/jf_opti.h"
-#include "control/jfimu_v1.h"
-#include "control/jfimu_v3.h"
-#include "control/jfimu_v4.h"
 #include "control/jfoptiorientation.h"
 #include "control/matlab_receiver.h"
 #include "control/myo_2electrodes.h"
@@ -49,9 +46,6 @@ private:
     std::unique_ptr<myo_2electrodes> _myo2;
     std::unique_ptr<JacobianFormulationOpti> _jfOpti;
     std::unique_ptr<JFOptiOrientation> _jfOptiOrientation;
-    std::unique_ptr<JFIMU_v1> _jfIMU1;
-    std::unique_ptr<JFIMU_v3> _jfIMU3;
-    std::unique_ptr<JFIMU_v4> _jfIMU4;
     std::unique_ptr<RecordData> _recordData;
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
