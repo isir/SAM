@@ -6,14 +6,14 @@
 #include <string.h>
 
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
-//static const int nbFrames = 4;
-//static const int nbLinks = 3;
-//static const std::string rel = "0yyz";
+static const int nbFrames = 4;
+static const int nbLinks = 3;
+static const std::string rel = "0xyz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
-static const int nbFrames = 3;
-static const int nbLinks = 2;
-static const std::string rel = "0yz";
+//static const int nbFrames = 3;
+//static const int nbLinks = 2;
+//static const std::string rel = "0yz";
 #define ROW ;
 
 class LawJacobian {
@@ -39,11 +39,9 @@ public:
     void computeOriginsVectors(int l[], int nbDOF);
     void computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qHip);
     void computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm);
-    void controlLaw_v1(Eigen::Vector3d posA, int k, int useIMU, double lambda[], double threshold[], int _cnt);
-    void controlLaw_orientation(double k, double lambda[], double threshold[], int _cnt);
-    void controlLaw_v2(int k, double lambda[], double threshold[], int _cnt);
-    void controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
-    void controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt);
+    void controlLaw_v1(int useIMU, double lambda[], double threshold[], int _cnt);
+    void controlLaw_orientation2DOF(double lambda[], double threshold[], int _cnt);
+    void controlLaw_orientation3DOF(double lambda[], double threshold[], int _cnt);
     void scaleDisplacementIMU(int lt, int _cnt);
     void scaleDisplacementHip(int _cnt);
     void writeDebugData(double debug[], double theta[]);
@@ -77,13 +75,14 @@ private:
     double coeff; // coefficient for low-pass filtering
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaNewOpti, thetaDot; // joint angles and angular velocities command
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA, eulerHA; // Trunk, Arm and Hip-Acromion Euler angles, expressed in hand frame
-    Eigen::Matrix<double, 2, 1, Eigen::DontAlign> omega; // orientation of the hip-acromion vector, around Z0 and Z1 axis
+    Eigen::Matrix<double, 2, 1, Eigen::DontAlign> thetaHA; // orientation of the hip-acromion vector, around Z0 and Z1 axis
+    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> thetaAcr; // Euler angles sequence of the acromion, expressed in hand frame
 
     Eigen::Matrix<double, 3, 3, Eigen::DontAlign> R01, Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel, RHA; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
     Eigen::Matrix<double, 2, 2, Eigen::DontAlign> I2;
 
-    double theta0H, theta0T, thetaHA; // angles to correct trunk and hip IMU initial orientation
+    double theta0H, theta0T, alpha; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT, qHA; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
     Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative; // quaternions for hip, arm and trunk frames
     Eigen::Quaternion<double, Eigen::DontAlign> Yinit, Y0, Xinit, X0, Zinit, Z0; // quaternions to compute initial and current trunk frame

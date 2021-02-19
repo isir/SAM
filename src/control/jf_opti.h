@@ -19,9 +19,6 @@ private:
     void tare_yellowIMU();
     void tare_redIMU();
     void elbowTo90();
-    void toPos0();
-    void toPos1();
-    void toPos2();
     void set_velocity_motors(double speed_elbow, double speed_wrist);
     void displayPin();
     void displayRBnb();
@@ -51,10 +48,10 @@ private:
 
     Param<int> _k; // gain for damped least square solution
     Param<int> _useIMU; // 0 or 1, indicate if we use IMUs (1) for hip and hand frame or optitrack (0)
-    Param<double> _lsh; // acromion offset
+    Param<double> _lhand; //from the hand to the wrist joint
     Param<double> _lua; // upperarm length
     Param<double> _lfa; // forearm length
-    Param<double> _lwrist; // wrist length (from wrist to hand)
+    Param<double> _lwrist; // wrist length (between the ywo wrist dof)
     Param<double> _lambdaE; // gain for elbow velocity control
     Param<double> _lambdaWF; // gain for wrist flexion velocity control
     Param<double> _lambdaWPS; // gain for wrist pronosup velocity control

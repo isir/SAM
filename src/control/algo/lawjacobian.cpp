@@ -87,7 +87,7 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
     eulerT = Eigen::MatrixXd::Zero(3, 1);
     eulerHA = Eigen::MatrixXd::Zero(3, 1);
-    omega = Eigen::MatrixXd::Zero(2, 1);
+    thetaAcr = Eigen::MatrixXd::Zero(2, 1);
     J = Eigen::MatrixXd::Zero(3, nbLinks);
     Jp = Eigen::MatrixXd::Zero(3, 1);
     Jo = Eigen::MatrixXd::Zero(3, nbLinks - 1);
@@ -399,20 +399,20 @@ void LawJacobian::orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip
         crossP = crossP.normalized();
         // projection of the rotation vector in hand frame
         /// for OPTITRACK quaternions
-        thetaHA = acos(HA0.dot(HA));
-        qHA.w() = cos(-thetaHA / 2);
-        qHA.x() = sin(-thetaHA / 2) * crossP(0);
-        qHA.y() = sin(-thetaHA / 2) * crossP(1);
-        qHA.z() = sin(-thetaHA / 2) * crossP(2);
+        alpha = acos(HA0.dot(HA));
+        qHA.w() = cos(-alpha / 2);
+        qHA.x() = sin(-alpha / 2) * crossP(0);
+        qHA.y() = sin(-alpha / 2) * crossP(1);
+        qHA.z() = sin(-alpha / 2) * crossP(2);
 
         RHA = qHA.toRotationMatrix();
-        //        omega(0) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+        //        thetaAcr(0) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
 
         eulerHA(0) = -atan2(RHA(1, 2), RHA(2, 2)); //rotation around X-axis
         eulerHA(1) = atan(RHA(0, 2) / sqrt(1 - RHA(0, 2) * RHA(0, 2))); //rotation around Y-axis
         eulerHA(2) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
         //        if (initCounter % 50 == 0)
-        //            debug() << "Rotation around Z0: " << omega(0);
+        //            debug() << "Rotation around Z0: " << thetaAcr(0);
     }
 }
 /**
@@ -439,21 +439,25 @@ void LawJacobian::orientationInWrist(Eigen::Vector3d posA, Eigen::Vector3d posHi
         Eigen::Vector3d crossPw = R01 * R0 * RhandOpti.transpose() * (HA0.cross(HA));
         crossPw = crossPw.normalized();
         /// for OPTITRACK quaternions
-        thetaHA = acos(HA0.dot(HA));
-        qHA.w() = cos(-thetaHA / 2);
-        qHA.x() = sin(-thetaHA / 2) * crossPw(0);
-        qHA.y() = sin(-thetaHA / 2) * crossPw(1);
-        qHA.z() = sin(-thetaHA / 2) * crossPw(2);
+        alpha = acos(HA0.dot(HA));
+        qHA.w() = cos(-alpha / 2);
+        qHA.x() = sin(-alpha / 2) * crossPw(0);
+        qHA.y() = sin(-alpha / 2) * crossPw(1);
+        qHA.z() = sin(-alpha / 2) * crossPw(2);
 
         RHA = qHA.toRotationMatrix();
-        omega(0) = atan(RHA(0, 2) / sqrt(1 - RHA(0, 2) * RHA(0, 2))); //rotation around Y-axis
-        omega(1) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+        thetaHA(0) = atan(RHA(0, 2) / sqrt(1 - RHA(0, 2) * RHA(0, 2))); //rotation around Y-axis
+        thetaHA(1) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
         if (initCounter % 50 == 0) {
             //            debug() << "HA0w: " << HA0(0) << ";" << HA0(1) << ";" << HA0(2);
             //            debug() << "RHA wrist: " << RHA(0, 0) << RHA(0, 1);
-            //            debug() << "Rotation around Z1: " << omega(1);
+            //            debug() << "Rotation around Z1: " << thetaHA(1);
         }
     }
+}
+
+void LawJacobian::eulerAcromion(Eigen::Quaterniond qHand, Eigen::Quaterniond qAcr, int _cnt, int init_cnt)
+{
 }
 
 /**
@@ -686,33 +690,19 @@ void LawJacobian::updateFramesinEE(double theta[])
  */
 void LawJacobian::computeOriginsVectors(int l[], int nbDOF)
 {
-    if (nbDOF == 2) {
-        /// UPDATE POSITIONS OF CENTERS OF FRAMES
-        OO(0, 0) = -l[0] * z(0, 0) - l[1] * y(0, 1) - l[2] * y(0, 2) - l[3] * z(0, 2);
-        OO(1, 0) = -l[0] * z(1, 0) - l[1] * y(1, 1) - l[2] * y(1, 2) - l[3] * z(0, 2);
-        OO(2, 0) = -l[0] * z(2, 0) - l[1] * y(2, 1) - l[2] * y(2, 2) - l[3] * z(0, 2);
-
-        OO(0, 1) = -l[2] * y(0, 2) - l[3] * z(0, 2);
-        OO(1, 1) = -l[2] * y(1, 2) - l[3] * z(0, 2);
-        OO(2, 1) = -l[2] * y(2, 2) - l[3] * z(0, 2);
-
-        //        debug() << "OO 02: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
-        //        debug() << "OO 12: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
-    }
-
     if (nbDOF == 3) {
         /// UPDATE POSITIONS OF CENTERS OF FRAMES
-        OO(0, 0) = (l[0] + l[1]) * z(0, 1) + l[2] * x(0, 3);
-        OO(1, 0) = (l[0] + l[1]) * z(1, 1) + l[2] * x(1, 3);
-        OO(2, 0) = (l[0] + l[1]) * z(2, 1) + l[2] * x(2, 3);
+        OO(0, 0) = -l[0] * x(0, 0) - (l[1] + l[2]) * z(0, 1) - l[3] * y(0, 3);
+        OO(1, 0) = -l[0] * x(1, 0) - (l[1] + l[2]) * z(1, 1) - l[3] * y(1, 3);
+        OO(2, 0) = -l[0] * x(2, 0) - (l[1] + l[2]) * z(2, 1) - l[3] * y(2, 3);
 
-        OO(0, 1) = (l[0] + l[1]) * z(0, 1) + l[2] * x(0, 3);
-        OO(1, 1) = (l[0] + l[1]) * z(1, 1) + l[2] * x(1, 3);
-        OO(2, 1) = (l[0] + l[1]) * z(2, 1) + l[2] * x(2, 3);
+        OO(0, 1) = -l[2] * z(0, 1) - l[3] * y(0, 3);
+        OO(1, 1) = -l[2] * z(1, 1) - l[3] * y(1, 3);
+        OO(2, 1) = -l[2] * z(2, 1) - l[3] * y(2, 3);
 
-        OO(0, 2) = l[2] * x(0, 3);
-        OO(1, 2) = l[2] * x(1, 3);
-        OO(2, 2) = l[2] * x(2, 3);
+        OO(0, 2) = -l[3] * y(0, 3);
+        OO(1, 2) = -l[3] * y(1, 3);
+        OO(2, 2) = -l[3] * y(2, 3);
 
         //        debug() << "OO 04: " << OO(0, 0) << "; " << OO(1, 0) << "; " << OO(2, 0) << "\n";
         //        debug() << "OO 14: " << OO(0, 1) << "; " << OO(1, 1) << "; " << OO(2, 1) << "\n";
@@ -763,7 +753,7 @@ void LawJacobian::scaleDisplacementHip(int _cnt)
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, int useIMU, double lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v1(int useIMU, double lambda[], double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -774,11 +764,7 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, int useIMU, double 
     //    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
 
     /// DAMPED LEAST SQUARE SOLUTION
-    dlsJ = (J.transpose() * J + k * k * I2).inverse() * J.transpose();
-    /// Compute pseudo inverse of J for each joint individually
-    //    for (int i = 0; i < 2; i++) {
-    //        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
-    //    }
+    // dlsJ = (J.transpose() * J + k * k * I3).inverse() * J.transpose();
 
     /// PROJECT DISPLACEMENT OF ACROMION IN HAND FRAME
     /// For IMU quaternion
@@ -791,9 +777,9 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, int useIMU, double 
 
     /// COMPUTE ANG. VELOCITIES
     if (useIMU == 1)
-        thetaNew = dlsJ * delta;
+        thetaNew = J.inverse() * delta;
     else if (useIMU == 0)
-        thetaNew = dlsJ * deltaOpti;
+        thetaNew = J.inverse() * deltaOpti;
 
     /// DEADZONE
     for (int i = 0; i < nbLinks; i++) {
@@ -830,28 +816,20 @@ void LawJacobian::controlLaw_v1(Eigen::Vector3d posA, int k, int useIMU, double 
     }
 }
 
-void LawJacobian::controlLaw_orientation(double k, double lambda[], double threshold[], int _cnt)
+/**
+ * @brief LawJacobian::controlLaw_orientation2DOF control law for the 2DOF prosthesis (pronosupination and elbow flex/ext)
+ * the error signal is the rotation of the hip-acromion vector
+ * @param lambda gain vector of the control
+ * @param threshold
+ * @param _cnt
+ */
+void LawJacobian::controlLaw_orientation2DOF(double lambda[], double threshold[], int _cnt)
 {
-    /// COMPUTE JACOBIAN
-    for (int i = 0; i < nbLinks; i++) {
-        J.block<3, 1>(0, i) = z.block<3, 1>(0, i);
-    }
 
-    /// PSEUDO INVERSE SOLUTION
-    //    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
-
-    /// DAMPED LEAST SQUARE SOLUTION
-    //    dlsJ = (J.transpose() * J + k * k * I2).inverse() * J.transpose();
-
-    //    thetaNew = dlsJ * eulerHA;
-    //    if (_cnt % 50 == 0) {
-    //        debug() << "thetaNew with dlsJ: " << thetaNew(0) << "; " << thetaNew(1);
-    //    }
-
-    thetaNew(0) = omega(0);
-    thetaNew(1) = omega(1);
+    thetaNew(0) = thetaHA(0);
+    thetaNew(1) = thetaHA(1);
     if (_cnt % 50 == 0) {
-        debug() << "thetaNew with I2: " << omega(0) << "; " << omega(1);
+        debug() << "thetaNew with I2: " << thetaHA(0) << "; " << thetaHA(1);
     }
 
     /// DEADZONE
@@ -890,75 +868,22 @@ void LawJacobian::controlLaw_orientation(double k, double lambda[], double thres
 }
 
 /**
- * @brief LawJacobian::controlLaw_v2 position and orientation separated with two different jacobians. Elbow(1DOF) -> position, wrist(1 or 2DOF) -> orientation.
- * @param k
- * @param lambda
+ * @brief LawJacobian::controlLaw_orientation3DOF delta = Euler angles sequence of acromion, expressed in hand frame
+ * @param lambda gain
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v2(int k, double lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_orientation3DOF(double lambda[], double threshold[], int _cnt)
 {
-    // Jacobian matrix for position control, taking only elbow into account
-    Jp.block<3, 1>(0, 1) = z.block<3, 1>(0, nbLinks).cross(OO.block<3, 1>(0, nbLinks));
-    // Jacobian matrix for orientation control, taking only wrist into account
-    for (int i = 0; i < nbLinks - 1; i++) {
-        Jo.block<3, 1>(0, i) = z.block<3, 1>(0, i);
-    }
-    /// DAMPED LEAST SQUARE SOLUTION
-    dlsJp = Jp.transpose() * (Jp * Jp.transpose() + k * k * I3).inverse();
-    dlsJo = Jo.transpose() * (Jo * Jo.transpose() + k * k * I3).inverse();
-    // wrist angles
-    thetaNew.block<nbLinks - 1, 1>(0, 0) = dlsJo * eulerT;
-    // OR other version for wrist
-    thetaNew(0) = eulerT(2); // rotation around Zhand
-    thetaNew(1) = eulerT(0); // rotation around Xhand
-
-    // elbow angle
-    delta = R0 * Rhand * Rhip.transpose() * (posA0inHip - posAinHip);
-    thetaNew(nbLinks) = dlsJp * delta;
-
-    // deadzone
+    /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
-        if (abs(thetaNew(i)) < threshold[i])
-            thetaNew(i) = 0;
-        else if (thetaNew(i) >= threshold[i])
-            thetaNew(i) = thetaNew(i) - threshold[i];
-        else if (thetaNew(i) <= -threshold[i])
-            thetaNew(i) = thetaNew(i) + threshold[i];
-    }
-    // Angular velocities
-    for (int i = 0; i < nbLinks; i++) {
-        thetaDot(i) = lambda[i] * thetaNew(i);
-        // speed limits
-        if (abs(thetaDot(i)) > 60 * M_PI / 180) {
-            thetaDot(i) = thetaDot(i) / abs(thetaDot(i)) * 60 * M_PI / 180;
-        }
-    }
-}
-
-/**
- * @brief LawJacobian::controlLaw_v3 each DOF is taken as independant. delta = angular velocity of the trunk expressed at acromion point
- * @param lt trunk length
- * @param lsh neck-> shoulder length
- * @param k
- * @param lambda
- * @param threshold
- * @param _cnt
- */
-void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt)
-{
-    for (int i = 0; i < nbLinks; i++) {
-        J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
-    }
-    for (int i = 0; i < nbLinks; i++) {
-        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
+        J.block<3, 1>(0, i) = z.block<3, 1>(0, i);
     }
 
-    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
-    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref));
-    thetaNew = dlsJ * delta;
+    /// COMPUTE ANG. VELOCITIES
+    thetaNew = J.inverse() * thetaAcr;
 
-    // deadzone
+    /// DEADZONE
     for (int i = 0; i < nbLinks; i++) {
         if (abs(thetaNew(i)) < threshold[i])
             thetaNew(i) = 0;
@@ -968,15 +893,22 @@ void LawJacobian::controlLaw_v3(int lt, int lsh, int k, double lambda[], double 
             thetaNew(i) = thetaNew(i) + threshold[i];
     }
 
+    /// DISPLAY DATA
     if (_cnt % 50 == 0) {
-        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
+        //        debug() << "deltaOpti: " << deltaOpti(0) << "; " << deltaOpti(1) << "; " << deltaOpti(2) << "\r\n";
+        //        debug() << "pinvJ: " << pinvJ(0, 0) << "; " << pinvJ(0, 1) << "; " << pinvJ(0, 2) << "\r\n";
         debug() << "thetaNew(after threshold, deg): ";
         for (int i = 0; i < nbLinks; i++) {
             debug() << thetaNew(i) * 180 / M_PI;
         }
+        //        debug() << "thetaNewOpti (after threshold, deg): ";
+        //        for (int i = 0; i < nbLinks; i++) {
+        //            debug() << thetaNewOpti(i) * 180 / M_PI;
+        //        }
     }
 
-    // Angular velocities
+    /// COMPUTE ANGULAR VELOCITIES
     for (int i = 0; i < nbLinks; i++) {
         thetaDot(i) = lambda[i] * thetaNew(i);
         // speed limits
@@ -1005,72 +937,6 @@ void LawJacobian::scaleDisplacementIMU(int lt, int _cnt)
     }
 }
 
-/**
- * @brief LawJacobian::controlLaw_v4 elbow + wrist pronation solved with 2DOF model
- * wrist flexion = angle around hand z0-axis due to shoulder rotation w/r to the trunk
- * @param lt
- * @param lsh
- * @param k
- * @param lambda
- * @param threshold
- * @param _cnt
- */
-void LawJacobian::controlLaw_v4(int lt, int lsh, int k, double lambda[], double threshold[], int _cnt)
-{
-    // jacobian only for 2DOF
-    for (int i = 0; i < 2; i++) {
-        J.block<3, 1>(0, i) = z.block<3, 1>(0, i).cross(OO.block<3, 1>(0, i));
-    }
-    for (int i = 0; i < 2; i++) {
-        dlsJ.block<1, 3>(i, 0) = (J.block<3, 1>(0, i)).transpose() * (J.block<3, 1>(0, i) * (J.block<3, 1>(0, i)).transpose() + k * k * I3).inverse();
-    }
-
-    // delta = displacement of the sternum
-    //    delta = R0 * Rhand * lt * (Ytrunk0 - Ytrunk);
-    delta = R0 * Rhand * disp; // backward displacements of the trunk are penalized
-
-    // delta = ang. velocity of the trunk expressed at acromion;
-    //    IO = R0 * Rhand * Rtrunk.transpose() * (lt * yref + lsh * xref);
-    //    delta = (-eulerT).cross(R0 * Rhand * Rtrunk.transpose() * (lt * yref)); // + lsh * xref));
-
-    if (nbLinks == 2) { // no wrist flexion
-        thetaNew = dlsJ * delta;
-    } else if (nbLinks == 3) { // wrist flexion -> from shoulder rotation
-        thetaNew.block<2, 1>(1, 0) = dlsJ * delta;
-        thetaNew(0) = eulerA(3);
-    }
-
-    // wrist pronosup control with forearm rotation
-    //thetaNew(0) = -atan(Rhand_rel(0, 2) / sqrt(1 - Rhand_rel(0, 2) * Rhand_rel(0, 2))); //rotation around Y-axis
-
-    // deadzone
-    for (int i = 0; i < nbLinks; i++) {
-        if (abs(thetaNew(i)) < threshold[i])
-            thetaNew(i) = 0;
-        else if (thetaNew(i) >= threshold[i])
-            thetaNew(i) = thetaNew(i) - threshold[i];
-        else if (thetaNew(i) <= -threshold[i])
-            thetaNew(i) = thetaNew(i) + threshold[i];
-    }
-
-    if (_cnt % 50 == 0) {
-        //        debug() << "delta: " << delta(0) << "; " << delta(1) << "; " << delta(2) << "\r\n";
-        debug() << "thetaNew(after threshold, deg): ";
-        for (int i = 0; i < nbLinks; i++) {
-            debug() << thetaNew(i) * 180 / M_PI;
-        }
-    }
-
-    // Angular velocities
-    for (int i = 0; i < nbLinks; i++) {
-        thetaDot(i) = lambda[i] * thetaNew(i);
-        // speed limits
-        if (abs(thetaDot(i)) > 60 * M_PI / 180) {
-            thetaDot(i) = thetaDot(i) / abs(thetaDot(i)) * 60 * M_PI / 180;
-        }
-    }
-}
-
 void LawJacobian::writeDebugData(double d[], double theta[])
 {
     for (int i = 0; i < nbLinks; i++) {
@@ -1084,7 +950,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     //        }
     //    }
 
-    d[3 * nbLinks] = thetaHA;
+    d[3 * nbLinks] = alpha;
     d[3 * nbLinks + 1] = qHA.w();
     d[3 * nbLinks + 2] = qHA.x();
     d[3 * nbLinks + 3] = qHA.y();
@@ -1094,7 +960,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[6 * nbLinks + j] = HA(j);
     }
     for (int j = 0; j < 2; j++) {
-        d[6 * nbLinks + 3 + j] = omega(j);
+        d[6 * nbLinks + 3 + j] = thetaAcr(j);
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 6 + j] = posA0(j);
