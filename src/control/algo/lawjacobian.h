@@ -24,7 +24,7 @@ public:
     void initializationOpti(Eigen::Vector3d posA); // init special for Optitrack
     void initializationIMU(); // init special for IMU
     void initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
-    void initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm, int initCounter, int initCounts);
+    void initialQuat(Eigen::Quaterniond qAcr, int initCounter, int initCounts);
     void idealFrames(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, int initCounter, int initCounts);
     void rotationMatrices(Eigen::Quaterniond qHand, Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk);
     void rotationMatrices2(Eigen::Quaterniond qHandOpti, Eigen::Quaterniond qHandIMU, Eigen::Quaterniond qHipOpti, Eigen::Quaterniond qHipIMU, Eigen::Quaterniond qTrunk);
@@ -32,6 +32,7 @@ public:
     void orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void orientationInWrist(Eigen::Vector3d posA, Eigen::Vector3d posHip, int initCounter, int initCounts);
     void projectionInHipIMU(int lt, int lsh, int initCounter, int initCounts);
+    void eulerAcromion(Eigen::Quaterniond qHand, Eigen::Quaterniond qAcr, int initCounter);
     void bufferingOldValues();
     void updateTrunkFrame(Eigen::Quaterniond qTrunk);
     void updateFrames(double theta[]);
@@ -78,13 +79,14 @@ private:
     Eigen::Matrix<double, 2, 1, Eigen::DontAlign> thetaHA; // orientation of the hip-acromion vector, around Z0 and Z1 axis
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> thetaAcr; // Euler angles sequence of the acromion, expressed in hand frame
 
-    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> R01, Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0, RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel, RHA; // rotation matrices
+    Eigen::Matrix<double, 3, 3, Eigen::DontAlign> R01, Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0,
+        RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel, RHA, RAcr; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
     Eigen::Matrix<double, 2, 2, Eigen::DontAlign> I2;
 
     double theta0H, theta0T, alpha; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT, qHA; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
-    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative; // quaternions for hip, arm and trunk frames
+    Eigen::Quaternion<double, Eigen::DontAlign> qTrunk0, qHip0, qHip_filt, qHip_filt_old, qArm0, qHand_relative, qAcr0; // quaternions for hip, arm and trunk frames
     Eigen::Quaternion<double, Eigen::DontAlign> Yinit, Y0, Xinit, X0, Zinit, Z0; // quaternions to compute initial and current trunk frame
     int scale;
 };

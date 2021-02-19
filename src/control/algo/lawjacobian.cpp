@@ -36,6 +36,11 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     qHip_filt.y() = 0.;
     qHip_filt.z() = 0.;
 
+    qAcr0.w() = 0.;
+    qAcr0.x() = 0.;
+    qAcr0.y() = 0.;
+    qAcr0.z() = 0.;
+
     Y0.w() = 0.0;
     Y0.x() = 0.0;
     Y0.y() = 1.0;
@@ -141,23 +146,24 @@ void LawJacobian::initializationOpti(Eigen::Vector3d posA)
 
 void LawJacobian::initializationIMU()
 {
-    qTrunk0.w() = 0.;
-    qTrunk0.x() = 0.;
-    qTrunk0.y() = 0.;
-    qTrunk0.z() = 0.;
-    qArm0.w() = 0.;
-    qArm0.x() = 0.;
-    qArm0.y() = 0.;
-    qArm0.z() = 0.;
-    qRecalT.w() = 0.;
-    qRecalT.x() = 0.;
-    qRecalT.y() = 0.;
-    qRecalT.z() = 0.;
-    qIdealT.w() = 0.;
-    qIdealT.x() = 0.;
-    qIdealT.y() = 0.;
-    qIdealT.z() = 0.;
-    Rframe = Eigen::Matrix3d::Zero();
+
+    qAcr0.w() = 0.;
+    qAcr0.x() = 0.;
+    qAcr0.y() = 0.;
+    qAcr0.z() = 0.;
+    //    qTrunk0.w() = 0.;
+    //    qTrunk0.x() = 0.;
+    //    qTrunk0.y() = 0.;
+    //    qTrunk0.z() = 0.;
+    //    qRecalT.w() = 0.;
+    //    qRecalT.x() = 0.;
+    //    qRecalT.y() = 0.;
+    //    qRecalT.z() = 0.;
+    //    qIdealT.w() = 0.;
+    //    qIdealT.x() = 0.;
+    //    qIdealT.y() = 0.;
+    //    qIdealT.z() = 0.;
+    //    Rframe = Eigen::Matrix3d::Zero();
 }
 /**
  * @brief LawJacobian::initialPositions computes the initial position of the acromion marker = mean over the initCounts first measures of the acromion position
@@ -188,56 +194,60 @@ void LawJacobian::initialPositions(Eigen::Vector3d posA, Eigen::Vector3d posHip,
  * @param initCounter counter
  * @param initCounts number of time steps for the initialization
  */
-void LawJacobian::initialQuat(Eigen::Quaterniond qHip, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm, int initCounter, int initCounts)
+void LawJacobian::initialQuat(Eigen::Quaterniond qAcr, int initCounter, int initCounts)
 {
     if (initCounter < initCounts) {
-        qHip0.w() += qHip.w();
-        qHip0.x() += qHip.x();
-        qHip0.y() += qHip.y();
-        qHip0.z() += qHip.z();
-        qTrunk0.w() += qTrunk.w();
-        qTrunk0.x() += qTrunk.x();
-        qTrunk0.y() += qTrunk.y();
-        qTrunk0.z() += qTrunk.z();
-        qArm0.w() += qArm.w();
-        qArm0.x() += qArm.x();
-        qArm0.y() += qArm.y();
-        qArm0.z() += qArm.z();
+        //        qHip0.w() += qHip.w();
+        //        qHip0.x() += qHip.x();
+        //        qHip0.y() += qHip.y();
+        //        qHip0.z() += qHip.z();
+        //        qTrunk0.w() += qTrunk.w();
+        //        qTrunk0.x() += qTrunk.x();
+        //        qTrunk0.y() += qTrunk.y();
+        //        qTrunk0.z() += qTrunk.z();
+        //        qArm0.w() += qArm.w();
+        //        qArm0.x() += qArm.x();
+        //        qArm0.y() += qArm.y();
+        //        qArm0.z() += qArm.z();
+        qAcr0.w() += qAcr.w();
+        qAcr0.x() += qAcr.x();
+        qAcr0.y() += qAcr.y();
+        qAcr0.z() += qAcr.z();
     }
     if (initCounter == initCounts) {
-        qHip0.w() += qHip.w();
-        qHip0.x() += qHip.x();
-        qHip0.y() += qHip.y();
-        qHip0.z() += qHip.z();
-        qHip0.w() = qHip0.w() / initCounts;
-        qHip0.x() = qHip0.x() / initCounts;
-        qHip0.y() = qHip0.y() / initCounts;
-        qHip0.z() = qHip0.z() / initCounts;
-        qHip0 = qHip0.normalized();
+        //        qHip0.w() += qHip.w();
+        //        qHip0.x() += qHip.x();
+        //        qHip0.y() += qHip.y();
+        //        qHip0.z() += qHip.z();
+        //        qHip0.w() = qHip0.w() / initCounts;
+        //        qHip0.x() = qHip0.x() / initCounts;
+        //        qHip0.y() = qHip0.y() / initCounts;
+        //        qHip0.z() = qHip0.z() / initCounts;
+        //        qHip0 = qHip0.normalized();
 
-        qTrunk0.w() += qTrunk.w();
-        qTrunk0.x() += qTrunk.x();
-        qTrunk0.y() += qTrunk.y();
-        qTrunk0.z() += qTrunk.z();
-        qTrunk0.w() = qTrunk0.w() / initCounts;
-        qTrunk0.x() = qTrunk0.x() / initCounts;
-        qTrunk0.y() = qTrunk0.y() / initCounts;
-        qTrunk0.z() = qTrunk0.z() / initCounts;
-        qTrunk0 = qTrunk0.normalized();
+        //        qTrunk0.w() += qTrunk.w();
+        //        qTrunk0.x() += qTrunk.x();
+        //        qTrunk0.y() += qTrunk.y();
+        //        qTrunk0.z() += qTrunk.z();
+        //        qTrunk0.w() = qTrunk0.w() / initCounts;
+        //        qTrunk0.x() = qTrunk0.x() / initCounts;
+        //        qTrunk0.y() = qTrunk0.y() / initCounts;
+        //        qTrunk0.z() = qTrunk0.z() / initCounts;
+        //        qTrunk0 = qTrunk0.normalized();
 
-        qArm0.w() += qArm.w();
-        qArm0.x() += qArm.x();
-        qArm0.y() += qArm.y();
-        qArm0.z() += qArm.z();
-        qArm0.w() = qArm0.w() / initCounts;
-        qArm0.x() = qArm0.x() / initCounts;
-        qArm0.y() = qArm0.y() / initCounts;
-        qArm0.z() = qArm0.z() / initCounts;
-        qArm0 = qArm0.normalized();
+        //        Yinit = qTrunk0.inverse() * Y0 * qTrunk0;
+        //        Ytrunk0 = Yinit.vec();
+        //        Ytrunk0 = Ytrunk0.normalized();
 
-        Yinit = qTrunk0.inverse() * Y0 * qTrunk0;
-        Ytrunk0 = Yinit.vec();
-        Ytrunk0 = Ytrunk0.normalized();
+        qAcr0.w() += qAcr.w();
+        qAcr0.x() += qAcr.x();
+        qAcr0.y() += qAcr.y();
+        qAcr0.z() += qAcr.z();
+        qAcr0.w() = qAcr0.w() / initCounts;
+        qAcr0.x() = qAcr0.x() / initCounts;
+        qAcr0.y() = qAcr0.y() / initCounts;
+        qAcr0.z() = qAcr0.z() / initCounts;
+        qAcr0 = qAcr0.normalized();
     }
 }
 
@@ -456,8 +466,17 @@ void LawJacobian::orientationInWrist(Eigen::Vector3d posA, Eigen::Vector3d posHi
     }
 }
 
-void LawJacobian::eulerAcromion(Eigen::Quaterniond qHand, Eigen::Quaterniond qAcr, int _cnt, int init_cnt)
+void LawJacobian::eulerAcromion(Eigen::Quaterniond qHand, Eigen::Quaterniond qAcr, int initCounter)
 {
+    Eigen::Quaterniond q = qHand * qAcr0.conjugate() * qAcr * qHand.conjugate();
+    RAcr = q.toRotationMatrix();
+    thetaAcr(0) = atan2(RAcr(1, 2), RAcr(2, 2)); //rotation around X-axis
+    thetaAcr(1) = -atan(RAcr(0, 2) / sqrt(1 - RAcr(0, 2) * RAcr(0, 2))); //rotation around Y-axis
+    thetaAcr(2) = atan2(RAcr(0, 1), RAcr(0, 0)); //rotation around Z-axis
+
+    if (initCounter % 50 == 0) {
+        debug() << "thetaAcr: " << thetaAcr(0) * 180 / M_PI << "; " << thetaAcr(1) * 180 / M_PI << "; " << thetaAcr(2) * 180 / M_PI;
+    }
 }
 
 /**
@@ -944,28 +963,19 @@ void LawJacobian::writeDebugData(double d[], double theta[])
         d[i + nbLinks] = thetaNew(i);
         d[i + 2 * nbLinks] = thetaDot(i);
     }
-    //    for (int i = 0; i < nbLinks; i++) {
-    //        for (int j = 0; j < 3; j++) {
-    //            d[3 * nbLinks + j + 3 * i] = OO(j, i);
-    //        }
-    //    }
-
-    d[3 * nbLinks] = alpha;
-    d[3 * nbLinks + 1] = qHA.w();
-    d[3 * nbLinks + 2] = qHA.x();
-    d[3 * nbLinks + 3] = qHA.y();
-    d[3 * nbLinks + 4] = qHA.z();
+    for (int i = 0; i < nbLinks; i++) {
+        for (int j = 0; j < 3; j++) {
+            d[3 * nbLinks + j + 3 * i] = OO(j, i);
+        }
+    }
 
     for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + j] = HA(j);
+        d[6 * nbLinks + 3 + j] = dispOpti(j);
     }
     for (int j = 0; j < 2; j++) {
         d[6 * nbLinks + 3 + j] = thetaAcr(j);
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 6 + j] = posA0(j);
-    }
-    for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + 9 + j] = eulerHA(j);
     }
 }

@@ -434,6 +434,11 @@ void JFOptiOrientation::loop(double, clock::time_point time)
     qHandOpti.x() = 0.;
     qHandOpti.y() = 0.;
     qHandOpti.z() = 0.;
+    Eigen::Quaterniond qAcrOpti;
+    qAcrOpti.w() = 0.;
+    qAcrOpti.x() = 0.;
+    qAcrOpti.y() = 0.;
+    qAcrOpti.z() = 0.;
     Eigen::Quaterniond qTrunk;
     qTrunk.w() = 0.;
     qTrunk.x() = 0.;
@@ -446,6 +451,10 @@ void JFOptiOrientation::loop(double, clock::time_point time)
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
             posA[2] = data.rigidBodies[i].z * 100;
+            qAcrOpti.w() = data.rigidBodies[i].qw;
+            qAcrOpti.x() = data.rigidBodies[i].qx;
+            qAcrOpti.y() = data.rigidBodies[i].qy;
+            qAcrOpti.z() = data.rigidBodies[i].qz;
             index_acromion = i;
         } else if (data.rigidBodies[i].ID == 7) {
             // hip position and orientation
@@ -564,15 +573,24 @@ void JFOptiOrientation::loop(double, clock::time_point time)
         _lawJ.initializationOpti(posA);
     } else if (_cnt <= init_cnt) {
         _lawJ.initialPositions(posA, posHip, _cnt, init_cnt);
+        _lawJ.initialQuat(qAcrOpti, _cnt, init_cnt);
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
         _lawJ.updateFrames(theta);
-        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
+        if (nbDOF == 2)
+            _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
+        else if (nbDOF == 3)
+            _lawJ.eulerAcromion(qHandOpti, qAcrOpti, _cnt);
     } else {
         _lawJ.rotationMatrices2(qHandOpti, qHand, qHipOpti, qHip, qTrunk);
         //        _lawJ.orientationInHand(posA, posHip, _cnt, init_cnt);
         _lawJ.updateFrames(theta);
-        _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
-        _lawJ.controlLaw_orientation(_k, _lambda, _threshold, _cnt);
+        if (nbDOF == 2) {
+            _lawJ.orientationInWrist(posA, posHip, _cnt, init_cnt);
+            _lawJ.controlLaw_orientation2DOF(_lambda, _threshold, _cnt);
+        } else if (nbDOF == 3) {
+            _lawJ.eulerAcromion(qHandOpti, qAcrOpti, _cnt);
+            _lawJ.controlLaw_orientation3DOF(_lambda, _threshold, _cnt);
+        }
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
@@ -580,11 +598,11 @@ void JFOptiOrientation::loop(double, clock::time_point time)
             //            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
             //            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
             //            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
-            //            if (_cnt % 50 == 0) {
-            //                debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
-            //                debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
-            //                debug() << "elbow flex vel :" << thetaDot_toSend[2] << "\n";
-            //            }
+            if (_cnt % 50 == 0) {
+                debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
+                debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
+                debug() << "elbow flex vel :" << thetaDot_toSend[2] << "\n";
+            }
         } else {
 
             if (protoCyb) {
