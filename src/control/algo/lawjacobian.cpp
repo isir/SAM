@@ -972,10 +972,13 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 3 + j] = dispOpti(j);
     }
+    for (int j = 0; j < 3; j++) {
+        d[6 * nbLinks + 6 + j] = deltaOpti(j);
+    }
     for (int j = 0; j < 2; j++) {
-        d[6 * nbLinks + 3 + j] = thetaAcr(j);
+        d[6 * nbLinks + 9 + j] = thetaAcr(j);
     }
     for (int j = 0; j < 3; j++) {
-        d[6 * nbLinks + 6 + j] = posA0(j);
+        d[6 * nbLinks + 12 + j] = posAinHipOpti(j);
     }
 }

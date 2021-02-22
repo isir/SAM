@@ -656,9 +656,9 @@ void JacobianFormulationOpti::loop(double, clock::time_point time)
         _lawJ.writeDebugData(debugData, theta);
         /// WRITE DATA
         if (protoCyb)
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lsh;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << electrodes[0] << ' ' << electrodes[1] << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lhand;
         else
-            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lsh;
+            _file << nbDOF << ' ' << timeWithDelta << ' ' << _useIMU << ' ' << pin_down_value << ' ' << pin_up_value << ' ' << _lua << ' ' << _lfa << ' ' << _lwrist << ' ' << _lhand;
 
         _file << ' ' << _lambda[0] << ' ' << _lambda[1] << ' ' << _lambda[2] << ' ' << _threshold[0] << ' ' << _threshold[1] << ' ' << _threshold[2];
         _file << ' ' << qRed[0] << ' ' << qRed[1] << ' ' << qRed[2] << ' ' << qRed[3] << ' ' << qWhite[0] << ' ' << qWhite[1] << ' ' << qWhite[2] << ' ' << qWhite[3];
