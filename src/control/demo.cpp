@@ -184,8 +184,9 @@ void Demo::loop(double, clock::time_point)
 void Demo::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
-
-    //_robot->joints.elbow_flexion->move_to(0, 20);
+    if (_robot->joints.wrist_flexion) {
+        _robot->joints.wrist_flexion->move_to(0, 10);
+    }
     _robot->joints.elbow_flexion->move_to(0, 10);
 
     _robot->user_feedback.leds->set(LedStrip::white, 11);
