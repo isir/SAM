@@ -16,6 +16,8 @@ WristRotator::WristRotator()
 
 void WristRotator::calibrate()
 {
-    Actuator::calibrate(-15, -100, 0.5);
-    move_to(0, 40, true);
+    set_encoder_position(0);
+    set_calibrated(true);
+    //Actuator::calibrate(-15, -100, 0.5);
+    //move_to(0, 40, true);
 }
