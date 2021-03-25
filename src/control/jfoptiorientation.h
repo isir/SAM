@@ -22,7 +22,7 @@ private:
     void toPos0();
     void toPos1();
     void toPos2();
-    void set_velocity_motors(double speed_elbow, double speed_wrist);
+    void set_velocity_motors(double speed1, double speed2);
     void displayPin();
     void displayRBnb();
     void calibrations();
@@ -38,6 +38,7 @@ private:
 
     LawJacobian _lawJ;
     int nbDOF;
+    double _k;
     int _lt;
     double _lambda[nbLinks];
     int _pin_up;
@@ -48,7 +49,6 @@ private:
     int l[nbLinks];
     int nbRigidBodies;
 
-    Param<double> _k; // gain for damped least square solution
     Param<double> _lambdaE; // gain for elbow velocity control
     Param<double> _lambdaWF; // gain for wrist flexion velocity control
     Param<double> _lambdaWPS; // gain for wrist pronosup velocity control
