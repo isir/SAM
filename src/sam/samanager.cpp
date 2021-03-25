@@ -85,6 +85,7 @@ void SAManager::fill_menus()
     // _main_menu->add_submenu_from_user(_vc);
     _main_menu->add_submenu_from_user(_rm);
     _main_menu->add_submenu_from_user(_mr);
+    _main_menu->add_submenu_from_user(_mo);
     _main_menu->add_submenu_from_user(_imu);
     //    _main_menu->add_submenu_from_user(_opti);
     // _main_menu->add_submenu_from_user(_demo);
@@ -119,6 +120,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _mr = std::make_unique<MatlabReceiver>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _mo = std::make_unique<MatlabOptimization>(_robot);
     } catch (std::exception&) {
     }
     try {

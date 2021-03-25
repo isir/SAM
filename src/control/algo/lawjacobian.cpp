@@ -92,13 +92,11 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
     thetaDot = Eigen::MatrixXd::Zero(nbLinks, 1);
     eulerT = Eigen::MatrixXd::Zero(3, 1);
     eulerHA = Eigen::MatrixXd::Zero(3, 1);
-    thetaAcr = Eigen::MatrixXd::Zero(2, 1);
+    thetaHA = Eigen::MatrixXd::Zero(2, 1);
+    eulerAcr = Eigen::MatrixXd::Zero(3, 1);
+
     J = Eigen::MatrixXd::Zero(3, nbLinks);
-    Jp = Eigen::MatrixXd::Zero(3, 1);
-    Jo = Eigen::MatrixXd::Zero(3, nbLinks - 1);
     dlsJ = Eigen::MatrixXd::Zero(nbLinks, 3);
-    dlsJp = Eigen::RowVector3d::Zero();
-    dlsJo = Eigen::MatrixXd::Zero(nbLinks - 1, 3);
     OO = Eigen::MatrixXd::Zero(3, nbLinks);
     IO = Eigen::Vector3d::Zero();
     disp = Eigen::Vector3d::Zero();
@@ -118,17 +116,20 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
         //        R0 << 0., 1., 0.,
         //            -1., 0., 0.,
         //            0., 0., 1.;
+
+        I << 1., 0.,
+            0., 1.;
     } else if (nbLinks == 3) {
         R0 << 1., 0., 0.,
             0., 0., -1.,
             0., 1., 0.;
+
+        I << 1., 0., 0.,
+            0., 1., 0,
+            0., 0., 1.;
     }
     // Identity matrix
-    I2 << 1., 0.,
-        0., 1.;
-    I3 << 1., 0., 0.,
-        0., 1., 0,
-        0., 0., 1.;
+
     //    I3 = Eigen::Matrix<int, 3, 3>::Identity();
 }
 
@@ -416,13 +417,13 @@ void LawJacobian::orientationInHand(Eigen::Vector3d posA, Eigen::Vector3d posHip
         qHA.z() = sin(-alpha / 2) * crossP(2);
 
         RHA = qHA.toRotationMatrix();
-        //        thetaAcr(0) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
+        //        eulerAcr(0) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
 
         eulerHA(0) = -atan2(RHA(1, 2), RHA(2, 2)); //rotation around X-axis
         eulerHA(1) = atan(RHA(0, 2) / sqrt(1 - RHA(0, 2) * RHA(0, 2))); //rotation around Y-axis
         eulerHA(2) = -atan2(RHA(0, 1), RHA(0, 0)); //rotation around Z-axis
         //        if (initCounter % 50 == 0)
-        //            debug() << "Rotation around Z0: " << thetaAcr(0);
+        //            debug() << "Rotation around Z0: " << eulerAcr(0);
     }
 }
 /**
@@ -468,14 +469,14 @@ void LawJacobian::orientationInWrist(Eigen::Vector3d posA, Eigen::Vector3d posHi
 
 void LawJacobian::eulerAcromion(Eigen::Quaterniond qHand, Eigen::Quaterniond qAcr, int initCounter)
 {
-    Eigen::Quaterniond q = qHand * qAcr0.conjugate() * qAcr * qHand.conjugate();
-    RAcr = q.toRotationMatrix();
-    thetaAcr(0) = atan2(RAcr(1, 2), RAcr(2, 2)); //rotation around X-axis
-    thetaAcr(1) = -atan(RAcr(0, 2) / sqrt(1 - RAcr(0, 2) * RAcr(0, 2))); //rotation around Y-axis
-    thetaAcr(2) = atan2(RAcr(0, 1), RAcr(0, 0)); //rotation around Z-axis
+    Eigen::Quaterniond q = qHand.conjugate() * qAcr * qAcr0.conjugate() * qHand;
+    RAcr = R0.transpose() * q.toRotationMatrix() * R0;
+    eulerAcr(0) = -atan2(RAcr(1, 2), RAcr(2, 2)); //rotation around X-axis
+    eulerAcr(1) = atan(RAcr(0, 2) / sqrt(1 - RAcr(0, 2) * RAcr(0, 2))); //rotation around Y-axis
+    eulerAcr(2) = -atan2(RAcr(0, 1), RAcr(0, 0)); //rotation around Z-axis
 
     if (initCounter % 50 == 0) {
-        debug() << "thetaAcr: " << thetaAcr(0) * 180 / M_PI << "; " << thetaAcr(1) * 180 / M_PI << "; " << thetaAcr(2) * 180 / M_PI;
+        debug() << "eulerAcr: " << eulerAcr(0) * 180 / M_PI << "; " << eulerAcr(1) * 180 / M_PI << "; " << eulerAcr(2) * 180 / M_PI;
     }
 }
 
@@ -772,7 +773,7 @@ void LawJacobian::scaleDisplacementHip(int _cnt)
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_v1(int useIMU, double lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_v1(int useIMU, double lambda[], double k, double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
@@ -783,7 +784,7 @@ void LawJacobian::controlLaw_v1(int useIMU, double lambda[], double threshold[],
     //    pinvJ = pseudoinverse<Eigen::MatrixXd>(J, 1e-3);
 
     /// DAMPED LEAST SQUARE SOLUTION
-    // dlsJ = (J.transpose() * J + k * k * I3).inverse() * J.transpose();
+    dlsJ = (J.transpose() * J + k * k * I).inverse() * J.transpose();
 
     /// PROJECT DISPLACEMENT OF ACROMION IN HAND FRAME
     /// For IMU quaternion
@@ -796,9 +797,9 @@ void LawJacobian::controlLaw_v1(int useIMU, double lambda[], double threshold[],
 
     /// COMPUTE ANG. VELOCITIES
     if (useIMU == 1)
-        thetaNew = J.inverse() * delta;
+        thetaNew = dlsJ * delta;
     else if (useIMU == 0)
-        thetaNew = J.inverse() * deltaOpti;
+        thetaNew = dlsJ * deltaOpti;
 
     /// DEADZONE
     for (int i = 0; i < nbLinks; i++) {
@@ -892,15 +893,17 @@ void LawJacobian::controlLaw_orientation2DOF(double lambda[], double threshold[]
  * @param threshold
  * @param _cnt
  */
-void LawJacobian::controlLaw_orientation3DOF(double lambda[], double threshold[], int _cnt)
+void LawJacobian::controlLaw_orientation3DOF(double lambda[], double k, double threshold[], int _cnt)
 {
     /// COMPUTE JACOBIAN
     for (int i = 0; i < nbLinks; i++) {
         J.block<3, 1>(0, i) = z.block<3, 1>(0, i);
     }
+    /// DAMPED LEAST SQUARE SOLUTION
+    dlsJ = (J.transpose() * J + k * k * I).inverse() * J.transpose();
 
     /// COMPUTE ANG. VELOCITIES
-    thetaNew = J.inverse() * thetaAcr;
+    thetaNew = dlsJ * eulerAcr;
 
     /// DEADZONE
     for (int i = 0; i < nbLinks; i++) {
@@ -965,7 +968,7 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     }
     for (int i = 0; i < nbLinks; i++) {
         for (int j = 0; j < 3; j++) {
-            d[3 * nbLinks + j + 3 * i] = OO(j, i);
+            d[3 * nbLinks + j + 3 * i] = J(j, i);
         }
     }
 
@@ -975,8 +978,8 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 6 + j] = deltaOpti(j);
     }
-    for (int j = 0; j < 2; j++) {
-        d[6 * nbLinks + 9 + j] = thetaAcr(j);
+    for (int j = 0; j < 3; j++) {
+        d[6 * nbLinks + 9 + j] = eulerAcr(j);
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 12 + j] = posAinHipOpti(j);

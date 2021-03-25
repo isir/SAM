@@ -10,12 +10,11 @@
 JFOptiOrientation::JFOptiOrientation(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("JFOptitrack Orientation", 0.025)
     , _robot(robot)
-    , _k("k", BaseParam::ReadWrite, this, 0.1)
     , _pin_up(24)
     , _pin_down(22)
     , _lambdaE("lambda elbow", BaseParam::ReadWrite, this, 2)
-    , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 0)
-    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 4)
+    , _lambdaWF("lambda wrist flex", BaseParam::ReadWrite, this, 2)
+    , _lambdaWPS("lambda wrist PS", BaseParam::ReadWrite, this, 2)
     , _thresholdE("threshold E", BaseParam::ReadWrite, this, 5)
     , _thresholdWF("threshold WF", BaseParam::ReadWrite, this, 5)
     , _thresholdWPS("threshold WPS", BaseParam::ReadWrite, this, 5)
@@ -32,9 +31,6 @@ JFOptiOrientation::JFOptiOrientation(std::shared_ptr<SAM::Components> robot)
     _menu->add_item("tareRed", "Tare red IMU (hand)", [this](std::string) { this->tare_redIMU(); });
     _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
     _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
-    _menu->add_item("pos0", "Flex elbow at 50 deg, rotate wrist to -90 deg", [this](std::string) { this->toPos0(); });
-    _menu->add_item("pos1", "Flex elbow at 90 deg, rotate wrist to 30 deg", [this](std::string) { this->toPos1(); });
-    _menu->add_item("pos2", "Flex elbow at 100 deg, rotate wrist to -30 deg", [this](std::string) { this->toPos2(); });
     _menu->add_item("opti", "Check OptiTrack", [this](std::string) { this->displayRBnb(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
@@ -223,45 +219,87 @@ void JFOptiOrientation::toPos2()
     _robot->joints.wrist_pronation->move_to(-30, 40);
 }
 
-void JFOptiOrientation::set_velocity_motors(double speed_elbow, double speed_wrist)
+void JFOptiOrientation::set_velocity_motors(double speed1, double speed2)
 {
-    // ELBOW
-    if (_robot->joints.elbow_flexion->is_calibrated() == false) {
-        warning() << "Elbow not calibrated...";
-        return;
-    }
-    int32_t pos_elbow;
-    double max_angle_elbow = _robot->joints.elbow_flexion->get_max_angle();
-    double min_angle_elbow = _robot->joints.elbow_flexion->get_min_angle();
-    if (speed_elbow > 0)
-        pos_elbow = static_cast<int32_t>(max_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
-    else
-        pos_elbow = static_cast<int32_t>(min_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
+    if (_robot->joints.wrist_flexion) {
+        // WRIST FLEXION
+        if (_robot->joints.wrist_flexion->is_calibrated() == false) {
+            warning() << "Wrist not calibrated...";
+            return;
+        }
+        int32_t pos_wrist1;
+        double max_angle_wrist1 = _robot->joints.wrist_flexion->get_max_angle();
+        double min_angle_wrist1 = _robot->joints.elbow_flexion->get_min_angle();
+        if (speed1 > 0)
+            pos_wrist1 = static_cast<int32_t>(max_angle_wrist1 * _robot->joints.wrist_flexion->r_incs_per_deg());
+        else
+            pos_wrist1 = static_cast<int32_t>(min_angle_wrist1 * _robot->joints.wrist_flexion->r_incs_per_deg());
 
-    uint32_t velocity_elbow = static_cast<uint32_t>(std::fabs(speed_elbow) * _robot->joints.elbow_flexion->r_incs_per_deg());
-    if (velocity_elbow == 0)
-        velocity_elbow = 1;
-    uint32_t acc_elbow = _robot->joints.elbow_flexion->get_acc();
+        uint32_t velocity_wrist1 = static_cast<uint32_t>(std::fabs(speed1) * _robot->joints.wrist_flexion->r_incs_per_deg());
+        if (velocity_wrist1 == 0)
+            velocity_wrist1 = 1;
+        uint32_t acc_wrist1 = _robot->joints.wrist_flexion->get_acc();
 
-    // WRIST PRONATION
-    int32_t pos_wrist;
-    int32_t min_angle_wrist = -130;
-    int32_t max_angle_wrist = 90;
-    if (speed_wrist > 0)
-        pos_wrist = max_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
-    else
-        pos_wrist = min_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
+        // WRIST PRONATION
+        int32_t pos_wrist2;
+        int32_t min_angle_wrist2 = -90;
+        int32_t max_angle_wrist2 = 90;
+        if (speed2 > 0)
+            pos_wrist2 = max_angle_wrist2 * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
+        else
+            pos_wrist2 = min_angle_wrist2 * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
 
-    uint32_t velocity_wrist = static_cast<uint32_t>(std::fabs(speed_wrist) * _robot->joints.wrist_pronation->r_incs_per_deg());
-    if (velocity_wrist == 0)
-        velocity_wrist = 1;
-    uint32_t acc_wrist = 10 * _robot->joints.wrist_pronation->get_acc();
+        uint32_t velocity_wrist2 = static_cast<uint32_t>(std::fabs(speed2) * _robot->joints.wrist_pronation->r_incs_per_deg());
+        if (velocity_wrist2 == 0)
+            velocity_wrist2 = 1;
+        uint32_t acc_wrist2 = 10 * _robot->joints.wrist_pronation->get_acc();
 
-    // SEND COMMAND
-    try {
-        _robot->joints.elbow_flexion->move_to_2motors(acc_elbow, velocity_elbow, acc_elbow, pos_elbow, acc_wrist, velocity_wrist, acc_wrist, pos_wrist);
-    } catch (std::runtime_error& e) {
-        std::cout << "Runtime error when sending velocities : " << e.what() << std::endl;
+        // SEND COMMAND
+        try {
+            _robot->joints.wrist_flexion->move_to_2motors(acc_wrist2, velocity_wrist2, acc_wrist2, pos_wrist2, acc_wrist1, velocity_wrist1, acc_wrist1, pos_wrist1);
+        } catch (std::runtime_error& e) {
+            std::cout << "Runtime error when sending velocities : " << e.what() << std::endl;
+        }
+
+    } else {
+        // ELBOW
+        if (_robot->joints.elbow_flexion->is_calibrated() == false) {
+            warning() << "Elbow not calibrated...";
+            return;
+        }
+        int32_t pos_elbow;
+        double max_angle_elbow = _robot->joints.elbow_flexion->get_max_angle();
+        double min_angle_elbow = 5; // _robot->joints.elbow_flexion->get_min_angle();
+        if (speed1 > 0)
+            pos_elbow = static_cast<int32_t>(max_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
+        else
+            pos_elbow = static_cast<int32_t>(min_angle_elbow * _robot->joints.elbow_flexion->r_incs_per_deg());
+
+        uint32_t velocity_elbow = static_cast<uint32_t>(std::fabs(speed1) * _robot->joints.elbow_flexion->r_incs_per_deg());
+        if (velocity_elbow == 0)
+            velocity_elbow = 1;
+        uint32_t acc_elbow = _robot->joints.elbow_flexion->get_acc();
+
+        // WRIST PRONATION
+        int32_t pos_wrist;
+        int32_t min_angle_wrist = -130;
+        int32_t max_angle_wrist = 90;
+        if (speed2 > 0)
+            pos_wrist = max_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
+        else
+            pos_wrist = min_angle_wrist * static_cast<int32_t>(_robot->joints.wrist_pronation->r_incs_per_deg());
+
+        uint32_t velocity_wrist = static_cast<uint32_t>(std::fabs(speed2) * _robot->joints.wrist_pronation->r_incs_per_deg());
+        if (velocity_wrist == 0)
+            velocity_wrist = 1;
+        uint32_t acc_wrist = 10 * _robot->joints.wrist_pronation->get_acc();
+
+        // SEND COMMAND
+        try {
+            _robot->joints.elbow_flexion->move_to_2motors(acc_elbow, velocity_elbow, acc_elbow, pos_elbow, acc_wrist, velocity_wrist, acc_wrist, pos_wrist);
+        } catch (std::runtime_error& e) {
+            std::cout << "Runtime error when sending velocities : " << e.what() << std::endl;
+        }
     }
 }
 
@@ -296,10 +334,10 @@ void JFOptiOrientation::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    if (protoCyb)
-        _robot->joints.elbow_flexion->move_to(100, 20, true);
-    else
-        _robot->joints.elbow_flexion->move_to(-90, 20);
+    //    if (protoCyb)
+    //        _robot->joints.elbow_flexion->move_to(100, 20, true);
+    //    else
+    //        _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void JFOptiOrientation::displayPin()
@@ -358,9 +396,11 @@ bool JFOptiOrientation::setup()
 
     // INITIALIZATION
     _cnt = 0;
+    _k = 0.01;
     for (int i = 0; i < nbLinks; i++) {
         theta[i] = 0.;
     }
+
     return true;
 }
 
@@ -371,12 +411,21 @@ void JFOptiOrientation::loop(double, clock::time_point time)
     static double wristFlexEncoder = 0;
     static double tmpEncoder = 0;
 
+    /// WRIST FLEXION
+    try {
+        tmpEncoder = wristFlexEncoder;
+        wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
+    } catch (std::runtime_error& e) {
+        std::cout << "Runtime error when reading wrist flex encoder: " << e.what() << std::endl;
+        wristFlexEncoder = tmpEncoder;
+    }
+
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
     std::cout << timeWithDelta << std::endl;
-
     _robot->sensors.optitrack->update();
     optitrack_data_t data = _robot->sensors.optitrack->get_last_data();
+
     if (_cnt == 0) {
         debug() << "nbRigid Bodies: " << data.nRigidBodies << "\n";
         if (data.nRigidBodies < 10)
@@ -401,7 +450,7 @@ void JFOptiOrientation::loop(double, clock::time_point time)
         }
     }
 
-    /// WRIST
+    /// WRIST PRONATION
     try {
         tmpEncoder = pronoSupEncoder;
         pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
@@ -446,7 +495,7 @@ void JFOptiOrientation::loop(double, clock::time_point time)
     qTrunk.z() = 0.;
 
     for (int i = 0; i < nbRigidBodies; i++) {
-        if (data.rigidBodies[i].ID == 4) {
+        if (data.rigidBodies[i].ID == 2) {
             // acromion position
             posA[0] = data.rigidBodies[i].x * 100;
             posA[1] = data.rigidBodies[i].y * 100;
@@ -475,9 +524,6 @@ void JFOptiOrientation::loop(double, clock::time_point time)
             index_hand = i;
         }
     }
-    //    if (_cnt % 50 == 0) {
-    //        debug() << "posA: " << posA[0] << "; " << posA[1] << "; " << posA[2];
-    //    }
 
     /// ELBOW
     try {
@@ -502,15 +548,14 @@ void JFOptiOrientation::loop(double, clock::time_point time)
         wristFlexEncoder = _robot->joints.wrist_flexion->read_encoder_position();
         theta[0] = -wristFlexEncoder / _robot->joints.wrist_flexion->r_incs_per_deg();
 
-        pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
-        theta[1] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        theta[1] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
 
-        theta[2] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
-        //        if (_cnt % 50 == 0)
-        //            debug() << "theta(deg): " << theta[0] << ", " << theta[1] << ", " << theta[2] << "\r\n";
-        theta[0] = -M_PI / 2 + theta[0] * M_PI / 180;
-        theta[1] = M_PI / 2 + theta[1] * M_PI / 180;
-        theta[2] = M_PI / 2 + theta[2] * M_PI / 180;
+        theta[2] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+        if (_cnt % 50 == 0)
+            debug() << "theta(deg): " << theta[0] << ", " << theta[1] << ", " << theta[2];
+        theta[0] = theta[0] * M_PI / 180;
+        theta[1] = theta[1] * M_PI / 180;
+        theta[2] = theta[2] * M_PI / 180;
 
     }
     /// PROTO without wrist flexor
@@ -589,15 +634,17 @@ void JFOptiOrientation::loop(double, clock::time_point time)
             _lawJ.controlLaw_orientation2DOF(_lambda, _threshold, _cnt);
         } else if (nbDOF == 3) {
             _lawJ.eulerAcromion(qHandOpti, qAcrOpti, _cnt);
-            _lawJ.controlLaw_orientation3DOF(_lambda, _threshold, _cnt);
+            _lawJ.controlLaw_orientation3DOF(_lambda, _k, _threshold, _cnt);
         }
 
         Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaDot_toSend = _lawJ.returnthetaDot_deg();
 
         if (_robot->joints.wrist_flexion) {
-            //            _robot->joints.wrist_flexion->set_velocity_safe(-thetaDot_toSend[0]);
-            //            _robot->joints.wrist_pronation->set_velocity_safe(thetaDot_toSend[1]);
-            //            _robot->joints.elbow_flexion->set_velocity_safe(-thetaDot_toSend[2]);
+            /// Wrist DOF
+            set_velocity_motors(-thetaDot_toSend[0], -thetaDot_toSend[1]);
+            // _robot->joints.wrist_pronation->set_velocity_safe(-thetaDot_toSend[1]);
+            /// Elbow DOF
+            _robot->joints.elbow_flexion->set_velocity_safe(thetaDot_toSend[2]);
             if (_cnt % 50 == 0) {
                 debug() << "wrist flex vel :" << thetaDot_toSend[0] << "\n";
                 debug() << "pronosup vel :" << thetaDot_toSend[1] << "\n";
@@ -659,7 +706,7 @@ void JFOptiOrientation::loop(double, clock::time_point time)
                 _robot->joints.hand_quantum->makeContraction(QuantumHand::STOP);
             }
         } else {
-            printf("TB hand\n");
+            //  printf("TB hand\n");
             if (pin_down_value == 0 && prev_pin_down_value == 1) {
                 _robot->joints.hand->move(TouchBionicsHand::PINCH_CLOSING);
             } else if (pin_up_value == 0 && prev_pin_up_value == 1) {
@@ -704,8 +751,10 @@ void JFOptiOrientation::loop(double, clock::time_point time)
 void JFOptiOrientation::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
-    if (_robot->joints.wrist_flexion)
+    if (_robot->joints.wrist_flexion) {
         _robot->joints.wrist_flexion->forward(0);
+        _robot->joints.wrist_flexion->move_to(0, 10);
+    }
     _robot->joints.elbow_flexion->set_velocity_safe(0);
     if (_robot->joints.hand)
         _robot->joints.hand->release_ownership();

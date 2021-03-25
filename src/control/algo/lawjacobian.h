@@ -6,14 +6,14 @@
 #include <string.h>
 
 /// For 3DOF (=wrist flex/ext, wrist pronosup, elbow flex/ext) configuration
-static const int nbFrames = 4;
-static const int nbLinks = 3;
-static const std::string rel = "0xyz";
+//static const int nbFrames = 4;
+//static const int nbLinks = 3;
+//static const std::string rel = "0xxz";
 
 /// For 2DOF (=wrist pronosup, elbow flex/ext) configuration
-//static const int nbFrames = 3;
-//static const int nbLinks = 2;
-//static const std::string rel = "0yz";
+static const int nbFrames = 3;
+static const int nbLinks = 2;
+static const std::string rel = "0yz";
 #define ROW ;
 
 class LawJacobian {
@@ -40,9 +40,9 @@ public:
     void computeOriginsVectors(int l[], int nbDOF);
     void computeTrunkAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qHip);
     void computeArmAngles(Eigen::Quaterniond qHand, Eigen::Quaterniond qTrunk, Eigen::Quaterniond qArm);
-    void controlLaw_v1(int useIMU, double lambda[], double threshold[], int _cnt);
+    void controlLaw_v1(int useIMU, double lambda[], double k, double threshold[], int _cnt);
     void controlLaw_orientation2DOF(double lambda[], double threshold[], int _cnt);
-    void controlLaw_orientation3DOF(double lambda[], double threshold[], int _cnt);
+    void controlLaw_orientation3DOF(double lambda[], double k, double threshold[], int _cnt);
     void scaleDisplacementIMU(int lt, int _cnt);
     void scaleDisplacementHip(int _cnt);
     void writeDebugData(double debug[], double theta[]);
@@ -53,17 +53,8 @@ public:
 
 private:
     Eigen::Matrix<double, 3, nbFrames, Eigen::DontAlign> x, y, z; // frames
-    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J;
-    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> Jp;
-    Eigen::Matrix<double, 3, nbLinks - 1, Eigen::DontAlign> Jo; // jacobian matrices
-    Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> dlsJ; // damped least square solutions from jacobian matrix
-    Eigen::RowVector3d dlsJp;
-#ifdef ROW
-    Eigen::RowVector3d dlsJo; // for Eigen, matrix of one line must be defined as a RowVector
-#else
-    Eigen::Matrix<double, nbLinks - 1, 3, Eigen::DontAlign> dlsJo;
-#endif
-    //    Eigen::MatrixXd pinvJ; // pseudo inverse of jacobian matrix
+    Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> J; // jacobian matrix
+    Eigen::Matrix<double, nbLinks, 3, Eigen::DontAlign> dlsJ; // damped least square solution for inverse of the jacobian
     Eigen::Matrix<double, 3, nbLinks, Eigen::DontAlign> OO; // vectors between the centers of the frames
     Eigen::Vector3d xref, yref, zref, Ytrunk0, Ytrunk, Xtrunk, Ztrunk;
     Eigen::Vector3d posA0; // initial position of the acromion
@@ -77,12 +68,12 @@ private:
     Eigen::Matrix<double, nbLinks, 1, Eigen::DontAlign> thetaNew, thetaNewOpti, thetaDot; // joint angles and angular velocities command
     Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerT, eulerA, eulerHA; // Trunk, Arm and Hip-Acromion Euler angles, expressed in hand frame
     Eigen::Matrix<double, 2, 1, Eigen::DontAlign> thetaHA; // orientation of the hip-acromion vector, around Z0 and Z1 axis
-    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> thetaAcr; // Euler angles sequence of the acromion, expressed in hand frame
+    Eigen::Matrix<double, 3, 1, Eigen::DontAlign> eulerAcr; // Euler angles sequence of the acromion, expressed in hand frame
 
     Eigen::Matrix<double, 3, 3, Eigen::DontAlign> R01, Rhip, RhipOpti, Rtrunk, Rhand, RhandOpti, Rframe, R0,
-        RtrunkInHand, RtrunkHipInHand, RArmInHand, I3, Rhand_rel, RHA, RAcr; // rotation matrices
+        RtrunkInHand, RtrunkHipInHand, RArmInHand, Rhand_rel, RHA, RAcr; // rotation matrices
     //    Eigen::Matrix<int, 3, 3, Eigen::DontAlign> I3; // identity matrix
-    Eigen::Matrix<double, 2, 2, Eigen::DontAlign> I2;
+    Eigen::Matrix<double, nbLinks, nbLinks, Eigen::DontAlign> I;
 
     double theta0H, theta0T, alpha; // angles to correct trunk and hip IMU initial orientation
     Eigen::Quaterniond qRecalH, qRecalT, qIdealH, qIdealT, qHA; // quaternions to correct trunk and hip IMU initial orientation + corrected quaternions of trunk and hip IMU
