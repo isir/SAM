@@ -15,6 +15,7 @@ set(SOURCES
     jf_opti.cpp
     jfoptiorientation.cpp
     matlab_receiver.cpp
+    matlab_optimization.cpp
     read_adc.cpp
     remote_computer_control.cpp
     recorddata.cpp

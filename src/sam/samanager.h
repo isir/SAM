@@ -9,6 +9,7 @@
 #include "control/demo_imu.h"
 #include "control/jf_opti.h"
 #include "control/jfoptiorientation.h"
+#include "control/matlab_optimization.h"
 #include "control/matlab_receiver.h"
 #include "control/myo_2electrodes.h"
 #include "control/pushbuttons.h"
@@ -49,6 +50,7 @@ private:
     std::unique_ptr<RecordData> _recordData;
     std::unique_ptr<CompensationOptitrack> _opti;
     std::unique_ptr<RemoteComputerControl> _rm;
+    std::unique_ptr<MatlabOptimization> _mo;
     std::unique_ptr<MatlabReceiver> _mr;
     std::unique_ptr<Demo> _demo;
     std::unique_ptr<DemoIMU> _demoimu;
