@@ -109,9 +109,12 @@ void LawJacobian::initialization(Eigen::Quaterniond qHip, unsigned int freq)
         //            0., 0., 1.,
         //            1., 0., 0.;
         // if IMU on hand when tare with elbow at 90°
-        R0 << 0., -1., 0.,
-            0., 0., -1.,
-            1., 0., 0.;
+        R0 << -1., 0., 0.,
+            0., -1., 0.,
+            0., 0., 1.;
+        //        R0 << 0., -1., 0.,
+        //            0., 0., -1.,
+        //            1., 0., 0.;
         // if IMU on upper arm
         //        R0 << 0., 1., 0.,
         //            -1., 0., 0.,
@@ -983,5 +986,8 @@ void LawJacobian::writeDebugData(double d[], double theta[])
     }
     for (int j = 0; j < 3; j++) {
         d[6 * nbLinks + 12 + j] = posAinHipOpti(j);
+    }
+    for (int j = 0; j < 2; j++) {
+        d[6 * nbLinks + 15 + j] = thetaHA(j);
     }
 }
