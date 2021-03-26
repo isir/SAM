@@ -23,7 +23,8 @@ MatlabOptimization::MatlabOptimization(std::shared_ptr<SAM::Components> robot)
 
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.elbow_flexion->menu());
-    _menu->add_item(_robot->joints.hand->menu());
+    if (_robot->joints.hand)
+        _menu->add_item(_robot->joints.hand->menu());
 }
 
 MatlabOptimization::~MatlabOptimization()
