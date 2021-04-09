@@ -24,7 +24,8 @@ set(SOURCES
     test_imu.cpp
     voluntary_control.cpp
     pushbuttons.cpp
-    myo_2electrodes.cpp)
+    myo_2electrodes.cpp
+    controle_bretelles.cpp)
 
 add_library(control ${SOURCES})
 

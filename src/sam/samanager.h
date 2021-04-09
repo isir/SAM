@@ -4,7 +4,7 @@
 #include "control/compensation_imu.h"
 #include "control/compensation_optitrack.h"
 #include "control/cybathlon.h"
-#include "control/cybathlon.h"
+#include "control/controle_bretelles.h"
 #include "control/demo.h"
 #include "control/demo_imu.h"
 #include "control/jf_opti.h"
@@ -63,6 +63,7 @@ private:
     std::unique_ptr<CompensationIMU> _imu;
     std::unique_ptr<Cybathlon> _cyb;
     std::unique_ptr<TestIMU> _testimu;
+    std::unique_ptr<ControleBretelles> _bretelles;
 
     std::unique_ptr<MenuBackend> _main_menu;
     std::unique_ptr<MenuMQTT> _menu_mqtt_binding;

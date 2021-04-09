@@ -96,6 +96,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_jfOptiOrientation);
     // _main_menu->add_submenu_from_user(_jfIMU4);
     // _main_menu->add_submenu_from_user(_recordData);
+    _main_menu->add_submenu_from_user(_bretelles);
 
     _main_menu->activate();
 }
@@ -173,6 +174,10 @@ void SAManager::instantiate_controllers()
     }
     try {
         _recordData = std::make_unique<RecordData>(_robot);
+    } catch (std::exception&) {
+    }
+    try {
+        _bretelles = std::make_unique<ControleBretelles>(_robot);
     } catch (std::exception&) {
     }
 }
