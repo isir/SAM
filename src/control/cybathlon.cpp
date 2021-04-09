@@ -29,7 +29,7 @@ Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     _th[1] = 3500;
     _th[2] = 3000;
     _th[3] = 2500;
-    _th[4] = 2000;
+    _th[4] = 1200;
     _th[5] = 2500;
 
     _filter_coef[0] = 0.1881;
@@ -358,13 +358,13 @@ void Cybathlon::loop(double dt, clock::time_point time)
     } else { //si poignet+main bloqués
 
         if (previous_value_wrist==0) {
-            // _cnt_imu = 0;
+             _cnt_imu = 0;
             _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
         }
         previous_value_wrist = 1;
         colors[4] = LedStrip::green;
 
-        /*
+
         //compensation IMU poignet
         int init_cnt_imu = 10;
 
@@ -393,8 +393,10 @@ void Cybathlon::loop(double dt, clock::time_point time)
                 _lawimu.displayData();
             }
         }
-        ++_cnt_imu; */
+        ++_cnt_imu;
 
+        //EMG1 and EMG2 = hand
+        processQuantumHand(_electrodes[0], _electrodes[1], hand_btn);
 
         //EMG3 and EMG5 = elbow
         if (_robot->btn1) {
@@ -409,9 +411,9 @@ void Cybathlon::loop(double dt, clock::time_point time)
             } else if (_electrodes[4]>_th[4] && _electrodes[2]<_electrodes[4] && _electrodes[3]<_electrodes[4] && _electrodes[5]<_electrodes[4]) { //EMG5 activation
                 _robot->joints.elbow_flexion->set_velocity_safe(-25); //Elbow extension
                 colors[5] = LedStrip::LedStrip::purple;
-            } else {
+            } /* else {
                 _robot->joints.elbow_flexion->set_velocity_safe(0);
-            }
+            } */
 
         } else {
             if (elbow_available==1) {

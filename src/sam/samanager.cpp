@@ -87,7 +87,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_mr);
     _main_menu->add_submenu_from_user(_imu);
     //    _main_menu->add_submenu_from_user(_opti);
-    // _main_menu->add_submenu_from_user(_demo);
+    _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_testimu);
     // _main_menu->add_submenu_from_user(_demoimu);
     // _main_menu->add_submenu_from_user(_pb);
