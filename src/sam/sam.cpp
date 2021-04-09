@@ -71,6 +71,8 @@ Joints::Joints()
             elbow_flexion = Components::make_component<ElbowCybathlon>("elbow_cybathlon");
         }
     }
+
+   // test_epos = Components::make_component<EPOS>("test_epos");
 }
 
 Components::Components()

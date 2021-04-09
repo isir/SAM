@@ -14,6 +14,7 @@
 #include "components/internal/actuators/wrist_cybathlon.h"
 #include "components/internal/actuators/wrist_flexor.h"
 #include "components/internal/actuators/wrist_rotator.h"
+#include "components/internal/actuators/epos/epos.h"
 #include "components/internal/adc/adafruit_ads1115.h"
 #include "components/internal/gpio/gpio.h"
 #include "components/internal/hand/touch_bionics_hand.h"
@@ -80,6 +81,8 @@ public:
     std::unique_ptr<ShoulderRotator> shoulder_medial_rotation;
     std::unique_ptr<TouchBionicsHand> hand;
     std::unique_ptr<QuantumHand> hand_quantum;
+
+    std::unique_ptr<EPOS> test_epos;
 };
 
 class Components {

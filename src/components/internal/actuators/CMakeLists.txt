@@ -13,7 +13,8 @@ set(SOURCES
     elbow_cybathlon.cpp)
 
 add_subdirectory(roboclaw)
+add_subdirectory(epos)
 
 add_library(actuators ${SOURCES})
 
-target_link_libraries(actuators roboclaw)
+target_link_libraries(actuators roboclaw epos)
