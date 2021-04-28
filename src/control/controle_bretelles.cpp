@@ -3,11 +3,14 @@
 #include "utils/log/log.h"
 #include "algo/myocontrol.h"
 #include "ui/visual/ledstrip.h"
+#include "wiringPi.h"
 #include <iostream>
+#include <filesystem>
 
 ControleBretelles::ControleBretelles(std::shared_ptr<SAM::Components> robot)
     : ThreadedLoop("matlab_receiver", 0.01)
     , _robot(robot)
+    , _start_button(24)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand_quantum)) {
         throw std::runtime_error("Demo is missing components");
@@ -24,6 +27,15 @@ ControleBretelles::ControleBretelles(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
 
+    _menu->add_item("calib", "Calibrate braces values", [this](std::string) {calib_bretelles();});
+
+    std::shared_ptr<MenuBackend> mode_submenu = std::make_shared<MenuBackend>("mode", "Choose control mode");
+    mode_submenu->add_item("0", "Visualization mode", [this](std::string) { _mode = 0;});
+    mode_submenu->add_item("1", "Demo discret epaules", [this](std::string) { _mode = 1;});
+    mode_submenu->add_item("2", "Controle vitesse P 1DOF", [this](std::string) { _mode = 2;});
+    mode_submenu->add_item("3", "Controle 2DOF", [this](std::string) { _mode = 3;});
+    _menu->add_item(mode_submenu);
+
     int port = 45457;
     if (!_socket.bind("0.0.0.0", port)) {
         critical() << "Failed to bind on port" << port;
@@ -37,11 +49,30 @@ ControleBretelles::~ControleBretelles()
 
 bool ControleBretelles::setup()
 {
-    _robot->joints.elbow_flexion->calibrate();
+    if (_robot->joints.elbow_flexion->is_calibrated() == false && _mode!=0)
+        _robot->joints.elbow_flexion->calibrate();
     if (_robot->joints.wrist_flexion) {
         _robot->joints.wrist_flexion->calibrate();
     }
     _robot->joints.wrist_pronation->calibrate();
+
+    _start = false;
+    _cnt = 0;
+
+    // Record data in txt file
+    std::string filename("bretelles");
+    std::string suffix;
+    int cnt = 0;
+    std::string extension(".txt");
+    do {
+        ++cnt;
+        suffix = "_" + std::to_string(cnt);
+    } while (std::filesystem::exists(filename + suffix + extension));
+    _file = std::ofstream(filename + suffix + extension);
+    if (!_file.good()) {
+        critical() << "Failed to open" << (filename + suffix + extension);
+        return false;
+    }
 
     return true;
 }
@@ -51,9 +82,72 @@ void ControleBretelles::loop(double, clock::time_point)
     while (_socket.available()) {
         std::vector<std::byte> buf = _socket.receive();
         unpack_data(buf);
-        std::cout << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _avc << "\t" << _arc << "\t" <<_label << "\t" << _gain << std::endl;
+        std::cout << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _cg << "\t" << _cd << "\t" <<_label << "\t" << _button << "\t" << _gain << std::endl;
+    }
+    static int prev_pin_status_value = 0;
+
+    if (_mode != 0) {
+        if (_start) {
+            if ((_button == 0) && (prev_pin_status_value == 1)) { // putton pressed to stop
+                _start = false;
+                _robot->joints.wrist_pronation->forward(0);
+            } else {
+                switch ( _mode)
+                {
+                case 1:
+                    demo_mode();
+                    break;
+                case 2:
+                    controle_vitesse_p();
+                    break;
+                case 3:
+                    controle_2DOF();
+                    break;
+                default:
+                    std::cout << "Problem in mode selection" << std::endl;
+                }
+            }
+        } else if ((_button == 0) && (prev_pin_status_value == 1)) { // putton pressed to start
+                _start = true;
+                _cnt = 0;
+        }
+        prev_pin_status_value = _button;
     }
 
+    _file << _mode << "\t" << _start << "\t" << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _cg << "\t" << _cd << "\t" <<_label << "\t" << _button << "\t" << _gain;
+    _file << "\t" << _val_init[0] << "\t" << _val_init[1] << "\t" << _val_init[2]<< "\t" << _val_init[3] << "\t" << _val_init[4] << "\t" << _val_init[5];
+    _file << std::endl;
+}
+
+void ControleBretelles::unpack_data(std::vector<std::byte> buffer) {
+    char virgule = ',';
+    unsigned int i = 0, j = 0, k=0;
+    int a[4]={0}, avrgd[6]={0};
+    while (j<6 && i<buffer.size()) {
+        if (static_cast<char>(buffer[i])==virgule) {
+            for (unsigned int l=0;l<k;l++) {
+                avrgd[j]+=a[l]*static_cast<int>(std::pow(10,k-l-1));
+            }
+            j++;
+            k = 0;
+        } else {
+            a[k]=static_cast<int>(buffer[i])-48;
+            k++;
+        }
+        i++;
+    }
+    _avg = avrgd[0];
+    _avd = avrgd[1];
+    _arg = avrgd[2];
+    _ard = avrgd[3];
+    _cg = avrgd[4];
+    _cd = avrgd[5];
+    _label = static_cast<int>(buffer[i])-48;
+    _button = static_cast<int>(buffer[i+2])-48;
+    _gain = static_cast<int>(buffer[i+4])-48 + (static_cast<int>(buffer[i+6])-48)*0.1 + (static_cast<int>(buffer[i+7])-48)*0.01;
+}
+
+void ControleBretelles::demo_mode() {
     static std::unique_ptr<MyoControl::Classifier> myocontrol;
 
     static const unsigned int counts_after_mode_change = 15;
@@ -65,15 +159,15 @@ void ControleBretelles::loop(double, clock::time_point)
 
     auto robot = _robot;
     MyoControl::Action elbow(
-        "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-35); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(35); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
+                "Elbow", [robot]() { robot->joints.elbow_flexion->set_velocity_safe(-35); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(35); }, [robot]() { robot->joints.elbow_flexion->set_velocity_safe(0); });
     MyoControl::Action wrist_pronosup(
-        "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
+                "Wrist rotation", [robot]() { robot->joints.wrist_pronation->set_velocity_safe(40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(-40); }, [robot]() { robot->joints.wrist_pronation->set_velocity_safe(0); });
     MyoControl::Action wrist_flex(
-        "Wrist flexion", [robot]() { robot->joints.wrist_flexion->set_velocity_safe(20); }, [robot]() { robot->joints.wrist_flexion->set_velocity_safe(-20); }, [robot]() { robot->joints.wrist_flexion->set_velocity_safe(0); });
+                "Wrist flexion", [robot]() { robot->joints.wrist_flexion->set_velocity_safe(20); }, [robot]() { robot->joints.wrist_flexion->set_velocity_safe(-20); }, [robot]() { robot->joints.wrist_flexion->set_velocity_safe(0); });
     MyoControl::Action shoulder(
-        "Shoulder", [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(35); }, [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(-35); }, [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(0); });
+                "Shoulder", [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(35); }, [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(-35); }, [robot]() { robot->joints.shoulder_medial_rotation->set_velocity_safe(0); });
     MyoControl::Action hand(
-        "Hand", [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); }, [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); }, [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::STOP); });
+                "Hand", [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,2,2); }, [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::SHORT_CONTRACTION,1,2); }, [robot]() { robot->joints.hand_quantum->makeContraction(QuantumHand::STOP); });
 
     std::vector<MyoControl::Action> s1 {wrist_pronosup, elbow};
     if (_robot->joints.wrist_flexion)
@@ -98,7 +192,7 @@ void ControleBretelles::loop(double, clock::time_point)
     if (_label==3) {
         emg[0] = 80;
     }
-    if (_label==5) {
+    if (_label==2) {
         emg[1] = 80;
     }
     if (_label==1) {
@@ -132,31 +226,111 @@ void ControleBretelles::loop(double, clock::time_point)
     _robot->user_feedback.leds->set(colors);
 }
 
-void ControleBretelles::unpack_data(std::vector<std::byte> buffer) {
-    char virgule = ',';
-    unsigned int i = 0, j = 0, k=0;
-    int a[4]={0}, avrgd[6]={0};
-    while (j<6 && i<buffer.size()) {
-        if (static_cast<char>(buffer[i])==virgule) {
-            for (unsigned int l=0;l<k;l++) {
-                avrgd[j]+=a[l]*static_cast<int>(std::pow(10,k-l-1));
-            }
-            j++;
-            k = 0;
-        } else {
-            a[k]=static_cast<int>(buffer[i])-48;
-            k++;
-        }
-        i++;
+void ControleBretelles::controle_vitesse_p() {
+    if (_cnt == 0) {
+        calib_bretelles();
+    } else {
+        double speed = 0;
+        double height = (_avd+_ard)/2;
+        double height_init = (_val_init[1]+_val_init[3])/2;
+        double error = height-height_init;
+        if (error > 10)
+            speed = round(error/6);
+        else if (error < -10)
+            speed = round(error/4);
+        else
+            speed = 0;
+
+        _robot->joints.wrist_pronation->set_velocity_safe(speed);
     }
-    _avg = avrgd[0];
-    _avd = avrgd[1];
-    _arg = avrgd[2];
-    _ard = avrgd[3];
-    _avc = avrgd[4];
-    _arc = avrgd[5];
-    _label = static_cast<int>(buffer[i])-48;
-    _gain = static_cast<int>(buffer[i+2])-48 + (static_cast<int>(buffer[i+4])-48)*0.1 + (static_cast<int>(buffer[i+5])-48)*0.01;
+    _cnt++;
+}
+
+void ControleBretelles::controle_2DOF() {
+    if (_cnt == 0) {
+        calib_bretelles();
+    } else {
+        double speed_wrist = 0;
+        double speed_elbow = 0;
+        double cg_diff = _cg-_val_init[4];
+        double avg_diff = _avg-_val_init[0];
+        double arg_diff = _arg-_val_init[2];
+        if (cg_diff<-50 && avg_diff>80) { //retraction
+            speed_wrist = 0;
+            speed_elbow = round(cg_diff/10);
+            std::cout << "retraction \t" << speed_elbow << std::endl;
+        } else if (avg_diff < -80 && arg_diff < -80) { //épaule basse
+            speed_wrist = round(avg_diff/4);
+            speed_elbow = 0;
+            std::cout << "epaule basse \t" << speed_wrist << std::endl;
+        } else if (cg_diff>50 && avg_diff<(cg_diff-50)) { //protraction
+            speed_wrist = 0;
+            speed_elbow = round(cg_diff/10);
+            std::cout << "protraction \t" << speed_elbow << std::endl;
+        } else if (cg_diff>20 && avg_diff>80 && arg_diff>50) { //haussement épaule
+            speed_wrist = round(avg_diff/4);
+            speed_elbow = 0;
+            std::cout << "epaule haute \t" << speed_wrist << std::endl;
+        }
+
+        _robot->joints.wrist_pronation->set_velocity_safe(speed_wrist);
+        _robot->joints.elbow_flexion->set_velocity_safe(speed_elbow);
+
+    }
+    _cnt++;
+}
+
+void ControleBretelles::controle_vitesse_pi() {
+    static double sum_error = 0;
+    if (_cnt == 0) {
+        calib_bretelles();
+        sum_error = 0;
+    } else {
+        double speed = 0;
+        double height = (_avd+_ard)/2;
+        double height_init = (_val_init[1]+_val_init[3])/2;
+        double error = height_init-height;
+        sum_error += error*0.01;
+        if (error < -10)
+            speed = round(-error/6-0*sum_error);
+        else if (error > 10)
+            speed = round(-error/4-0*sum_error);
+        else
+            speed = 0;
+
+        _robot->joints.wrist_pronation->set_velocity_safe(speed);
+        std::cout << height << "\t" << height_init << "\t" << error << "\t" << sum_error << "\t" << speed << std::endl;
+    }
+    _cnt++;
+}
+
+void ControleBretelles::calib_bretelles() {
+    std::cout << "Please do not move" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    int cnt = 0;
+    for(int i=0;i<6;i++) {
+        _val_init[i] = 0;
+    }
+    std::cout << "Starting to record data for calibration..." << std::endl;
+
+    clock::time_point start_time = clock::now();
+    while (std::chrono::duration_cast<std::chrono::seconds>(clock::now() - start_time).count() < 5) {
+        while (_socket.available()) {
+            std::vector<std::byte> buf = _socket.receive();
+            unpack_data(buf);
+            _val_init[0] += _avg;
+            _val_init[1] += _avd;
+            _val_init[2] += _arg;
+            _val_init[3] += _ard;
+            _val_init[4] += _cg;
+            _val_init[5] += _cd;
+            cnt++;
+        }
+    }
+    for(int i=0;i<6;i++) {
+        _val_init[i] = round(_val_init[i]/cnt);
+    }
+    std::cout << _val_init[0] << "\t" << _val_init[1] << "\t" << _val_init[2] << "\t" << _val_init[3] << "\t" << _val_init[4] << "\t" << _val_init[5] << std::endl;
 }
 
 void ControleBretelles::cleanup()
