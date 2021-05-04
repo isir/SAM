@@ -4,9 +4,10 @@
 #include "utils/log/log.h"
 #include <filesystem>
 #include <iostream>
+#include <sstream>
 
 MatlabOptimization::MatlabOptimization(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("Matlab Optimization", 0.1)
+    : ThreadedLoop("Matlab Optimization", 0.01)
     , _robot(robot)
 {
     if (!check_ptr(_robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->sensors.optitrack)) {
@@ -21,6 +22,8 @@ MatlabOptimization::MatlabOptimization(std::shared_ptr<SAM::Components> robot)
         critical() << "Failed to bind on port" << port;
     }
 
+    _menu->add_item("calib", "Calibration", [this](std::string) { this->calibrations(); });
+    _menu->add_item("elbow90", "Flex elbow at 90 deg", [this](std::string) { this->elbowTo90(); });
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     if (_robot->joints.hand)
@@ -31,7 +34,16 @@ MatlabOptimization::~MatlabOptimization()
 {
     _robot->joints.elbow_flexion->forward(0);
     _robot->joints.wrist_pronation->forward(0);
+    _socket.close();
     stop_and_join();
+}
+
+void MatlabOptimization::elbowTo90()
+{
+    if (protoCyb)
+        _robot->joints.elbow_flexion->move_to(100, 20);
+    else
+        _robot->joints.elbow_flexion->move_to(-90, 10);
 }
 
 void MatlabOptimization::calibrations()
@@ -51,10 +63,10 @@ void MatlabOptimization::calibrations()
     if (_robot->joints.wrist_pronation->is_calibrated())
         debug() << "Calibration wrist pronation: ok \n";
 
-    if (protoCyb)
-        _robot->joints.elbow_flexion->move_to(100, 20, true);
-    else
-        _robot->joints.elbow_flexion->move_to(-90, 20);
+    //    if (protoCyb)
+    //        _robot->joints.elbow_flexion->move_to(100, 20, true);
+    //    else
+    //        _robot->joints.elbow_flexion->move_to(-90, 20);
 }
 
 void MatlabOptimization::set_velocity_motors(double speed1, double speed2)
@@ -105,6 +117,11 @@ bool MatlabOptimization::setup()
 
     _lambda[0] = 2;
     _lambda[1] = 2;
+    _threshold[0] = 5;
+    _threshold[1] = 5;
+    for (int i = 0; i < sizeof(_qd) / sizeof(*_qd); i++) {
+        _qd[i] = 400.;
+    }
     // OPEN AND NAME DATA FILE
     if (saveData) {
         std::string filename("MatlabOpt");
@@ -132,6 +149,7 @@ bool MatlabOptimization::setup()
     _cnt = 0;
     for (int i = 0; i < 2; i++) {
         _theta[i] = 0.;
+        _thetaDiff[i] = 0.;
     }
     return true;
 }
@@ -147,7 +165,7 @@ void MatlabOptimization::loop(double, clock::time_point time)
 
     int init_cnt = 10;
     double timeWithDelta = (time - _start_time).count();
-    std::cout << timeWithDelta << std::endl;
+    //    std::cout << timeWithDelta << std::endl;
 
     /// READ ENCODER WRIST
     try {
@@ -157,19 +175,16 @@ void MatlabOptimization::loop(double, clock::time_point time)
         std::cout << "Runtime error when reading wrist encoder: " << e.what() << std::endl;
         pronoSupEncoder = tmpEncoder;
     }
-    _theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg() * M_PI / 180;
-    _theta[1] = -elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg() * M_PI / 180;
-
-    /// READ DATA FROM MATLAB
-    if (_socket.available()) {
-        std::cout << "Matlab socket available" << std::endl;
-        auto data = _socket.receive();
-        std::string buf;
-        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
-        _qd = std::stoi(buf);
-        std::cout << "Qd: " << _qd << std::endl;
+    if (protoCyb) {
+        _theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        _theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
+    } else {
+        _theta[0] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        _theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
     }
-
+    listenMatlab();
+    //    std::cout << "Qd elbow and wrist pronosup (rad): " << _qd[0] - M_PI << ";" << _qd[1] << std::endl;
+    //    std::cout << "Theta elbow and wrist pronosup (rad): " << _theta[1] << "; " << _theta[0] << std::endl;
     /// READ ENCODER ELBOW
     try {
         tmpEncoder = elbowEncoder;
@@ -180,18 +195,49 @@ void MatlabOptimization::loop(double, clock::time_point time)
     }
 
     /// SEND COMMAND TO JOINT MOTORS
-    //    _thetaDot[0] = _lambda[0] * (qd[8] - _theta[0]);
-    //    _thetaDot[1] = _lambda[1] * (qd[7] - _theta[1]);
-    //    set_velocity_motors(_thetaDot[1], _thetaDot[0]);
+    if ((_qd[0] < 400.) && (_qd[1] < 400.)) {
 
+        _thetaDiff[0] = _qd[1] * 180 / M_PI;
+        _thetaDiff[1] = _qd[0] * 180 / M_PI;
+        std::cout << "Theta diff (deg): " << _thetaDiff[0] << "; " << _thetaDiff[1] << std::endl;
+        std::cout << "" << std::endl;
+
+        for (int i = 0; i < 2; i++) {
+            //            // Speed proportional to difference between current and optimal angular posture
+            //            if (abs(_thetaDiff[i]) < _threshold[i])
+            //                _thetaDot[i] = 0.;
+            //            else
+            //                _thetaDot[i] = _lambda[i] * _thetaDiff[i];
+
+            //            // Constant speed
+            //            if (abs(_thetaDiff[i]) < _threshold[i])
+            //                _thetaDot[i] = 0.;
+            //            else {
+            //                _thetaDot[0] = _thetaDiff[0] / abs(_thetaDiff[0]) * 40;
+            //                _thetaDot[1] = _thetaDiff[1] / abs(_thetaDiff[1]) * 20;
+            //            }
+
+            // Position control
+            if (abs(_thetaDiff[i]) > _threshold[i]) {
+                _robot->joints.wrist_pronation->move_to(_theta[0] + _thetaDiff[0], 40);
+                _robot->joints.elbow_flexion->move_to(_theta[1] + _thetaDiff[1], 20);
+                _thetaDiff[0] = 0.;
+                _thetaDiff[1] = 0.;
+            }
+        }
+
+        //        std::cout << "Send velocity commands (deg): " << _thetaDot[0] << "; " << _thetaDot[1] << std::endl;
+        //        set_velocity_motors(_thetaDot[1], _thetaDot[0]);
+        //        _robot->joints.elbow_flexion->set_velocity_safe(-_thetaDot[1]);
+    }
     if (saveData) {
         /// WRITE DATA
         _file << ' ' << timeWithDelta;
         _file << ' ' << _lambda[0] << ' ' << _lambda[1];
         _file << ' ' << pronoSupEncoder << ' ' << elbowEncoder << ' ' << _theta[0] << ' ' << _theta[1];
-        //        for (int i = 0; i < 9; i++) {
-        //            _file << ' ' << qd[i];
-        //        }
+        for (int i = 0; i < 2; i++) {
+            _file << ' ' << _qd[i];
+        }
         // _file << ' ' << data.nRigidBodies;
 
         //        for (int i = 0; i < nbRigidBodies; i++) {
@@ -204,6 +250,23 @@ void MatlabOptimization::loop(double, clock::time_point time)
     ++_cnt;
 }
 
+void MatlabOptimization::listenMatlab()
+{
+    /// READ DATA FROM MATLAB
+    if (_socket.available()) {
+        std::cout << "Matlab socket available " << _cnt << std::endl;
+        auto data = _socket.receive();
+        std::string buf;
+        buf.resize(data.size());
+        std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) -> char { return static_cast<char>(b); });
+
+        std::cout << buf << std::endl;
+        std::istringstream ts(buf);
+        for (int i = 0; i < (sizeof(_qd) / sizeof(*_qd)); i++) {
+            ts >> _qd[i];
+        }
+    }
+}
 void MatlabOptimization::cleanup()
 {
     _robot->joints.wrist_pronation->forward(0);
