@@ -8,6 +8,7 @@ public:
     PronoSupination();
 
     void set_velocity_safe(double deg_s);
+    void calibrate();
 };
 
 #endif // PRONOSUPINATION_H

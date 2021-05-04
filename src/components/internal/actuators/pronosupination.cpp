@@ -18,3 +18,9 @@ void PronoSupination::set_velocity_safe(double deg_s)
 {
     set_velocity(deg_s);
 }
+
+void PronoSupination::calibrate()
+{
+    Actuator::set_encoder_position(0);
+    Actuator::set_calibrated(true);
+}
