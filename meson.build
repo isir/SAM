@@ -83,9 +83,13 @@ vc_dep = declare_dependency(link_args : ['-lvcos', '-lvchiq_arm', '-lvchostif'])
 cppfs_dep = declare_dependency(link_args: ['-lstdc++fs'])
 thread_dep = dependency('threads')
 
+add_project_arguments('-DMOSQUITTO_SERVER_IP="127.0.0.1"', language : 'cpp')
+add_project_arguments('-DMOSQUITTO_SERVER_PORT=1883', language : 'cpp')
+add_project_arguments('-DDEFAULT_CPU_CORE=2', language : 'cpp')
+add_project_arguments('-DDEFAULT_THREAD_PRIO=20', language : 'cpp')
+
 sam_target = executable('sam', 
     sam_src, 
-    include_directories:sam_public_headers, 
-    cpp_args:['-DMOSQUITTO_SERVER_IP="127.0.0.1"','-DMOSQUITTO_SERVER_PORT=1883','-DDEFAULT_CPU_CORE=2','-DDEFAULT_THREAD_PRIO=20'], 
-    dependencies : [mosquitto_dep, bcm2835_dep, cppfs_dep, thread_dep, i2c_dep, vc_dep]
+    include_directories : sam_public_headers, 
+    dependencies : [bcm2835_dep, cppfs_dep, i2c_dep, mosquitto_dep, thread_dep, vc_dep],
 )
