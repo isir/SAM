@@ -4,7 +4,7 @@
 #include "abstract_monitor.h"
 
 extern "C" {
-#include "interface/vmcs_host/vc_vchi_gencmd.h"
+#include <interface/vmcs_host/vc_vchi_gencmd.h>
 }
 
 namespace Monitoring {
