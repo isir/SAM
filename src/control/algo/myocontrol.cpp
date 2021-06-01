@@ -1,4 +1,5 @@
 #include "myocontrol.h"
+#include <stdexcept>
 
 namespace MyoControl {
 

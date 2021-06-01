@@ -1,6 +1,6 @@
 #include "epos.h"
 #include <iostream>
-#include "Definitions.h"
+#include <libeposcmd/Definition.h>
 
 EPOS::EPOS()
     : MenuUser("", "", [this]() { on_exit(); })

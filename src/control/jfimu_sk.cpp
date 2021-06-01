@@ -2,7 +2,6 @@
 #include "algo/myocontrol.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 #include <iostream>
 
@@ -15,8 +14,8 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
     , _k("k", BaseParam::ReadWrite, this, 5)
     , _lt("lt(cm)", BaseParam::ReadWrite, this, 30)
     , _lsh("lsh(cm)", BaseParam::ReadWrite, this, 20)
-    , _pin_up(24)
-    , _pin_down(22)
+    , _pin_up(24,GPIO::DIR_INPUT,GPIO::PULL_UP)
+    , _pin_down(22,GPIO::DIR_INPUT,GPIO::PULL_UP)
     , _lua("lua(cm)", BaseParam::ReadWrite, this, 30)
     , _lfa("lfa(cm)", BaseParam::ReadWrite, this, 28)
     , _lwrist("lwrist(cm)", BaseParam::ReadWrite, this, 10)
@@ -51,9 +50,6 @@ JacobianFormulationIMU_sk::JacobianFormulationIMU_sk(std::string name, std::stri
         _nbDOF = 2;
         debug() << "nDOF: " << _nbDOF;
     }
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
 
     _filename = filename;
 
@@ -138,8 +134,8 @@ void JacobianFormulationIMU_sk::calibrations()
 
 void JacobianFormulationIMU_sk::displayPin()
 {
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _pin_down;
+    int pin_up_value = _pin_up;
     debug() << "PinUp: " << pin_up_value;
     debug() << "PinDown: " << pin_down_value;
 }
@@ -413,8 +409,8 @@ void JacobianFormulationIMU_sk::loop(double, clock::time_point time)
     }
 
     /// PIN PUSH-BUTTONS CONTROL
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
+    int pin_down_value = _pin_down;
+    int pin_up_value = _pin_up;
 
     /// CONTROL LOOP
     if (_cnt == 0) {
@@ -532,7 +528,7 @@ void JacobianFormulationIMU_sk::listenArduino()
         auto data = _receiverArduino.receive();
         std::string buf;
         std::transform(data.begin(), data.end(), buf.begin(), [](std::byte b) { return static_cast<char>(b); });
-        _pinArduino = std::stoi(buf);
-        debug() << "Pin Arduino: " << _pinArduino;
+        // _pinArduino = std::stoi(buf);
+        // debug() << "Pin Arduino: " << _pinArduino;
     }
 }

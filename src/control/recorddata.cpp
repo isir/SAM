@@ -1,7 +1,6 @@
 #include "recorddata.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 #include <iostream>
 

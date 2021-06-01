@@ -6,7 +6,7 @@
 #include "utils/serial_port.h"
 #include "utils/threaded_loop.h"
 #include <mutex>
-#include "ux/Osc99/Osc99.h"
+#include "Osc99/Osc99.h"
 #include <string>
 
 #define NGIMU_BAUDRATE B115200

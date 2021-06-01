@@ -1,12 +1,12 @@
 #include "samanager.h"
 #include "utils/log/log.h"
 #include <unistd.h>
-#include <wiringPi.h>
+#include <bcm2835.h>
 
 SAManager::SAManager()
     : _main_menu(std::make_unique<MenuBackend>("main", "Main menu", [this] { _cv.notify_one(); }))
 {
-    wiringPiSetup();
+    bcm2835_init();
 
     if (isatty(fileno(stdin))) {
         _menu_console_binding = std::make_unique<MenuConsole>();

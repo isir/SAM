@@ -3,7 +3,6 @@
 #include "utils/log/log.h"
 #include "algo/myocontrol.h"
 #include "ui/visual/ledstrip.h"
-#include "wiringPi.h"
 #include <iostream>
 #include <filesystem>
 

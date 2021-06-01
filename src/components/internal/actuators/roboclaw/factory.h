@@ -3,7 +3,7 @@
 
 #include <map>
 #include <string>
-
+#include <memory>
 #include "utils/serial_port.h"
 
 namespace RC {

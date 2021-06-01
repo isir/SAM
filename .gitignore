@@ -5,3 +5,7 @@ SAM.pro.user
 *.user
 
 Makefile
+
+build/
+
+builddir/

@@ -1,0 +1,101 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Clear build dir",
+			"type": "shell",
+			"command": "rm -r builddir",
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			}
+		},
+		{
+			"label": "Setup meson",
+			"type": "shell",
+			"command": "meson . builddir --cross-file meson/cross_file.ini",
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			},
+			"dependsOn": "Clear build dir"
+		},
+		{
+			"label": "Build",
+			"type": "shell",
+			"command": "ninja",
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/builddir"
+			},
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": true
+			}
+		},
+		{
+			"label": "Copy executable",
+			"type": "shell",
+			"command": "scp sam root@10.0.0.1:/opt/sam",
+			"group": "build",
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/builddir"
+			},
+			"dependsOn": "Build"
+		},
+		{
+			"label": "Deploy",
+			"group": "build",
+			"dependsOn": [
+				"SAM: copy executable",
+			],
+			"dependsOrder": "sequence",
+			"problemMatcher": []
+		},
+		{
+			"label": "Kill remote gdbserver",
+			"type": "shell",
+			"command": "ssh root@10.0.0.1 \"killall -q gdbserver; exit 0;\"",
+			"group": "test"
+		},
+		{
+			"label": "Launch remote gdbserver",
+			"type": "shell",
+			"command": "gnome-terminal -- ssh -t root@10.0.0.1 gdbserver localhost:4444 /opt/sam/sam",
+			"group": "test",
+			"dependsOn": "SAM: kill remote gdbserver",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": true,
+				"panel": "dedicated",
+				"showReuseMessage": true,
+				"clear": true
+			}
+		}
+	]
+}

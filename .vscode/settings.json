@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "exception": "cpp",
+        "stdexcept": "cpp"
+    },
+    "mesonbuild.configureOnOpen": true
+}
