@@ -41,7 +41,7 @@ MatlabOptimization::~MatlabOptimization()
 void MatlabOptimization::elbowTo90()
 {
     if (protoCyb)
-        _robot->joints.elbow_flexion->move_to(100, 20);
+        _robot->joints.elbow_flexion->move_to(90, 20);
     else
         _robot->joints.elbow_flexion->move_to(-90, 10);
 }
@@ -176,7 +176,7 @@ void MatlabOptimization::loop(double, clock::time_point time)
         pronoSupEncoder = tmpEncoder;
     }
     if (protoCyb) {
-        _theta[0] = -pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
+        _theta[0] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
         _theta[1] = elbowEncoder / _robot->joints.elbow_flexion->r_incs_per_deg();
     } else {
         _theta[0] = pronoSupEncoder / _robot->joints.wrist_pronation->r_incs_per_deg();
@@ -195,10 +195,19 @@ void MatlabOptimization::loop(double, clock::time_point time)
     }
 
     /// SEND COMMAND TO JOINT MOTORS
+
     if ((_qd[0] < 400.) && (_qd[1] < 400.)) {
 
+        if (protoCyb) {
+            _thetaDiff[0] = -_qd[1] * 180 / M_PI;
+            _thetaDiff[1] = _qd[0] * 180 / M_PI;
+        } else {
+            _thetaDiff[0] = _qd[1] * 180 / M_PI;
+            _thetaDiff[1] = _qd[0] * 180 / M_PI;
+        }
         _thetaDiff[0] = _qd[1] * 180 / M_PI;
         _thetaDiff[1] = _qd[0] * 180 / M_PI;
+
         std::cout << "Theta diff (deg): " << _thetaDiff[0] << "; " << _thetaDiff[1] << std::endl;
         std::cout << "" << std::endl;
 
@@ -220,9 +229,11 @@ void MatlabOptimization::loop(double, clock::time_point time)
             // Position control
             if (abs(_thetaDiff[i]) > _threshold[i]) {
                 _robot->joints.wrist_pronation->move_to(_theta[0] + _thetaDiff[0], 40);
-                _robot->joints.elbow_flexion->move_to(_theta[1] + _thetaDiff[1], 20);
+                _robot->joints.elbow_flexion->move_to(_theta[1] + _thetaDiff[1], 10);
                 _thetaDiff[0] = 0.;
                 _thetaDiff[1] = 0.;
+                _qd[0] = 400;
+                _qd[1] = 400;
             }
         }
 
