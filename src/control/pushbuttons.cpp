@@ -5,8 +5,6 @@
 #include "utils/log/log.h"
 #include <filesystem>
 
-#include "wiringPi.h"
-
 // indicate if optitrack is on
 #define OPTITRACK 1
 

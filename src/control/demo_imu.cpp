@@ -1,7 +1,6 @@
 #include "demo_imu.h"
 #include "utils/check_ptr.h"
 #include "utils/log/log.h"
-#include "wiringPi.h"
 #include <filesystem>
 
 DemoIMU::DemoIMU(std::shared_ptr<SAM::Components> robot)
@@ -9,11 +8,11 @@ DemoIMU::DemoIMU(std::shared_ptr<SAM::Components> robot)
     , _robot(robot)
     , _lambdaW(5)
     , _thresholdW(4. * M_PI / 180.)
-    , _pin_up(23)
-    , _pin_down(22)
-    , _pin_mode1(25)
-    , _pin_mode2(26)
-    , _pin_status(24)
+    , _pin_up(23,GPIO::DIR_INPUT,GPIO::PULL_UP)
+    , _pin_down(22,GPIO::DIR_INPUT,GPIO::PULL_UP)
+    , _pin_mode1(25,GPIO::DIR_INPUT,GPIO::PULL_UP)
+    , _pin_mode2(26,GPIO::DIR_INPUT,GPIO::PULL_UP)
+    , _pin_status(24,GPIO::DIR_INPUT,GPIO::PULL_UP)
 {
     if (!check_ptr(_robot->joints.wrist_pronation, _robot->sensors.white_imu)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
@@ -26,12 +25,6 @@ DemoIMU::DemoIMU(std::shared_ptr<SAM::Components> robot)
     _menu->add_item(_robot->joints.wrist_pronation->menu());
     if (_robot->joints.hand)
         _menu->add_item(_robot->joints.hand->menu());
-
-    pullUpDnControl(_pin_up, PUD_UP);
-    pullUpDnControl(_pin_down, PUD_UP);
-    pullUpDnControl(_pin_mode1, PUD_UP);
-    pullUpDnControl(_pin_mode2, PUD_UP);
-    pullUpDnControl(_pin_status, PUD_UP);
 }
 
 DemoIMU::~DemoIMU()
@@ -52,11 +45,11 @@ void DemoIMU::tare_IMU()
 
 void DemoIMU::displayPin()
 {
-    int pin_down_value = digitalRead(_pin_down);
-    int pin_up_value = digitalRead(_pin_up);
-    int pin_mode_value1 = digitalRead(_pin_mode1);
-    int pin_mode_value2 = digitalRead(_pin_mode2);
-    int pin_status_value = digitalRead(_pin_status);
+    int pin_down_value = _pin_down;
+    int pin_up_value = _pin_up;
+    int pin_mode_value1 = _pin_mode1;
+    int pin_mode_value2 = _pin_mode2;
+    int pin_status_value = _pin_status;
     debug() << "PinUp: " << pin_up_value;
     debug() << "PinDown: " << pin_down_value;
     debug() << "PinMode1: " << pin_mode_value1;
@@ -79,7 +72,7 @@ void DemoIMU::loop(double dt, clock::time_point time)
     double timeWithDelta = (time - _start_time).count();
     // Read pin for status
     static int prev_pin_status_value = 0;
-    int pin_status_value = digitalRead(_pin_status);
+    int pin_status_value = _pin_status;
     if (_start == false) {
         action_loop_pb();
         // do nothing by default
@@ -108,7 +101,7 @@ void DemoIMU::action_loop_imu()
     int init_cnt = 10;
 
     // Read pin for mode
-    int pin_mode_value2 = digitalRead(_pin_mode2);
+    int pin_mode_value2 = _pin_mode2;
 
     if (pin_mode_value2 == 1) {
         /// ERGONOMIC MODE
@@ -145,13 +138,13 @@ void DemoIMU::action_loop_imu()
 void DemoIMU::action_loop_pb()
 {
     // Read pin for mode
-    int pin_mode_value1 = digitalRead(_pin_mode1);
+    int pin_mode_value1 = _pin_mode1;
 
     if (pin_mode_value1 == 1) {
         /// OPEN-LOOP WITH PUSH BUTTONS
         static int prev_pin_up_value = 0, prev_pin_down_value = 0;
-        int pin_down_value = digitalRead(_pin_down);
-        int pin_up_value = digitalRead(_pin_up);
+        int pin_down_value = _pin_down;
+        int pin_up_value = _pin_up;
 
         /// WRIST
         if (pin_down_value == 1 && prev_pin_down_value == 0) {

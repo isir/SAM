@@ -6,6 +6,7 @@
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
 #include <fstream>
+#include <components/internal/gpio/gpio.h>
 
 class DemoIMU : public ThreadedLoop {
 public:
@@ -30,11 +31,11 @@ private:
     int _cnt;
     double _lambdaW;
     double _thresholdW;
-    int _pin_up; // pin buttons for open-loop
-    int _pin_down; // pin buttons for open-loop
-    int _pin_mode1; // 0 = open-loop with buttons; 1 = ergonomic with IMU
-    int _pin_mode2; // 0 = open-loop with buttons; 1 = ergonomic with IMU
-    int _pin_status; // 0 -> change status: start or stop
+    GPIO _pin_up; // pin buttons for open-loop
+    GPIO _pin_down; // pin buttons for open-loop
+    GPIO _pin_mode1; // 0 = open-loop with buttons; 1 = ergonomic with IMU
+    GPIO _pin_mode2; // 0 = open-loop with buttons; 1 = ergonomic with IMU
+    GPIO _pin_status; // 0 -> change status: start or stop
     bool _start; // indicates weither the loop is working
 };
 

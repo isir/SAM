@@ -7,6 +7,7 @@
 #include "utils/socket.h"
 #include "utils/threaded_loop.h"
 #include <fstream>
+#include <components/internal/gpio/gpio.h>
 
 class JacobianFormulationIMU_sk : public ThreadedLoop {
 public:
@@ -54,14 +55,14 @@ private:
     int _init_cnt = 10;
     int _cnt;
     double _lambda[nbLinks];
-    int _pin_up;
-    int _pin_down;
+    GPIO _pin_up;
+    GPIO _pin_down;
     double _theta[nbLinks];
     double _threshold[nbLinks];
     int _l[nbLinks];
 
     Socket _receiverArduino;
-    int _pinArduino;
+    // GPIO _pinArduino;
     unsigned int _infoSent;
 
     uint16_t _emg[2];

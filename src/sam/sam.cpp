@@ -15,12 +15,15 @@ Sensors::Sensors()
 
     int cnt = 0;
     do {
+        //auto ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu"+std::to_string(cnt), B115200);
         ng_imu = Components::make_component<NGIMU>("ng_imu", "/dev/ngimu"+std::to_string(cnt), B115200);
         if (ng_imu) {
             while(!ng_imu->is_serialnumber_available())
                 ng_imu->send_command_serial_number();
-            if (ng_imu->get_serialnumber()=="0035F6E2")
+            if (ng_imu->get_serialnumber()=="0035F6E2") {
+                //red_ngimu = std::move(ng_imu);
                 info() << "red_ngimu";
+            }
         }
         ++cnt;
     } while (!ng_imu && cnt<5);
