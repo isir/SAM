@@ -97,6 +97,7 @@ void SAManager::fill_menus()
     // _main_menu->add_submenu_from_user(_jfIMU4);
     // _main_menu->add_submenu_from_user(_recordData);
     _main_menu->add_submenu_from_user(_bretelles);
+    _main_menu->add_submenu_from_user(_robot->sensors.touchsensor);
 
     _main_menu->activate();
 }

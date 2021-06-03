@@ -35,6 +35,8 @@ Sensors::Sensors()
     if (optitrack) {
         optitrack->begin(1511);
     }
+
+    touchsensor = Components::make_component<AT42QT1070>("touch", "/dev/i2c-1");
 }
 
 UserFeedback::UserFeedback()

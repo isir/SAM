@@ -5,7 +5,8 @@ add_subdirectory(adc)
 add_subdirectory(dac)
 add_subdirectory(gpio)
 add_subdirectory(hand)
+add_subdirectory(touchsensor)
 
 add_library(internal INTERFACE)
 
-target_link_libraries(internal INTERFACE actuators adc dac gpio hand)
+target_link_libraries(internal INTERFACE actuators adc dac gpio hand touchsensor)
