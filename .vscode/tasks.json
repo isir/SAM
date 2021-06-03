@@ -57,7 +57,7 @@
 			}
 		},
 		{
-			"label": "Copy executable",
+			"label": "Deploy",
 			"type": "shell",
 			"command": "scp sam root@10.0.0.1:/opt/sam",
 			"group": "build",
@@ -66,15 +66,6 @@
 				"cwd": "${workspaceFolder}/builddir"
 			},
 			"dependsOn": "Build"
-		},
-		{
-			"label": "Deploy",
-			"group": "build",
-			"dependsOn": [
-				"SAM: copy executable",
-			],
-			"dependsOrder": "sequence",
-			"problemMatcher": []
 		},
 		{
 			"label": "Kill remote gdbserver",
@@ -87,7 +78,7 @@
 			"type": "shell",
 			"command": "gnome-terminal -- ssh -t root@10.0.0.1 gdbserver localhost:4444 /opt/sam/sam",
 			"group": "test",
-			"dependsOn": "SAM: kill remote gdbserver",
+			"dependsOn": "Kill remote gdbserver",
 			"presentation": {
 				"echo": true,
 				"reveal": "always",
