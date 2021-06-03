@@ -20,6 +20,7 @@ Cybathlon::Cybathlon(std::shared_ptr<SAM::Components> robot)
     _menu->set_code("cyb");
     _menu->add_item("init", "Initialize NG IMU", [this](std::string) { this->init_IMU(); });
     _menu->add_item("filt", "(De-)activate filtering for EMG signals", [this](std::string) { this->changeFilter(); });
+    _menu->add_item("touch", "(De-)activate touch mode", [this](std::string) { this->changeTouch(); });
 
     _menu->add_item(_robot->joints.elbow_flexion->menu());
     _menu->add_item(_robot->joints.wrist_pronation->menu());
@@ -56,6 +57,16 @@ void Cybathlon::changeFilter()
         std::cout << "Filtering is now activated" << std::endl;
     } else {
         std::cout << "Filtering is now de-activated" << std::endl;
+    }
+}
+
+void Cybathlon::changeTouch()
+{
+    _touch= !_touch;
+    if (_touch) {
+        std::cout << "Tactile mode is now activated" << std::endl;
+    } else {
+        std::cout << "Tactile mode is now de-activated" << std::endl;
     }
 }
 
@@ -225,6 +236,159 @@ void Cybathlon::processQuantumHand(int emg1, int emg2, int16_t btn_posture) {
         mode_changed_counter++;
 }
 
+void Cybathlon::processTouch()
+{
+    static int etatCourant = 0;
+    static int cnt = 0;
+    static int previous = 0;
+    int keyStatus = _robot->sensors.touchsensor->readKeyStatus();
+
+    switch (etatCourant) {
+    case 0:
+        cnt = 0;
+        previous = 0;
+        if (keyStatus==8)
+            etatCourant = 1;
+        else if (keyStatus == 2)
+            etatCourant = 5;
+        else if (keyStatus == 1)
+            etatCourant = 9;
+        else if (keyStatus == 4)
+            etatCourant = 13;
+        break;
+    case 1:
+        if (keyStatus==10)
+            etatCourant = 2;
+        else if (keyStatus != 8)
+            etatCourant = 17;
+            previous = 8;
+        break;
+    case 2:
+        if (keyStatus==2)
+            etatCourant = 3;
+        else if (keyStatus != 10)
+            etatCourant = 0;
+        break;
+    case 3:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::CO_CONTRACTION);
+            etatCourant = 0;
+        } else if (keyStatus != 2)
+            etatCourant = 0;
+        break;
+    case 4 :
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            etatCourant = 0;
+        } else if (keyStatus != 4)
+            etatCourant = 0;
+        break;
+    case 5:
+        if (keyStatus==10)
+            etatCourant = 6;
+        else if (keyStatus != 2)
+            etatCourant = 17;
+            previous = 2;
+        break;
+    case 6:
+        if (keyStatus==8)
+            etatCourant = 7;
+        else if (keyStatus != 10)
+            etatCourant = 0;
+        break;
+    case 7:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::DOUBLE_CONTRACTION);
+            etatCourant = 0;
+        } else if (keyStatus != 8)
+            etatCourant = 0;
+        break;
+    case 8:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            etatCourant = 0;
+        } else if (keyStatus != 1)
+            etatCourant = 0;
+        break;
+    case 9:
+        if (keyStatus==5)
+            etatCourant = 10;
+        else if (keyStatus != 1)
+            etatCourant = 17;
+            previous = 1;
+        break;
+    case 10:
+        if (keyStatus==4)
+            etatCourant = 11;
+        else if (keyStatus != 5)
+            etatCourant = 0;
+        break;
+    case 11:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            _robot->joints.hand_quantum->makeContraction(QuantumHand::TRIPLE_CONTRACTION);
+            etatCourant = 0;
+        } else if (keyStatus != 4)
+            etatCourant = 0;
+        break;
+    case 12:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            etatCourant = 0;
+        } else if (keyStatus != 2)
+            etatCourant = 0;
+        break;
+    case 13:
+        if (keyStatus==5)
+            etatCourant = 14;
+        else if (keyStatus != 4)
+            etatCourant = 17;
+            previous = 4;
+        break;
+    case 14:
+        if (keyStatus==1)
+            etatCourant = 15;
+        else if (keyStatus != 5)
+            etatCourant = 0;
+        break;
+    case 15:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            etatCourant = 0;
+        } else if (keyStatus != 1)
+            etatCourant = 0;
+        break;
+    case 16:
+        if (keyStatus==0) {
+            _robot->user_feedback.buzzer->makeNoise(Buzzer::SHORT_BUZZ);
+            etatCourant = 0;
+        } else if (keyStatus != 8)
+            etatCourant = 0;
+        break;
+    case 17:
+        if (cnt > 15) {
+            etatCourant = 0;
+        } else {
+            if (keyStatus==1 && previous==2) {
+                etatCourant = 8;
+            } else if (keyStatus==2 && previous==1) {
+                etatCourant = 12;
+            } else if (keyStatus==4 && previous==8) {
+                etatCourant = 4;
+            } else if (keyStatus==8 && previous==4) {
+                etatCourant = 16;
+            } else if (keyStatus==0) {
+                cnt++;
+            } else {
+                etatCourant = 0;
+            }
+        }
+        break;
+    }
+}
+
 bool Cybathlon::setup()
 {
     if (_robot->joints.elbow_flexion->is_calibrated() == false)
@@ -293,6 +457,8 @@ void Cybathlon::loop(double dt, clock::time_point time)
 
     static int16_t hand_btn;
     hand_btn = _robot->sensors.adc1->readADC_SingleEnded(0);
+    if (_touch)
+        processTouch();
 
     //CONTROL
     static int previous_value_wrist = 1;

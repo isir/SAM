@@ -22,6 +22,8 @@ private:
     void readAllADC();
     void processQuantumHand(int emg1, int emg2, int16_t btn_posture);
     void changeFilter();
+    void processTouch();
+    void changeTouch();
 
     std::shared_ptr<SAM::Components> _robot;
 
@@ -42,6 +44,8 @@ private:
     static const uint16_t _order_filter = 3;
     double _filter_coef[_order_filter+1];
     bool _filter = 1;
+
+    bool _touch = 0;
 
     std::ofstream _file;
 };
