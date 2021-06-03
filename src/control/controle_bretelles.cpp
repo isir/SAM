@@ -55,6 +55,8 @@ bool ControleBretelles::setup()
         _robot->joints.wrist_flexion->calibrate();
     }
     _robot->joints.wrist_pronation->calibrate();
+    _robot->joints.wrist_pronation->set_encoder_position(0);
+
 
     _start = false;
     _cnt = 0;
@@ -79,16 +81,24 @@ bool ControleBretelles::setup()
 
 void ControleBretelles::loop(double, clock::time_point)
 {
+    static double pronoSupEncoder = 0;
+    int keyStatus = _robot->sensors.touchsensor->readKeyStatus();
+    static int prev_pin_status_value = 1;
     while (_socket.available()) {
         std::vector<std::byte> buf = _socket.receive();
         unpack_data(buf);
         std::cout << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _cg << "\t" << _cd << "\t" <<_label << "\t" << _button << "\t" << _gain << std::endl;
     }
-    static int prev_pin_status_value = 0;
+
+    try {
+        pronoSupEncoder = _robot->joints.wrist_pronation->read_encoder_position();
+    } catch (std::runtime_error& e) {
+        std::cout << "Runtime error when reading wrist encoder: " << e.what() << std::endl;
+    }
 
     if (_mode != 0) {
         if (_start) {
-            if ((_button == 0) && (prev_pin_status_value == 1)) { // putton pressed to stop
+            if ((keyStatus==4 || _button == 0) && (prev_pin_status_value == 1)) { // button pressed to stop
                 _start = false;
                 _robot->joints.wrist_pronation->forward(0);
             } else {
@@ -107,15 +117,19 @@ void ControleBretelles::loop(double, clock::time_point)
                     std::cout << "Problem in mode selection" << std::endl;
                 }
             }
-        } else if ((_button == 0) && (prev_pin_status_value == 1)) { // putton pressed to start
-                _start = true;
-                _cnt = 0;
+        } else if ((keyStatus==4 || _button == 0) && (prev_pin_status_value == 1)) { // button pressed to start
+            _start = true;
+            _cnt = 0;
         }
-        prev_pin_status_value = _button;
+        if (keyStatus==4 || _button == 0) {
+            prev_pin_status_value = 0;
+        } else {
+            prev_pin_status_value = 1;
+        }
     }
 
     _file << _mode << "\t" << _start << "\t" << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _cg << "\t" << _cd << "\t" <<_label << "\t" << _button << "\t" << _gain;
-    _file << "\t" << _val_init[0] << "\t" << _val_init[1] << "\t" << _val_init[2]<< "\t" << _val_init[3] << "\t" << _val_init[4] << "\t" << _val_init[5];
+    _file << "\t" << _val_init[0] << "\t" << _val_init[1] << "\t" << _val_init[2]<< "\t" << _val_init[3] << "\t" << _val_init[4] << "\t" << _val_init[5] <<"\t" << pronoSupEncoder;
     _file << std::endl;
 }
 
@@ -231,12 +245,12 @@ void ControleBretelles::controle_vitesse_p() {
         calib_bretelles();
     } else {
         double speed = 0;
-        double height = (_avd+_ard)/2;
-        double height_init = (_val_init[1]+_val_init[3])/2;
+        double height = (_avg+_arg)/2;
+        double height_init = (_val_init[0]+_val_init[2])/2;
         double error = height-height_init;
-        if (error > 10)
-            speed = round(error/6);
-        else if (error < -10)
+        if (error > 40)
+            speed = round(error/5);
+        else if (error < -40)
             speed = round(error/4);
         else
             speed = 0;
@@ -255,27 +269,41 @@ void ControleBretelles::controle_2DOF() {
         double cg_diff = _cg-_val_init[4];
         double avg_diff = _avg-_val_init[0];
         double arg_diff = _arg-_val_init[2];
-        if (cg_diff<-50 && avg_diff>80) { //retraction
-            speed_wrist = 0;
-            speed_elbow = round(cg_diff/10);
-            std::cout << "retraction \t" << speed_elbow << std::endl;
-        } else if (avg_diff < -80 && arg_diff < -80) { //épaule basse
-            speed_wrist = round(avg_diff/4);
-            speed_elbow = 0;
-            std::cout << "epaule basse \t" << speed_wrist << std::endl;
-        } else if (cg_diff>50 && avg_diff<(cg_diff-50)) { //protraction
-            speed_wrist = 0;
-            speed_elbow = round(cg_diff/10);
-            std::cout << "protraction \t" << speed_elbow << std::endl;
-        } else if (cg_diff>20 && avg_diff>80 && arg_diff>50) { //haussement épaule
-            speed_wrist = round(avg_diff/4);
-            speed_elbow = 0;
-            std::cout << "epaule haute \t" << speed_wrist << std::endl;
+        static unsigned int mode_changed_counter = 0;
+        static unsigned int mode_change = 0;
+        if (mode_changed_counter > 10) {
+            mode_change = 0;
+            mode_changed_counter = 0;
         }
-
+        if (cg_diff<-50 && avg_diff>80 && mode_change != 2) { //retraction
+            speed_wrist = 0;
+            speed_elbow = round(cg_diff/8);
+            mode_change = 1;
+            mode_changed_counter = 0;
+            std::cout << "retraction \t" << speed_elbow << std::endl;
+        } else if (avg_diff<-80 && arg_diff<-80 && mode_change != 1) { //épaule basse
+            speed_wrist = round(avg_diff/4);
+            speed_elbow = 0;
+            mode_change = 2;
+            mode_changed_counter = 0;
+            std::cout << "epaule basse \t" << speed_wrist << std::endl;
+        } else if (cg_diff>50 && avg_diff<(cg_diff-50) && mode_change != 2) { //protraction
+            speed_wrist = 0;
+            speed_elbow = round(cg_diff/10);
+            mode_change = 1;
+            mode_changed_counter = 0;
+            std::cout << "protraction \t" << speed_elbow << std::endl;
+        } else if (cg_diff>20 && avg_diff>80 && arg_diff>50 && mode_change != 1) { //haussement épaule
+            speed_wrist = round(avg_diff/5);
+            speed_elbow = 0;
+            mode_change = 2;
+            mode_changed_counter = 0;
+            std::cout << "epaule haute \t" << speed_wrist << std::endl;
+        } else {
+            mode_changed_counter++;
+        }
         _robot->joints.wrist_pronation->set_velocity_safe(speed_wrist);
         _robot->joints.elbow_flexion->set_velocity_safe(speed_elbow);
-
     }
     _cnt++;
 }
@@ -306,7 +334,7 @@ void ControleBretelles::controle_vitesse_pi() {
 
 void ControleBretelles::calib_bretelles() {
     std::cout << "Please do not move" << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     int cnt = 0;
     for(int i=0;i<6;i++) {
         _val_init[i] = 0;
@@ -314,7 +342,7 @@ void ControleBretelles::calib_bretelles() {
     std::cout << "Starting to record data for calibration..." << std::endl;
 
     clock::time_point start_time = clock::now();
-    while (std::chrono::duration_cast<std::chrono::seconds>(clock::now() - start_time).count() < 5) {
+    while (std::chrono::duration_cast<std::chrono::seconds>(clock::now() - start_time).count() < 2) {
         while (_socket.available()) {
             std::vector<std::byte> buf = _socket.receive();
             unpack_data(buf);
