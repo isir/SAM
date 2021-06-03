@@ -23,7 +23,7 @@ Sensors::Sensors()
                 info() << "red_ngimu";
         }
         ++cnt;
-    } while (!ng_imu && cnt<5);
+    } while (!ng_imu && cnt<3);
 
 
     adc0 = Components::make_component<Adafruit_ADS1115>("adc0", "/dev/i2c-1", 0x48);
