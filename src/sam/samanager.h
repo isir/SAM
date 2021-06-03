@@ -18,7 +18,7 @@
 #include "control/read_adc.h"
 #include "control/recorddata.h"
 #include "control/remote_computer_control.h"
-#include "control/test_imu.h"
+#include "control/test.h"
 #include "control/voluntary_control.h"
 #include "sam/sam.h"
 #include "sam/system_monitor.h"
@@ -62,7 +62,7 @@ private:
     std::unique_ptr<ReadADC> _adc;
     std::unique_ptr<CompensationIMU> _imu;
     std::unique_ptr<Cybathlon> _cyb;
-    std::unique_ptr<TestIMU> _testimu;
+    std::unique_ptr<Test> _test;
     std::unique_ptr<ControleBretelles> _bretelles;
 
     std::unique_ptr<MenuBackend> _main_menu;

@@ -21,11 +21,11 @@ set(SOURCES
     read_adc.cpp
     remote_computer_control.cpp
     recorddata.cpp
-    test_imu.cpp
     voluntary_control.cpp
     pushbuttons.cpp
     myo_2electrodes.cpp
-    controle_bretelles.cpp)
+    controle_bretelles.cpp
+    test.cpp)
 
 add_library(control ${SOURCES})
 

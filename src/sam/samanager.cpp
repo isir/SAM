@@ -88,7 +88,7 @@ void SAManager::fill_menus()
     _main_menu->add_submenu_from_user(_imu);
     //    _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo);
-    _main_menu->add_submenu_from_user(_testimu);
+    _main_menu->add_submenu_from_user(_test);
     // _main_menu->add_submenu_from_user(_demoimu);
     // _main_menu->add_submenu_from_user(_pb);
     _main_menu->add_submenu_from_user(_myo2);
@@ -149,7 +149,7 @@ void SAManager::instantiate_controllers()
     } catch (std::exception&) {
     }
     try {
-        _testimu = std::make_unique<TestIMU>(_robot);
+        _test = std::make_unique<Test>(_robot);
     } catch (std::exception&) {
     }
 
