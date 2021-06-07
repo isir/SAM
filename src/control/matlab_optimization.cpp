@@ -199,16 +199,14 @@ void MatlabOptimization::loop(double, clock::time_point time)
     if ((_qd[0] < 400.) && (_qd[1] < 400.)) {
 
         if (protoCyb) {
-            _thetaDiff[0] = -_qd[1] * 180 / M_PI;
-            _thetaDiff[1] = _qd[0] * 180 / M_PI;
+            _thetaDiff[0] = _qd[1] * 180 / M_PI;
+            _thetaDiff[1] = -_qd[0] * 180 / M_PI;
         } else {
             _thetaDiff[0] = _qd[1] * 180 / M_PI;
             _thetaDiff[1] = _qd[0] * 180 / M_PI;
         }
-        _thetaDiff[0] = _qd[1] * 180 / M_PI;
-        _thetaDiff[1] = _qd[0] * 180 / M_PI;
 
-        std::cout << "Theta diff (deg): " << _thetaDiff[0] << "; " << _thetaDiff[1] << std::endl;
+        std::cout << "Wrist diff (deg): " << _thetaDiff[0] << "; Elbow diff (deg): " << _thetaDiff[1] << std::endl;
         std::cout << "" << std::endl;
 
         for (int i = 0; i < 2; i++) {
@@ -228,7 +226,13 @@ void MatlabOptimization::loop(double, clock::time_point time)
 
             // Position control
             if (abs(_thetaDiff[i]) > _threshold[i]) {
-                _robot->joints.wrist_pronation->move_to(_theta[0] + _thetaDiff[0], 40);
+                // virtual stops
+                if (((_theta[0] + _thetaDiff[0]) > 180) || (_theta[0] + _thetaDiff[0]) < -180)
+                    _thetaDiff[0] = 0; // no motion if angle error too high
+                if (((_theta[1] + _thetaDiff[1]) > 100) || (_theta[1] + _thetaDiff[1]) < 0)
+                    _thetaDiff[1] = 0;
+
+                _robot->joints.wrist_pronation->move_to(_theta[0] + _thetaDiff[0], 60);
                 _robot->joints.elbow_flexion->move_to(_theta[1] + _thetaDiff[1], 10);
                 _thetaDiff[0] = 0.;
                 _thetaDiff[1] = 0.;
