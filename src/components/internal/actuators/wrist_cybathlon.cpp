@@ -18,3 +18,9 @@ void WristCybathlon::set_velocity_safe(double deg_s)
 {
     set_velocity(deg_s);
 }
+
+void WristCybathlon::calibrate()
+{
+    Actuator::set_encoder_position(0);
+    Actuator::set_calibrated(true);
+}

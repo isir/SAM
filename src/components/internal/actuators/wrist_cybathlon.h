@@ -7,6 +7,7 @@ class WristCybathlon : public Actuator {
 public:
     WristCybathlon();
     void set_velocity_safe(double deg_s);
+    void calibrate();
 };
 
 #endif // WRIST_CYBATHLON_H
