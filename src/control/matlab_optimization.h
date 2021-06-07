@@ -32,7 +32,7 @@ private:
     int nbRigidBodies;
     double _theta[2], _thetaDiff[2], _thetaDot[2], _lambda[2], _threshold[2];
     double _qd[2];
-    bool saveData = false;
+    bool saveData = true;
     bool protoCyb = true;
 };
 

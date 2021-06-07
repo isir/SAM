@@ -227,13 +227,18 @@ void MatlabOptimization::loop(double, clock::time_point time)
             // Position control
             if (abs(_thetaDiff[i]) > _threshold[i]) {
                 // virtual stops
-                if (((_theta[0] + _thetaDiff[0]) > 180) || (_theta[0] + _thetaDiff[0]) < -180)
-                    _thetaDiff[0] = 0; // no motion if angle error too high
-                if (((_theta[1] + _thetaDiff[1]) > 100) || (_theta[1] + _thetaDiff[1]) < 0)
-                    _thetaDiff[1] = 0;
-
-                _robot->joints.wrist_pronation->move_to(_theta[0] + _thetaDiff[0], 60);
-                _robot->joints.elbow_flexion->move_to(_theta[1] + _thetaDiff[1], 10);
+                if ((_theta[0] + _thetaDiff[0]) > 180)
+                    _robot->joints.wrist_pronation->move_to(180, 60);
+                else if ((_theta[0] + _thetaDiff[0]) < -180)
+                    _robot->joints.wrist_pronation->move_to(-180, 60);
+                else if ((_theta[1] + _thetaDiff[1]) > 100)
+                    _robot->joints.elbow_flexion->move_to(100, 10);
+                else if ((_theta[1] + _thetaDiff[1]) < 0)
+                    _robot->joints.elbow_flexion->move_to(2, 10);
+                else {
+                    _robot->joints.wrist_pronation->move_to(_theta[0] + _thetaDiff[0], 60);
+                    _robot->joints.elbow_flexion->move_to(_theta[1] + _thetaDiff[1], 10);
+                }
                 _thetaDiff[0] = 0.;
                 _thetaDiff[1] = 0.;
                 _qd[0] = 400;
@@ -248,7 +253,7 @@ void MatlabOptimization::loop(double, clock::time_point time)
     if (saveData) {
         /// WRITE DATA
         _file << ' ' << timeWithDelta;
-        _file << ' ' << _lambda[0] << ' ' << _lambda[1];
+        // _file << ' ' << _lambda[0] << ' ' << _lambda[1];
         _file << ' ' << pronoSupEncoder << ' ' << elbowEncoder << ' ' << _theta[0] << ' ' << _theta[1];
         for (int i = 0; i < 2; i++) {
             _file << ' ' << _qd[i];
