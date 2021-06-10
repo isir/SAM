@@ -39,7 +39,7 @@ Sensors::Sensors()
 
 UserFeedback::UserFeedback()
 {
-    buzzer = std::make_unique<Buzzer>(29);
+    buzzer = std::make_unique<Buzzer>(21);
     buzzer->set_prio(90);
     buzzer->set_preferred_cpu(2);
 
