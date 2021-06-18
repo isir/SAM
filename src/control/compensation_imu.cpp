@@ -19,7 +19,7 @@ CompensationIMU::CompensationIMU(std::shared_ptr<SAM::Components> robot)
     , _lfa("_lfa(cm)", BaseParam::ReadWrite, this, 35)
     , _lsh("_lsh(cm)", BaseParam::ReadWrite, this, -20)
 {
-    if (!check_ptr(_robot->sensors.yellow_imu)) {
+    if (!check_ptr(_robot->sensors.yellow_imu, _robot->joints.elbow_flexion, _robot->joints.wrist_pronation, _robot->joints.hand)) {
         throw std::runtime_error("Compensation IMU Control is missing components");
     }
 
