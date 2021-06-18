@@ -24,6 +24,7 @@ SAManager::~SAManager()
     _menu_mqtt_binding->show_message("Exited gracefully.");
     if (_robot->user_feedback.leds)
         _robot->user_feedback.leds->set(LedStrip::none, 11);
+    _robot->joints.test_epos->CloseDevice();
     _robot->mosfet_gpio = false;
     //    if (_robot->joints.elbow_flexion) {
     //        _robot->joints.elbow_flexion->move_to(0, 20);
@@ -97,6 +98,7 @@ void SAManager::fill_menus()
     // _main_menu->add_submenu_from_user(_jfIMU4);
     // _main_menu->add_submenu_from_user(_recordData);
     _main_menu->add_submenu_from_user(_bretelles);
+    _main_menu->add_submenu_from_user(_robot->joints.test_epos);
 
     _main_menu->activate();
 }

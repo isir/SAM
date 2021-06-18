@@ -75,7 +75,7 @@ Joints::Joints()
         }
     }
 
-   // test_epos = Components::make_component<EPOS>("test_epos");
+   test_epos = Components::make_component<EPOS>("test_epos", "epos", "/dev/ttyAMA0", 1);
 }
 
 Components::Components()
