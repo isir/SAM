@@ -79,12 +79,12 @@ Joints::Joints()
 }
 
 Components::Components()
-    : mosfet_gpio(4, GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
-    , demo_gpio(28, GPIO::DIR_INPUT, GPIO::PULL_UP)
-    , adc_gpio(27, GPIO::DIR_INPUT, GPIO::PULL_UP)
-    , btn1(24, GPIO::DIR_INPUT, GPIO::PULL_UP)
-    , btn2(22, GPIO::DIR_INPUT, GPIO::PULL_UP)
-    , btn3(25, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    : mosfet_gpio(23, GPIO::DIR_OUTPUT, GPIO::PULL_DOWN)
+    , demo_gpio(20, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , adc_gpio(16, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn1(19, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn2(6, GPIO::DIR_INPUT, GPIO::PULL_UP)
+    , btn3(26, GPIO::DIR_INPUT, GPIO::PULL_UP)
 {
 }
 }
