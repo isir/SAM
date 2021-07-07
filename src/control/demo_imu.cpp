@@ -77,6 +77,7 @@ void DemoIMU::loop(double dt, clock::time_point time)
 {
 
     double timeWithDelta = (time - _start_time).count();
+    std::cout << timeWithDelta << std::endl;
     // Read pin for status
     static int prev_pin_status_value = 0;
     int pin_status_value = digitalRead(_pin_status);
@@ -155,9 +156,9 @@ void DemoIMU::action_loop_pb()
 
         /// WRIST
         if (pin_down_value == 1 && prev_pin_down_value == 0) {
-            _robot->joints.wrist_pronation->backward(40);
+            _robot->joints.wrist_pronation->backward(80);
         } else if (pin_up_value == 1 && prev_pin_up_value == 0) {
-            _robot->joints.wrist_pronation->forward(40);
+            _robot->joints.wrist_pronation->forward(80);
         } else if ((pin_down_value == 0 && pin_up_value == 0) && (prev_pin_down_value == 1 || prev_pin_up_value == 1)) {
             _robot->joints.wrist_pronation->forward(0);
         }
