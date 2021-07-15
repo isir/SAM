@@ -8,7 +8,7 @@
 #include <filesystem>
 
 ControleBretelles::ControleBretelles(std::shared_ptr<SAM::Components> robot)
-    : ThreadedLoop("matlab_receiver", 0.01)
+    : ThreadedLoop("controle_bretelles", 0.01)
     , _robot(robot)
     , _start_button(24)
 {
@@ -87,7 +87,7 @@ void ControleBretelles::loop(double, clock::time_point)
     while (_socket.available()) {
         std::vector<std::byte> buf = _socket.receive();
         unpack_data(buf);
-        std::cout << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _cg << "\t" << _cd << "\t" <<_label << "\t" << _button << "\t" << _gain << std::endl;
+        std::cout << _avg << "\t" << _avd << "\t" << _arg << "\t" << _ard << "\t" << _cg << "\t" << _cd << "\t" <<_label << "\t" << _button << "\t" << prev_pin_status_value << "\t" << _gain << std::endl;
     }
 
     try {
@@ -98,7 +98,8 @@ void ControleBretelles::loop(double, clock::time_point)
 
     if (_mode != 0) {
         if (_start) {
-            if ((keyStatus==4 || _button == 0) && (prev_pin_status_value == 1)) { // button pressed to stop
+            // if ((keyStatus==4 || _button == 0) && (prev_pin_status_value == 1)) { // button pressed to stop
+            if (_button == 0 && (prev_pin_status_value == 1)) { // button pressed to stop
                 _start = false;
                 _robot->joints.wrist_pronation->forward(0);
             } else {
@@ -117,11 +118,13 @@ void ControleBretelles::loop(double, clock::time_point)
                     std::cout << "Problem in mode selection" << std::endl;
                 }
             }
-        } else if ((keyStatus==4 || _button == 0) && (prev_pin_status_value == 1)) { // button pressed to start
+        //} else if ((keyStatus==4 || _button == 0) && (prev_pin_status_value == 1)) { // button pressed to start
+        } else if (_button == 0 && (prev_pin_status_value == 1)) { // button pressed to start
             _start = true;
             _cnt = 0;
         }
-        if (keyStatus==4 || _button == 0) {
+        //if (keyStatus==4 || _button == 0) {
+        if (_button == 0) {
             prev_pin_status_value = 0;
         } else {
             prev_pin_status_value = 1;
