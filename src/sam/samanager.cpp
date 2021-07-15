@@ -89,6 +89,7 @@ void SAManager::fill_menus()
     //    _main_menu->add_submenu_from_user(_opti);
     _main_menu->add_submenu_from_user(_demo);
     _main_menu->add_submenu_from_user(_test);
+    _main_menu->add_submenu_from_user(_hololens);
     // _main_menu->add_submenu_from_user(_demoimu);
     // _main_menu->add_submenu_from_user(_pb);
     _main_menu->add_submenu_from_user(_myo2);
@@ -152,7 +153,10 @@ void SAManager::instantiate_controllers()
         _test = std::make_unique<Test>(_robot);
     } catch (std::exception&) {
     }
-
+    try {
+        _hololens = std::make_unique<Hololens>(_robot);
+    } catch (std::exception&) {
+    }
     try {
         _jfOpti = std::make_unique<JacobianFormulationOpti>(_robot);
     } catch (std::exception&) {

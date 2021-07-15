@@ -25,7 +25,8 @@ set(SOURCES
     pushbuttons.cpp
     myo_2electrodes.cpp
     controle_bretelles.cpp
-    test.cpp)
+    test.cpp
+    hololens.cpp)
 
 add_library(control ${SOURCES})
 
