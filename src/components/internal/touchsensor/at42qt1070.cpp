@@ -29,7 +29,7 @@ AT42QT1070::AT42QT1070(const char* deviceName)
 
     _menu->add_item("read", "Read Key Status", [this](std::string) {std::cout << readKeyStatus()<< std::endl; });
     _menu->add_item("calib", "Calibrate", [this](std::string) {calibrate(); });
-    _menu->add_item("reset", "Reset", [this](std::string) {reset(); });
+    _menu->add_item("reset", "Reset", [this](std::string) {init(); });
     _menu->add_item("status", "Read detection status", [this](std::string) {std::cout << readDetectionStatus() << std::endl;});
 
     init();

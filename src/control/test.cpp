@@ -10,6 +10,7 @@ Test::Test(std::shared_ptr<SAM::Components> robot)
 {
     _menu->set_description("Test");
     _menu->set_code("test");
+    _menu->add_item(_robot->sensors.touchsensor->menu());
 }
 
 Test::~Test()
