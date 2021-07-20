@@ -51,7 +51,6 @@ UserFeedback::UserFeedback()
 
 Joints::Joints()
 {
-
     shoulder_medial_rotation = Components::make_component<ShoulderRotator>("shoulder_medial_rotation");
     elbow_flexion = Components::make_component<CustomElbow>("elbow_v2");
     wrist_pronation = Components::make_component<WristRotator>("wrist_pronation_v2");
@@ -75,7 +74,8 @@ Joints::Joints()
         }
     }
 
-   test_epos = Components::make_component<EPOS>("test_epos", "epos", "/dev/ttyAMA0", 1);
+   //epos1 = Components::make_component<EPOS>("epos1", "epos1", "/dev/ttyAMA0", 1);
+   //epos2 = Components::make_component<EPOS>("epos2", "epos2", "USB1", 1);
 }
 
 Components::Components()

@@ -25,6 +25,7 @@ public:
     int PrintAvailablePorts(char* p_pInterfaceNameSel);
     int stop();
     int PrepareDemo(unsigned int* eErrorCode);
+    void GetBaudRate();
 
 protected:
     virtual void on_exit(){};

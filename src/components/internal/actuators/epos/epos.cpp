@@ -7,22 +7,26 @@ EPOS::EPOS(std::string name, std::string portName, unsigned short nodeId)
     , _name(name)
     , _usNodeId(nodeId)
     , _deviceName("EPOS4")
-    , _protocolStackName("MAXON_RS232") //MAXON_RS232, CANopen ou MAXON SERIAL V2
+    , _protocolStackName("MAXON SERIAL V2") //MAXON_RS232, CANopen ou MAXON SERIAL V2
     , _interfaceName("RS232") //RS232, USB, CAN_ixx_usb, CAN_kvaser_usb 0, etc.
     , _portName(portName) //COM1, USB0, CAN0, etc.
-    , _baudrate(1000000)
+    , _baudrate(115200)
 {
-    _menu->set_description("EPOS4");
-    _menu->set_code("epos");
+    _menu->set_description("EPOS4 "+ name);
+    _menu->set_code(name);
 
     if(OpenDevice() == MMC_SUCCESS) {
-    _menu->add_item("s", "Stop", [this](std::string) { stop(); });
-    _menu->add_item("g", "Go to", [this](std::string args) {if (args.length() > 0) move_to(std::stol(args)); });
-    _menu->add_item("v", "Set velocity (deg/s)", [this](std::string args) {if (args.length() > 0) set_velocity(std::stol(args)); });
+        //unsigned int errorCode;
+        //if(PrepareDemo(&errorCode) == MMC_SUCCESS ) {
+            _menu->add_item("s", "Stop", [this](std::string) { stop(); });
+            _menu->add_item("g", "Go to", [this](std::string args) {if (args.length() > 0) move_to(std::stol(args)); });
+            _menu->add_item("v", "Set velocity (deg/s)", [this](std::string args) {if (args.length() > 0) set_velocity(std::stol(args)); });
+        //}
     } else {
         std::cout<<"Unable to open EPOS device"<< std::endl;
     }
     _menu->add_item("l", "List available interfaces", [this](std::string) { PrintAvailableInterfaces(); });
+    _menu->add_item("b", "Get available baudrates", [this](std::string) {GetBaudRate();});
 }
 
 EPOS::~EPOS(){}
@@ -60,6 +64,7 @@ int EPOS::OpenDevice()
             {
                 if(VCS_GetProtocolStackSettings(_keyHandle, &lBaudrate, &lTimeout, &errorCode)!=0)
                 {
+                    std::cout << lBaudrate << std::endl;
                     if(_baudrate==lBaudrate)
                     {
                         lResult = MMC_SUCCESS;
@@ -301,4 +306,30 @@ int EPOS::PrepareDemo(unsigned int* errorCode)
 		}
 	}
 	return lResult;
+}
+
+void EPOS::GetBaudRate()
+{
+    char* pDeviceName = new char[255];
+    char* pProtocolStackName = new char[255];
+    char* pInterfaceName = new char[255];
+    char* pPortName = new char[255];
+
+    strcpy(pDeviceName, _deviceName.c_str());
+    strcpy(pProtocolStackName, _protocolStackName.c_str());
+    strcpy(pInterfaceName, _interfaceName.c_str());
+    strcpy(pPortName, _portName.c_str());
+
+    unsigned int baudrateSel;
+    int endOfSelection = false;
+    unsigned int errorCode = 0;
+
+    if(VCS_GetBaudrateSelection(pDeviceName, pProtocolStackName, pInterfaceName, pPortName, true, &baudrateSel, &endOfSelection, &errorCode))
+    {
+        while(!endOfSelection)
+        {
+            VCS_GetBaudrateSelection(pDeviceName, pProtocolStackName, pInterfaceName, pPortName, false, &baudrateSel, &endOfSelection, &errorCode);
+            std::cout << baudrateSel << std::endl;
+        } 
+    }
 }

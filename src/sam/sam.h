@@ -82,7 +82,8 @@ public:
     std::unique_ptr<TouchBionicsHand> hand;
     std::unique_ptr<QuantumHand> hand_quantum;
 
-    std::unique_ptr<EPOS> test_epos;
+    std::unique_ptr<EPOS> epos1;
+    std::unique_ptr<EPOS> epos2;
 };
 
 class Components {
