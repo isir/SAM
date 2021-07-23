@@ -16,7 +16,10 @@ private:
     void loop(double dt, clock::time_point time) override;
     void cleanup() override;
 
-    OscError processData(OscMessage oscMessage);
+    OscError sendIntMessage(int number, struct sockaddr addr);
+    OscError sendOscContents(OscMessage oscContents, struct sockaddr addr);
+
+    OscError processData(OscMessage oscMessage, struct sockaddr addr);
 
     std::shared_ptr<SAM::Components> _robot;
     Socket _socket;
